@@ -1,21 +1,17 @@
 # Progress
 
-**Stage:** C — Server (`server/`). Stages A done, B harness running.
-**Last verified checkpoint:** server runs (`pnpm start`, Docker image):
-Hono HTTP routes per system-design.md §14.2, scrypt accounts and hashed
-sessions, SQLite (WAL, FULL sync, numbered migrations), command log with
-durable insert before swap, snapshots every 60 s and on SIGTERM, replay on
-boot, seasons starting on first arrival, WebSocket hub with the 500 ms tick
-and per-client vision-filtered diffs, `/readme/` rendered by `marked`.
-`pnpm check` green against the container (53 tests); `server/server.test.ts`
-proves two sockets see one command within 1 s and a restart loses nothing.
-**Next:** black-box `spec/` checks from system-design.md §13 against the
-running app (real-time, persists, accounts, isolation, fog, idempotency,
-reasons). Then the Stage D slice (a DOM client at `client/client.js`), the
-README (400 to 600 words) and PROCESS.md for Crit 8.
-**Crit 8 is next week**:
-Stage A done, Stage B harness running, Stage C full, Stage D slice (see
-"Crit calendar" in `build-process.md`).
+**Stage:** D — Minimal client (slice for Crit 8). A done, B harness
+running, C done.
+**Last verified checkpoint:** Stage C exit criteria met: `pnpm check` green
+against the Docker image (spec invariants + `spec/game.test.ts`: real-time
+<1 s, persists, accounts, isolation, fog, idempotency, reasons);
+`server/server.test.ts` also proves persistence across a restart.
+**Next:** Crit 8 (live spec, crits/08-its-alive): a stranger can visit, do
+the core thing, and find their trace when they come back. So: a DOM client
+at `client/client.js` (welcome/tick state, stocks, regions, join, build,
+research, train, launch, colonise), then README (what good means, 400-600
+words) at `/readme/`, PROCESS.md, deploy to fly.dev, repo public at cutoff.
+`reflections/crit-8.md` is the user's to write.
 **Flagged assumptions** (numbers missing from `game-design.md`, all in
 `rules/data/`, sim-tunable):
 - Envoy upkeep 3 E/min (`economy.ts`).
@@ -44,6 +40,7 @@ Stage A done, Stage B harness running, Stage C full, Stage D slice (see
 - An Envoy recalls when its owner's Energy stock runs dry.
 - Sim "dead time" counts decision points where no build, research, train,
   ship, launch, colonise, invade, march, war, Envoy or trade-accept is legal.
+- A nation choosing its start sees Earth start-region owners (documented).
 - Respawn resets stocks to the starting kit.
 - Off-Earth region names and asteroid J2000 longitudes are invented or
   approximate (`map.ts`).
