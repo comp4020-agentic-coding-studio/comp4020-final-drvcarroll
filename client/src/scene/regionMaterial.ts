@@ -82,10 +82,12 @@ const fragment = /* glsl */ `
     vec3 tint = tints[i1];
     vec3 col = mix(surface, tint * (0.55 + 0.45 * g), own * 0.6);
 
-    float edge = count > 1 ? 1.0 - smoothstep(0.0, 0.018, b1 - b2) : 0.0;
-    float glow = count > 1 ? 1.0 - smoothstep(0.0, 0.07, b1 - b2) : 0.0;
+    // Border width in screen pixels, so lines stay crisp at every zoom.
+    float w = fwidth(b1 - b2);
+    float edge = count > 1 ? 1.0 - smoothstep(0.0, w * (own > 0.0 ? 2.2 : 1.2), b1 - b2) : 0.0;
+    float glow = count > 1 ? 1.0 - smoothstep(0.0, 0.06, b1 - b2) : 0.0;
     vec3 line = own > 0.0 ? tint * 1.6 + 0.2 : vec3(0.72, 0.8, 0.9);
-    col = mix(col, line, edge * (own > 0.0 ? 0.95 : 0.5));
+    col = mix(col, line, edge * (own > 0.0 ? 0.95 : 0.45));
     col += line * glow * own * 0.18;
 
     if (i1 == hover) col += 0.12;

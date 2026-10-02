@@ -4,13 +4,13 @@ import { useEffect } from "preact/hooks";
 import { REGIONS } from "../../../rules/data/index.ts";
 import { myNation, selRegion, world } from "../store.ts";
 import { Action, Chip } from "./common.tsx";
-import { focusOn } from "./SceneHost.tsx";
+import { focusOn, scene } from "./SceneHost.tsx";
 
 export function StartPanel() {
   const w = world.value!;
   const eliminated = myNation.value?.eliminated;
   useEffect(() => {
-    const t = setTimeout(() => focusOn("earth"), 400);
+    const t = setTimeout(() => scene.value?.flyTo("earth"), 400); // camera only; keeps any pick
     return () => clearTimeout(t);
   }, []);
   const owner = (id: string) => w.regions.find((r) => r.id === id)?.owner;

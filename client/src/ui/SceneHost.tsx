@@ -55,6 +55,7 @@ export function SceneHost() {
     const s = new GameScene(canvas.current!, labels.current!);
     s.onPick = picked;
     s.onBack = back;
+    s.onFleet = selectFleet;
     scene.value = s;
     (window as unknown as { scene: GameScene }).scene = s;
     return () => {

@@ -7,6 +7,7 @@ import { MapControls } from "three/addons/controls/MapControls.js";
 import { BODIES, REGIONS } from "../../../rules/data/index.ts";
 import { me, nations, offset, season, selBody, selRegion, world } from "../store.ts";
 import { moonDistance, orbitRadius, position, regionAt, seeds, SIZE, sphereOf, SPHERES, type V3 } from "./layout.ts";
+import { FleetLayer } from "./fleets.ts";
 import { LOOK, regionMaterial } from "./regionMaterial.ts";
 
 const SYSTEM_VIEW = { target: new THREE.Vector3(0, 0, 0), offset: new THREE.Vector3(0, 620, 560) };
@@ -35,9 +36,11 @@ export class GameScene {
   focus: string | null = null;
   onPick: (body: string, region: string | null) => boolean = () => true; // false: don't fly there
   onBack: () => boolean = () => false; // true if the HUD handled Esc
+  onFleet: (id: string) => void = () => {};
 
   private views = new Map<string, BodyView>();
   private orbits: { line: THREE.LineLoop; base: number }[] = [];
+  private fleets: FleetLayer;
   private regionLabels = new Map<string, HTMLElement>();
   private flight: Flight | null = null;
   private lastFocusPos = new THREE.Vector3();
@@ -62,6 +65,7 @@ export class GameScene {
     this.controls.addEventListener("start", () => (this.flight = null));
 
     this.buildSpace();
+    this.fleets = new FleetLayer(this.scene);
     for (const id of SPHERES) this.buildBody(id);
     this.bindInput(canvas);
     this.stop.push(effect(() => this.paintOwners()));
@@ -168,16 +172,26 @@ export class GameScene {
 
   // --- camera -------------------------------------------------------------------
 
-  select(body: string, region: string | null): void {
+  // From the HUD a region turns to face you; a click on the globe leaves the
+  // camera be, so neighbouring regions stay easy to click.
+  select(body: string, region: string | null, face = true): void {
     const sphere = sphereOf(body);
     const close = this.camera.position.distanceTo(this.bodyPos(sphere)) < SIZE[sphere] * GLOBE_DRAG;
-    if (this.onPick(body, region) && (this.focus !== sphere || !close)) this.flyTo(sphere);
+    if (!this.onPick(body, region)) return;
+    const seed = region && face ? seeds(sphere).find((x) => x.region === region) : undefined;
+    if (seed) this.flyTo(sphere, v3(seed.dir));
+    else if (this.focus !== sphere || !close) this.flyTo(sphere);
   }
 
-  flyTo(sphere: string | null): void {
+  // Eases to a body (or the whole system); `face` turns a surface point to you.
+  flyTo(sphere: string | null, face?: THREE.Vector3): void {
     const cur = this.camera.position.clone().sub(this.controls.target);
     let toOffset: THREE.Vector3;
-    if (sphere) {
+    if (sphere && face) {
+      const d = this.camera.position.distanceTo(this.bodyPos(sphere));
+      const keep = d < SIZE[sphere] * GLOBE_DRAG ? cur.length() : SIZE[sphere] * 4.2;
+      toOffset = face.clone().normalize().add(new THREE.Vector3(0, 0.25, 0)).normalize().multiplyScalar(keep);
+    } else if (sphere) {
       // From the sunlit side, a little off-axis so the terminator shows.
       const sun = this.bodyPos(sphere).negate().setY(0).normalize();
       const side = new THREE.Vector3(-sun.z, 0, sun.x);
@@ -298,12 +312,15 @@ export class GameScene {
   }
 
   private click(e: PointerEvent): void {
+    const r = this.renderer.domElement.getBoundingClientRect();
+    const fleet = this.fleets.pick(e.clientX - r.left, e.clientY - r.top, this.camera, r.width, r.height);
+    if (fleet) return this.onFleet(fleet);
     const h = this.hit(e.clientX, e.clientY);
     if (!h) return;
     const close = this.camera.position.distanceTo(this.bodyPos(h.body)) < SIZE[h.body] * GLOBE_DRAG;
     if (!close || !h.dir) return this.select(h.body, null);
     const region = regionAt(h.body, h.dir);
-    this.select(REGIONS[region].body, region);
+    this.select(REGIONS[region].body, region, false);
   }
 
   // --- per frame -------------------------------------------------------------------
@@ -372,6 +389,7 @@ export class GameScene {
     this.controls.touches.ONE = globe ? THREE.TOUCH.ROTATE : THREE.TOUCH.PAN;
     this.controls.update();
 
+    this.fleets.update(this.now(), this.start(), this.camera);
     this.hover();
     this.labels();
     this.renderer.render(this.scene, this.camera);
