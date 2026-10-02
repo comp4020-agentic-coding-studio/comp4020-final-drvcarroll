@@ -49,7 +49,7 @@ const join: Handler<"join"> = (s, n, c) => {
   const respawn = n.joined && n.eliminated;
   if (n.joined && !respawn) return no("INVALID", "You have already joined");
   if (!respawn && s.t - s.season.startedAt > SEASON.lateJoinCutoffS * 1000) {
-    return no("SEASON_OVER", "Joining closes at minute 50");
+    return no("SEASON_OVER", `Joining closes at minute ${SEASON.lateJoinCutoffS / 60}`);
   }
   const r = s.regions[c.region];
   if (!r) return no("INVALID", "Unknown region");

@@ -5,6 +5,7 @@ import { check } from "./commands.ts";
 import type { Command, Id, Ms, Rejection } from "./protocol.ts";
 import type { State } from "./state.ts";
 
+export { legalActions, observe } from "./observe.ts";
 export { newSeason, type State } from "./state.ts";
 export type * from "./protocol.ts";
 

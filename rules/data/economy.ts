@@ -57,5 +57,6 @@ export const ECONOMY = {
     stocks: { E: 500, M: 200, V: 100, A: 30, R: 30, Mt: 50 } as Record<Resource, number>,
   },
   exchangeRate: 3, // Earth Exchange: give 3, get 1
+  exchangeLot: 30, // the amount legalActions offers
   envoyUpkeepE: 3, // per minute; flagged: not given in game-design.md
 };

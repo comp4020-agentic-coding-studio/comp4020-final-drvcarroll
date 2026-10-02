@@ -1,22 +1,17 @@
 # Progress
 
-**Stage:** A — Rules engine and data (`rules/`)
-**Last verified checkpoint:** `rules/data/` holds every number; the engine
-core is in: `apply`/`advanceTo`/`validate` (`rules/index.ts`), rates and the
-shortfall rule (`economy.ts`), the analytic event loop with depletion events
-(`advance.ts`), scores and season end, and the economy commands (setEmpire,
-join, build, demolish, cancelBuild, setMode, research, cancelResearch,
-train). Orbits and fleets (`orbit.ts`, `fleets.ts`): positions, Hohmann
-time, window penalty, launch energy, buildShip, launch, arrival with the
-first-arrival colonise rule. War (`war.ts`): declare/activate/peace,
-protection, Lanchester space combat on arrival, activation and ship
-completion, invasion with orbital superiority, ground combat by march,
-capital moves, elimination, respawn. Trade and Envoys (`trade.ts`): offers
-escrowed on accept, gifts, Earth Exchange, Trade Multiplier, Envoy slots
-and upkeep. Every command in system-design.md §14.5 has a handler. Tests
-green: stocks never negative, deterministic replay, combat outcomes.
-**Next:** `observe` (vision filter per §11: sensors, Envoys, own) and
-`legalActions`; that closes Stage A. Then Stage B's bot harness. **Crit 8 is next week**:
+**Stage:** B — Headless sim and balance (`sim/`). Stage A done.
+**Last verified checkpoint:** Stage A exit criteria met (`pnpm test:rules`,
+46 tests): `apply`/`advanceTo`/`observe`/`legalActions` (plus `validate`)
+are pure and exported from `rules/index.ts`; every balance number lives in
+`rules/data/`; stocks never go negative, replay is deterministic (also
+through a JSON snapshot), Lanchester combat has no randomness. Every
+command in system-design.md §14.5 is implemented; `observe` applies the
+§11 vision filter (sensors, Envoys, fog).
+**Next:** Stage B: `sim/` runner jumping between decision points, the six
+bot archetypes (Expander, Builder, Trader, Conqueror, Researcher, Random),
+`pnpm sim:test` reporting every balance target in game-design.md §13 with
+real numbers (tuning is Stage G). Then Stage C (server). **Crit 8 is next week**:
 Stage A done, Stage B harness running, Stage C full, Stage D slice (see
 "Crit calendar" in `build-process.md`).
 **Flagged assumptions** (numbers missing from `game-design.md`, all in
