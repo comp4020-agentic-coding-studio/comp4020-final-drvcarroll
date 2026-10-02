@@ -53,6 +53,11 @@ every session.
   unit: a building implemented and its test, not "implement all buildings."
   The message cites the goal or doc section it serves, the way the doc
   commits so far have.
+- **Commit as you go.** Commit each unit the moment its test goes green,
+  before starting the next. Work never piles up uncommitted across units,
+  and a session never ends with tested work uncommitted: the commit history
+  is the build's progress record, and an uncommitted unit is lost to the
+  next session. Stage files by name; leave the user's own edits out.
 - **Update the ledger at the end of each unit**, not after every file edit —
   after each piece that's complete and tested. Terse: stage, checkpoint,
   next, any flagged assumptions. It's a pointer for the next session, not a

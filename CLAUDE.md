@@ -56,5 +56,9 @@ Standing rules, every stage:
   Simulated goals get `sim/`.
 - Commit atomically, one tested unit at a time, citing the goal or doc
   section it serves.
+- **Commit as you go.** Commit each unit the moment its test is green,
+  before starting the next one. Never batch units or leave tested work
+  uncommitted at the end of a session. Stage files by name; leave the
+  user's own uncommitted edits out.
 - Docs and code never drift: if reality disagrees with a doc, fix the doc in
   the same commit.
