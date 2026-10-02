@@ -124,6 +124,8 @@ viewports and keyboard-only, before spending any effort on how it looks.
 client, at 1920×1080 and 390×844, keyboard-only; P1's "first build queued
 < 30 s" is achievable using it.
 **Serves:** P1, P2, P7 (functionally; visually comes next), P9.
+**Crit 8 only needs a slice of this** — see the crit calendar below; full
+viewport/keyboard completeness is the Crit 9 bar, not Crit 8's.
 
 ### E. Rendering (Three.js, `game-design.md` §12)
 
@@ -153,6 +155,25 @@ occasionally a short LLM playtest), read the numbers, change one value in
 `rules/data/`, rerun, record before/after in `docs/balance-log.md`. Runs
 short (15–20 simulated minutes by default, per §13) to stay cheap. Revisit
 after any change to `rules/data/`, not on a schedule.
+
+## Crit calendar (hard deadlines)
+
+Stages above are dependency-ordered; crits are calendar-forced and don't wait
+for a stage to fully finish. Each row is the bar for that date — a **subset**
+of the relevant stage's exit criteria where there isn't time for all of it,
+never a replacement for it. Whatever doesn't make a crit's bar still has to
+be hit eventually; it just slips to the next one.
+
+| Crit | When | Bar to clear | Stages |
+|---|---|---|---|
+| **Crit 8 — "It's alive!"** | Next week | Stage A done. Stage B: harness running and reporting real numbers — they don't need to be tuned yet. Stage C: full exit criteria, no slipping this one — "backend polished" means the server, persistence and protocol are actually right. Stage D: only as far as the core loop being clickable through *some* client and displayable at the crit — not yet keyboard-complete, not yet both viewports, not styled. First `README.md` (400–600 words) live at `/readme/`. First `PROCESS.md`. | A, B (partial), **C (full)**, D (slice) |
+| **Crit 9 — "All at once"** | Week 10 | Real-time fully wired end to end, not just the protocol — the client reflects it live. Stage D's full exit criteria: both viewports, keyboard-only. One documented decision on multi-user contention behaviour (system-design.md §5's ordering rule already is that decision — cite it, don't re-decide it). | **D (full)** |
+| **Crit 10 — "Fly by instruments"** | Week 11 | Stage F done: logging, `/admin` live view. Stage E substantially in, since crit 10 is also where visuals get judged. | E, **F** |
+| **Target: done** | End of week 12 | Self-imposed, ahead of the real deadline (noon Mon 9 Nov 2026) on purpose — a buffer, not a guess at the actual due date. Stage G's numbers in a reasonable place (never "finished" — that's the point of a loop). Final `README.md`/`PROCESS.md` pass, everything deployed and green. | G, polish |
+
+A DOM client that correctly does everything beats a prettier one that's
+missing commands — Stage E (rendering) is explicitly not a Crit 8
+requirement, and skipping it for Crit 8 is sequencing, not a scope cut.
 
 ## The ledger: `docs/progress.md`
 
