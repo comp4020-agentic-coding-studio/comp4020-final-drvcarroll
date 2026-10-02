@@ -334,6 +334,25 @@ payoff always lands in Economy score, the same place a Mine's does.
 5. **Earth Exchange:** NPC market at a flat 3:1, so two players alone (the
    marker's case) still have a working economy.
 
+### Trade Multiplier
+
+An Envoy (§11) is an embassy at another nation's capital, and it opens a
+trade corridor as well as a sightline. If either nation in an **Offer** trade
+maintains an active Envoy on the other, both sides' deliveries on that trade
+are scaled up:
+
+```
+multiplier = 1 + 0.15 × Science rungs held by whichever side maintains the Envoy
+           (the higher of the two, if both maintain one on each other)
+```
+
+Roughly ×1 with no Science investment up to ×1.9 at a full Science ladder —
+first pass, sim-tunable (§13). A trade of 4 Energy for 8 Metal between two
+Envoy-linked, Science-heavy nations lands closer to 8 Energy for 16 Metal:
+the corridor rewards diplomacy, not just the goods themselves. It does not
+apply to **Gift** (nothing to multiply both sides of) or the **Earth
+Exchange** (no capital to send an Envoy to).
+
 ## 10. Victory: seasons
 
 | Category | Measure | Points |
@@ -383,15 +402,19 @@ two of three can).
 - **Fog of war:** everywhere else renders exactly like unclaimed space: blank.
   There is no "last known owner," no ghost icon for a fleet that left. If you
   can currently see it, you see it; if you can't, nothing is shown at all.
-- **Envoy:** unlocked by Science's Signals Intelligence rung. An active Envoy
-  costs a flat **Energy upkeep per minute** to maintain at a target body (not
-  a one-off payment — stop paying and it lapses) and gives live vision of
-  that body's **fleets and territory**, but never its buildings. One Envoy
-  slot at a time until Society's Signal Relays and Post-scarcity Economy
-  rungs each add one more.
-- This is deliberately asymmetric: sensors (from ownership) are total;
-  Envoys (bought with Energy) are partial. Buying full-fidelity intel always
-  means taking the ground yourself.
+- **Envoy:** unlocked by Science's Signals Intelligence rung. An Envoy is
+  sent to a **target nation's capital**, not a single body, and costs a flat
+  **Energy upkeep per minute** to maintain (not a one-off payment — stop
+  paying and it recalls itself). While active it gives live, **empire-wide**
+  vision of that nation's **fleets and territory**, across every body it
+  currently holds, but never any of its buildings. A nation's capital
+  (which region it is, not what's built there) is globally public, so it can
+  be targeted. One Envoy relationship at a time until Society's Signal Relays
+  and Post-scarcity Economy rungs each add one more.
+- This is deliberately asymmetric: sensors (from ownership) are total but
+  local; Envoys (bought with Energy) are partial but empire-wide. Buying
+  full-fidelity intel on a specific body always means taking the ground
+  yourself. An Envoy also opens a trade corridor with its target (§9).
 
 ### Onboarding
 
@@ -455,17 +478,17 @@ allows. All rendering is client-side; the server never draws.
 ### The mechanics on screen
 
 - **Ownership:** regions you can currently see filled with the owner's colour,
-  borders as glowing lines. A region you have neither a sensor nor an Envoy
-  on renders flat and unlit, identical to unclaimed space — the map never
-  hints at what it isn't showing you.
+  borders as glowing lines. A region on a body you have no sensor on, whose
+  owner you have no Envoy on, renders flat and unlit, identical to unclaimed
+  space — the map never hints at what it isn't showing you.
 - **Economy you can see:** city lights on the night side grow with each
   building in a sensed region.
 - **Launch windows:** a phase-angle gauge per destination, green in the window.
 - **Fleets:** glowing icons on their Hohmann arc, with trail and ETA, for
   fleets you currently have vision on only; nothing is drawn for a fleet
   outside sensor and Envoy range, not even a stale marker.
-- **Envoys:** a small beacon icon on a body where you hold an active Envoy,
-  visible only to you.
+- **Envoys:** a small beacon on a nation's capital where you hold an active
+  Envoy, visible only to you.
 - **Battles:** flashes in orbit and a ticker entry with the Lanchester result.
 - **Buildings:** icons pinned on the region, not 3D models.
 
