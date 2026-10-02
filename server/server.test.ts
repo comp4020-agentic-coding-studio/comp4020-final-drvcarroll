@@ -2,10 +2,8 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { WebSocket } from "ws";
+import { Client, api, type Msg } from "../spec/helpers.ts";
 import { start, type Running } from "./app.ts";
-
-type Msg = Record<string, any>;
 
 let running: Running | undefined;
 afterEach(async () => {
@@ -14,54 +12,10 @@ afterEach(async () => {
 });
 
 const boot = async (dataDir: string) => (running = await start({ port: 0, dataDir }));
-const url = (p: string) => `http://127.0.0.1:${running!.port}${p}`;
-
-async function account(username: string, empire?: string): Promise<string> {
-  const post = (path: string, body: object, cookie = "") =>
-    fetch(url(path), { method: "POST", headers: { "content-type": "application/json", cookie }, body: JSON.stringify(body) });
-  let res = await post("/api/signup", { username, password: "correct horse" });
-  if (res.status === 409) res = await post("/api/login", { username, password: "correct horse" });
-  expect(res.ok).toBe(true);
-  const cookie = res.headers.get("set-cookie")!.split(";")[0];
-  if (empire) {
-    const primary = `#${(username.length * 40).toString(16).padStart(2, "0")}3355`;
-    expect((await post("/api/empire", { name: empire, primary, secondary: "#ffffff" }, cookie)).status).toBe(200);
-  }
-  return cookie;
-}
-
-class Client {
-  msgs: Msg[] = [];
-  closed?: number;
-  ws: WebSocket;
-  constructor(cookie: string) {
-    this.ws = new WebSocket(url("/ws").replace("http", "ws"), { headers: { cookie, origin: url("") } });
-    this.ws.on("message", (d) => this.msgs.push(JSON.parse(String(d))));
-    this.ws.on("close", (code) => (this.closed = code));
-  }
-  async until(pred: (m: Msg) => boolean, ms = 3000): Promise<Msg> {
-    const t0 = Date.now();
-    for (;;) {
-      const m = this.msgs.find(pred);
-      if (m) return m;
-      if (Date.now() - t0 > ms) throw new Error("timed out waiting for a message");
-      await new Promise((r) => setTimeout(r, 20));
-    }
-  }
-  send(id: string, cmd: object) {
-    this.ws.send(JSON.stringify({ t: "cmd", id, cmd }));
-  }
-  result(id: string) {
-    return this.until((m) => m.t === "tick" && m.results?.some((r: Msg) => r.id === id))
-      .then((m) => m.results.find((r: Msg) => r.id === id));
-  }
-}
-
-const open = async (cookie: string) => {
-  const c = new Client(cookie);
-  await c.until((m) => m.t === "welcome");
-  return c;
-};
+const base = () => `http://127.0.0.1:${running!.port}`;
+const url = (p: string) => base() + p;
+const account = (name: string, empire?: string) => api(base()).account(name, empire ? { name: empire } : undefined);
+const open = async (cookie: string) => Client.open(base(), cookie);
 
 describe("server: the brief's three requirements at the protocol level", () => {
   it("is multi-user and real-time: one command, both clients see it within 1 s", async () => {
@@ -131,7 +85,7 @@ describe("server: accounts", () => {
     expect((await post("/api/signup", { username: "Carol", password: "another pass" })).status).toBe(409);
     expect((await post("/api/login", { username: "carol", password: "wrong pass!" })).status).toBe(401);
     expect((await post("/api/signup", { username: "x", password: "correct horse" })).status).toBe(400);
-    const anon = new Client("");
+    const anon = new Client(base(), "");
     await new Promise((r) => anon.ws.once("close", r));
     expect(anon.closed).toBe(4001);
   });

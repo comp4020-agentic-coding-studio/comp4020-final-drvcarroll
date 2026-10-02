@@ -30,3 +30,15 @@ can judge; those are left to the crit and the marker.
 At a crit, a green `check` job is half the shipped mark, but it's never the
 judgement of the work: your tutor checks what you deployed against the published
 spec.
+
+### What's here
+
+`game.test.ts` checks system-design.md §13's promises against the running
+app: accounts, a command reaching another client within 1 s, a command
+surviving a fresh login, private state staying private, fog of war,
+overspending refused with a reason, repeated command ids applying once.
+Each run signs up fresh accounts and joins free Earth start regions, so a
+long-lived local database eventually fills all 24: start the app on a fresh
+`DATA_DIR` (`DATA_DIR=$(mktemp -d) pnpm start`) before `pnpm check`.
+`helpers.ts` is the account and socket client both these and
+`server/server.test.ts` use.
