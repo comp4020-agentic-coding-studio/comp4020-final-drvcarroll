@@ -1,17 +1,17 @@
 # Progress
 
 **Stage:** B — Headless sim and balance (`sim/`). Stage A done.
-**Last verified checkpoint:** Stage A exit criteria met (`pnpm test:rules`,
-46 tests): `apply`/`advanceTo`/`observe`/`legalActions` (plus `validate`)
-are pure and exported from `rules/index.ts`; every balance number lives in
-`rules/data/`; stocks never go negative, replay is deterministic (also
-through a JSON snapshot), Lanchester combat has no randomness. Every
-command in system-design.md §14.5 is implemented; `observe` applies the
-§11 vision filter (sensors, Envoys, fog).
-**Next:** Stage B: `sim/` runner jumping between decision points, the six
-bot archetypes (Expander, Builder, Trader, Conqueror, Researcher, Random),
-`pnpm sim:test` reporting every balance target in game-design.md §13 with
-real numbers (tuning is Stage G). Then Stage C (server). **Crit 8 is next week**:
+**Last verified checkpoint:** Stage A done (`pnpm test:rules`). Stage B
+harness running: `pnpm sim:test` plays 24 full seasons of the six bot
+archetypes plus a late joiner (~10 s) and reports every §13 target with
+real numbers (`sim/last-report.md`, baseline in `docs/balance-log.md`).
+Targets are not tuned yet; the baseline shows an Alloy-starved early game
+(no off-Earth colony in 60 min).
+**Next:** Stage C, the server (system-design.md §4, §5, §9, §14): Hono +
+ws, SQLite command log and snapshots, 500 ms tick, auth, `/readme/`,
+Dockerfile; prove multi-user, real-time and persistence at the protocol
+level. Stage G tuning (start with Alloys) runs alongside after C.
+**Crit 8 is next week**:
 Stage A done, Stage B harness running, Stage C full, Stage D slice (see
 "Crit calendar" in `build-process.md`).
 **Flagged assumptions** (numbers missing from `game-design.md`, all in
@@ -40,6 +40,8 @@ Stage A done, Stage B harness running, Stage C full, Stage D slice (see
   capital-to-capital Hohmann time.
 - The Earth Exchange settles instantly.
 - An Envoy recalls when its owner's Energy stock runs dry.
+- Sim "dead time" counts decision points where no build, research, train,
+  ship, launch, colonise, invade, march, war, Envoy or trade-accept is legal.
 - Respawn resets stocks to the starting kit.
 - Off-Earth region names and asteroid J2000 longitudes are invented or
   approximate (`map.ts`).
