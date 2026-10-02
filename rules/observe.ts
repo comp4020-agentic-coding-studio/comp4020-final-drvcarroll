@@ -31,11 +31,14 @@ export function vision(s: State, nation: Id | null) {
 export function observe(state: State, nation: Id | null): { world: VisibleWorld; you: PrivateState | null } {
   const s = settled(state);
   const { sensors, envoys } = vision(s, nation);
+  const me = nation ? s.nations[nation] : undefined;
+  const choosing = !me?.joined || me.eliminated; // picking a start region needs Earth's owners
   const regions: Region[] = Object.values(s.regions).map((r) => {
     const body = REGIONS[r.id].body;
     const base: Region = { id: r.id, body, slots: BODIES[body].slots };
     if (sensors.has(body)) return { ...base, owner: r.owner ?? undefined, rev: r.rev, buildings: r.buildings.map((b) => ({ ...b })), armies: r.armies };
     if (r.owner && envoys.has(r.owner)) return { ...base, owner: r.owner, rev: r.rev, armies: r.armies };
+    if (r.owner && choosing && REGIONS[r.id].start) return { ...base, owner: r.owner };
     return base;
   });
   const fleets = Object.values(s.fleets)

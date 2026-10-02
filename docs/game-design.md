@@ -400,6 +400,9 @@ two of three can).
 - **Sensors:** owning any region on a body gives instant, full, live vision of
   everything there — fleets, buildings, ownership.
 - **Fog of war:** everywhere else renders exactly like unclaimed space: blank.
+  One exception: a nation still choosing where to start (new, or just
+  eliminated) sees which Earth start regions are taken, and nothing else
+  about them, so it can pick a free one.
   There is no "last known owner," no ghost icon for a fleet that left. If you
   can currently see it, you see it; if you can't, nothing is shown at all.
 - **Envoy:** unlocked by Science's Signals Intelligence rung. An Envoy is

@@ -29,6 +29,13 @@ describe("observe: sensors, Envoys and fog (game-design.md §11)", () => {
     expect(w.fleets).toEqual([expect.objectContaining({ owner: "n_2", at: "mars", units: { corvette: 2 } })]);
   });
 
+  it("shows only Earth start-region owners to a nation choosing where to start", () => {
+    const s = ok(setup(), "n_9", { type: "setEmpire", name: "Late", primary: "#000075", secondary: "#ffffff" });
+    const { world: w } = observe(s, "n_9");
+    expect(w.regions.find((r) => r.id === "r_us_west")).toEqual({ id: "r_us_west", body: "earth", slots: 4, owner: "n_2" });
+    expect(w.regions.find((r) => r.id === "r_mars_tharsis")).toEqual({ id: "r_mars_tharsis", body: "mars", slots: 3 });
+  });
+
   it("returns private state with stocks, rates and caps", () => {
     const { you } = observe(setup(), "n_1");
     expect(you?.stocks.M).toEqual({ v: 200, rate: expect.closeTo(7.8), cap: 1500 });
