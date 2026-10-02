@@ -37,7 +37,6 @@ export function TradePanel() {
 
   return (
     <div class="panel">
-      <h2>Trade</h2>
       <p class="hint">
         Accepting an offer escrows both sides at once; goods land in {TRADE.earthDeliveryS}s between Earth capitals (Freighters carry them off Earth).
         An Envoy with the other side multiplies both deliveries by 1 + {TRADE.envoyMultiplierPerScience} × Science rungs.

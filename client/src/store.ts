@@ -4,7 +4,7 @@ import type { Command, Id, NationPublic, PrivateState, Season, VisibleWorld } fr
 
 export type Conn = "connecting" | "open" | "reconnecting" | "signed-out";
 export interface Toast { id: number; text: string; kind: "error" | "info" }
-export type Tab = "region" | "tech" | "fleets" | "diplomacy" | "trade";
+export type Drawer = "tech" | "empires" | "trade";
 
 export const world = signal<VisibleWorld | null>(null);
 export const you = signal<PrivateState | null>(null);
@@ -16,9 +16,11 @@ export const pending = signal<Record<string, Command>>({});
 export const toasts = signal<Toast[]>([]);
 export const clock = signal(Date.now()); // server time now, refreshed a few times a second
 
-export const selBody = signal("earth");
+export const selBody = signal<string | null>(null);
 export const selRegion = signal<Id | null>(null);
-export const tab = signal<Tab>("region");
+export const selFleet = signal<Id | null>(null);
+export const launchTo = signal<string | null>(null); // set by clicking a body while a fleet is selected
+export const drawer = signal<Drawer | null>(null);
 
 export const me = computed(() => you.value?.nation ?? null);
 export const nations = computed(() => Object.fromEntries((world.value?.nations ?? []).map((n) => [n.id, n])) as Record<Id, NationPublic>);

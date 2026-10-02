@@ -19,7 +19,6 @@ export function TechPanel() {
   const n = mirror.value?.nations[me.value!];
   return (
     <div class="panel">
-      <h2>Technology</h2>
       <p class="hint">Each rung needs the one before it; ladders are independent. Costs double per rung ({TECH.costs.join(", ")} Research). Research is paid up front; cancelling refunds it.</p>
       {r && (
         <section class="card now">

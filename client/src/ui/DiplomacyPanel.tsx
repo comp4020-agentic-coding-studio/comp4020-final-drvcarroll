@@ -14,7 +14,6 @@ export function DiplomacyPanel() {
   const online = new Set(w.presence);
   return (
     <div class="panel">
-      <h2>Diplomacy</h2>
       <p class="hint">
         War is declared publicly and goes active {WAR.activationS / 60} min later. New and respawned nations are protected for {WAR.protectionS / 60} min.
         Peace takes both sides. An Envoy (Science: Signals Intelligence) shows a nation's territory, garrisons and fleets everywhere, never its buildings,

@@ -2,9 +2,9 @@
 import { useState } from "preact/hooks";
 import { SCORE } from "../../../rules/data/index.ts";
 import { dur, num } from "../format.ts";
-import { clock, me, season, tab, world, you } from "../store.ts";
+import { clock, drawer, me, season, world, you } from "../store.ts";
 import { Chip } from "./common.tsx";
-import { select } from "./SystemMap.tsx";
+import { focusOn, selectFleet } from "./SceneHost.tsx";
 
 interface Goal { title: string; how: string; done: boolean; go: () => void }
 
@@ -15,13 +15,14 @@ function goals(): Goal[] {
   const built = mineRegions.flatMap((r) => r.buildings ?? []).map((b) => b.type);
   const lunaFleet = w.fleets.some((f) => f.owner === me.value && f.units.colonyShip && (f.transit?.to === "luna" || f.at === "luna"));
   const luna = mineRegions.some((r) => r.body === "luna");
-  const toEarth = () => select("earth");
+  const toEarth = () => focusOn("earth");
+  const colony = w.fleets.find((f) => f.owner === me.value && f.units.colonyShip);
   return [
-    { title: "Build a Mine", how: "Earth starts full: demolish something or settle a neighbour by marching an Army, then build a Mine.", done: built.filter((b) => b === "mine").length > 1 || queued.includes("mine"), go: toEarth },
-    { title: "Research Thrust Vectoring", how: "Open Tech and research Voidcraft 1 once you have 40 Research.", done: y.techs.includes("voidcraft.1") || y.research?.tech === "voidcraft.1", go: () => (tab.value = "tech") },
+    { title: "Build a Mine", how: "Earth starts full: click your region, Military → march an Army to settle a neighbour, then build a Mine there.", done: built.filter((b) => b === "mine").length > 1 || queued.includes("mine"), go: toEarth },
+    { title: "Research Thrust Vectoring", how: "Open Tech (top bar) and research Voidcraft 1 once you have 40 Research.", done: y.techs.includes("voidcraft.1") || y.research?.tech === "voidcraft.1", go: () => (drawer.value = "tech") },
     { title: "Build a Spaceport", how: "Needs 60 Metals and 20 Alloys, and a free slot.", done: built.includes("spaceport") || queued.includes("spaceport"), go: toEarth },
-    { title: "Launch a Colony Ship to Luna", how: "Build a Colony Ship at the Spaceport, then launch it from the Fleets tab.", done: lunaFleet || luna, go: () => (tab.value = "fleets") },
-    { title: "Claim a Luna region", how: "When it arrives, open Luna and colonise a free region.", done: luna, go: () => select("luna") },
+    { title: "Launch a Colony Ship to Luna", how: "Build a Colony Ship at the Spaceport (Military tab), select it, then click Luna.", done: lunaFleet || luna, go: () => (colony ? selectFleet(colony.id) : toEarth()) },
+    { title: "Claim a Luna region", how: "Click a free region on Luna and colonise it (or claim it while your ship is on the way).", done: luna, go: () => focusOn("luna") },
   ];
 }
 
