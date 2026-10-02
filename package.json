@@ -13,7 +13,8 @@
     "test:server": "vitest run --project server",
     "start": "node server/main.ts",
     "build": "vite build --config client/vite.config.ts",
-    "dev": "vite build --watch --config client/vite.config.ts & node --watch --disable-warning=ExperimentalWarning server/main.ts"
+    "dev": "vite build --watch --config client/vite.config.ts & node --watch --disable-warning=ExperimentalWarning server/main.ts",
+    "test:e2e": "vite build --config client/vite.config.ts && vitest run --project e2e"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.6",

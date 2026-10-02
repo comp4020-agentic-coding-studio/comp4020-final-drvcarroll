@@ -19,5 +19,5 @@
     "jsx": "react-jsx",
     "jsxImportSource": "preact"
   },
-  "include": ["*.ts", "spec", "scripts", "rules", "sim", "server", "client"]
+  "include": ["*.ts", "spec", "scripts", "rules", "sim", "server", "client", "e2e"]
 }
