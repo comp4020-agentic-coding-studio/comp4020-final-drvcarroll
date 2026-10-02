@@ -1,46 +1,15 @@
 // system-design.md §14.5: each handler validates, then returns its executor.
 // The same check drives apply, legalActions and the client's disabled reasons.
 import {
-  BUILDINGS, ECONOMY, EMPIRE, MILITARY, POWER_MODES, REGIONS, RESOURCE_NAMES, RUNGS, SEASON, TECH, UNITS, WAR,
-  type Building, type Goods, type PowerMode, type Resource,
+  BUILDINGS, ECONOMY, EMPIRE, MILITARY, POWER_MODES, REGIONS, RUNGS, SEASON, TECH, UNITS, WAR, type PowerMode,
 } from "./data/index.ts";
-import { canAfford, credit, mods, scale, slotsOf, spend } from "./economy.ts";
-import type { Command, Id, RejectCode, Rejection } from "./protocol.ts";
 import {
-  emptyStocks, news, schedule, touch,
-  type NationState, type QueueItem, type RegionState, type State,
-} from "./state.ts";
-
-export type Plan = Rejection | (() => void);
-type Cmd<T extends Command["type"]> = Extract<Command, { type: T }>;
-type Handler<T extends Command["type"]> = (s: State, n: NationState, c: Cmd<T>) => Plan;
-
-export const no = (code: RejectCode, reason: string): Rejection => ({ ok: false, code, reason });
-
-const regionName = (id: Id) => REGIONS[id].name;
-const isInt = (x: unknown, min: number, max: number) => Number.isInteger(x) && (x as number) >= min && (x as number) <= max;
-
-function needs(n: NationState, cost: Goods): Rejection | null {
-  const r = canAfford(n, cost);
-  return r && no("INSUFFICIENT", `Needs ${Math.ceil(cost[r]! - n.stocks[r])} more ${RESOURCE_NAMES[r]}`);
-}
-
-function ownRegion(s: State, n: NationState, id: Id): Rejection | RegionState {
-  const r = s.regions[id];
-  if (!r) return no("INVALID", "Unknown region");
-  if (r.owner !== n.id) return no("NOT_OWNER", `You don't control ${regionName(id)}`);
-  return r;
-}
-
-export const isRejection = (x: unknown): x is Rejection => typeof x === "object" && x !== null && (x as Rejection).ok === false;
-
-export function enqueue(s: State, r: RegionState, item: string, durMs: number, paid: Goods): void {
-  const startAt = r.queue.at(-1)?.finishAt ?? s.t;
-  const q: QueueItem = { id: `q_${s.nextId++}`, item, startAt, finishAt: startAt + durMs, paid };
-  r.queue.push(q);
-  if (r.queue.length === 1) schedule(s, { kind: "queue", at: q.finishAt, region: r.id, item: q.id });
-  touch(r);
-}
+  enqueue, isInt, isRejection, needs, no, ownRegion, regionName, type Cmd, type Handler, type Plan,
+} from "./check.ts";
+import { credit, mods, scale, slotsOf, spend } from "./economy.ts";
+import { buildShip, colonise, launch, march } from "./fleets.ts";
+import type { Command, Id } from "./protocol.ts";
+import { emptyStocks, news, schedule, touch, type NationState, type State } from "./state.ts";
 
 function hexDistance(a: string, b: string): number {
   const c = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
@@ -205,6 +174,7 @@ const train: Handler<"train"> = (s, n, c) => {
 
 const handlers: { [T in Command["type"]]?: Handler<T> } = {
   join, build, demolish, cancelBuild, setMode, research, cancelResearch, train,
+  buildShip, launch, colonise, march,
 };
 
 export function check(s: State, nation: Id, c: Command): Plan {

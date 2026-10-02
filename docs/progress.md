@@ -6,10 +6,13 @@ core is in: `apply`/`advanceTo`/`validate` (`rules/index.ts`), rates and the
 shortfall rule (`economy.ts`), the analytic event loop with depletion events
 (`advance.ts`), scores and season end, and the economy commands (setEmpire,
 join, build, demolish, cancelBuild, setMode, research, cancelResearch,
-train). Tests green: stocks never negative, deterministic replay.
-**Next:** orbits and fleets (`orbit.ts`: position, Hohmann time, window
-penalty, launch energy; buildShip, launch, arrival, colonise, march). Then
-war and Lanchester combat and invasion, trade and Envoys, `observe`,
+train). Orbits and fleets (`orbit.ts`, `fleets.ts`): positions, Hohmann
+time, window penalty, launch energy, buildShip, launch, arrival with the
+first-arrival colonise rule, march. Tests green: stocks never negative,
+deterministic replay.
+**Next:** war (declare, activation, peace), Lanchester space combat on
+arrival/activation, invasion and Earth ground combat via march, capital
+moves, elimination and respawn. Then trade and Envoys, `observe`,
 `legalActions`. **Crit 8 is next week**:
 Stage A done, Stage B harness running, Stage C full, Stage D slice (see
 "Crit calendar" in `build-process.md`).
@@ -25,6 +28,11 @@ Stage A done, Stage B harness running, Stage C full, Stage D slice (see
 - Colour clash = RGB distance < 60 (`victory.ts`).
 - Cancelling a build or research refunds in full (only demolish is 50%).
 - "Late join" boost goes to anyone joining 5+ min into the season.
+- Launching needs no Spaceport at the origin, only ships in orbit there.
+- Armies launched off a body come from your garrisons there, in region-id
+  order.
+- A march onto a region no longer valid on arrival returns home (or is lost
+  if home fell).
 - Respawn resets stocks to the starting kit.
 - Off-Earth region names and asteroid J2000 longitudes are invented or
   approximate (`map.ts`).

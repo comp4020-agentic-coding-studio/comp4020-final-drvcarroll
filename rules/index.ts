@@ -1,6 +1,7 @@
 // game-design.md §13: the rules engine's public surface. Pure: no I/O, no clock.
 import { advance } from "./advance.ts";
-import { check, isRejection } from "./commands.ts";
+import { isRejection } from "./check.ts";
+import { check } from "./commands.ts";
 import type { Command, Id, Ms, Rejection } from "./protocol.ts";
 import type { State } from "./state.ts";
 

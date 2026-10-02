@@ -46,6 +46,8 @@ export interface WarState extends War {
 export type GameEvent = { id: number; at: Ms } & (
   | { kind: "queue"; region: Id; item: Id }
   | { kind: "research"; nation: Id; tech: string }
+  | { kind: "arrive"; fleet: Id }
+  | { kind: "march"; nation: Id; from: Id; to: Id; count: number }
   | { kind: "rateChange" }
   | { kind: "seasonEnd" }
 );

@@ -1,6 +1,7 @@
 // game-design.md §3: snapshot + rates + scheduled events. No loop needed.
-import { BUILDINGS, RESOURCES, type Building, type Resource } from "./data/index.ts";
+import { BUILDINGS, RESOURCES, UNITS, type Building, type Resource, type Unit } from "./data/index.ts";
 import { EPS, MS_PER_MIN, capOf, economy, type Economy } from "./economy.ts";
+import { arrive, marchArrive, shipDone } from "./fleets.ts";
 import type { Id, Ms } from "./protocol.ts";
 import { leader, scores } from "./score.ts";
 import { news, schedule, touch, type GameEvent, type RegionState, type State } from "./state.ts";
@@ -81,6 +82,10 @@ function handle(s: State, e: GameEvent): void {
       n.research = null;
       return;
     }
+    case "arrive":
+      return arrive(s, e.fleet);
+    case "march":
+      return marchArrive(s, e.nation, e.from, e.to, e.count);
     case "rateChange":
       return;
     case "seasonEnd":
@@ -93,6 +98,8 @@ function complete(s: State, r: RegionState, item: string): void {
   touch(r);
   if (item === "army") {
     r.armies++;
+  } else if (item in UNITS) {
+    if (r.owner) shipDone(s, r.owner, r.id, item as Unit);
   } else if (item in BUILDINGS) {
     const used = new Set(r.buildings.map((b) => b.slot));
     let slot = 0;
