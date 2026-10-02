@@ -49,6 +49,8 @@ export type GameEvent = { id: number; at: Ms } & (
   | { kind: "arrive"; fleet: Id }
   | { kind: "march"; nation: Id; from: Id; to: Id; count: number }
   | { kind: "warActive"; war: Id }
+  | { kind: "deliver"; to: Id; goods: Goods }
+  | { kind: "offerExpire"; offer: Id }
   | { kind: "rateChange" }
   | { kind: "seasonEnd" }
 );

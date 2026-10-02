@@ -4,6 +4,7 @@ import { EPS, MS_PER_MIN, capOf, economy, type Economy } from "./economy.ts";
 import { arrive, shipDone } from "./fleets.ts";
 import type { Id, Ms } from "./protocol.ts";
 import { leader, scores } from "./score.ts";
+import { deliver, expire } from "./trade.ts";
 import { marchArrive, resolveSpace, warActive } from "./war.ts";
 import { news, schedule, touch, type GameEvent, type RegionState, type State } from "./state.ts";
 
@@ -91,6 +92,10 @@ function handle(s: State, e: GameEvent): void {
     }
     case "warActive":
       return warActive(s, e.war);
+    case "deliver":
+      return deliver(s, e.to, e.goods);
+    case "offerExpire":
+      return expire(s, e.offer, e.at);
     case "march":
       return marchArrive(s, e.nation, e.from, e.to, e.count);
     case "rateChange":

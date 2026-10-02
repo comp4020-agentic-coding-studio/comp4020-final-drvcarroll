@@ -11,11 +11,12 @@ time, window penalty, launch energy, buildShip, launch, arrival with the
 first-arrival colonise rule. War (`war.ts`): declare/activate/peace,
 protection, Lanchester space combat on arrival, activation and ship
 completion, invasion with orbital superiority, ground combat by march,
-capital moves, elimination, respawn. Tests green: stocks never negative,
-deterministic replay, combat outcomes.
-**Next:** trade (offer/accept with escrow and delivery, gift, Earth
-Exchange, Trade Multiplier) and Envoys. Then `observe` (vision filter),
-`legalActions`; that closes Stage A. **Crit 8 is next week**:
+capital moves, elimination, respawn. Trade and Envoys (`trade.ts`): offers
+escrowed on accept, gifts, Earth Exchange, Trade Multiplier, Envoy slots
+and upkeep. Every command in system-design.md §14.5 has a handler. Tests
+green: stocks never negative, deterministic replay, combat outcomes.
+**Next:** `observe` (vision filter per §11: sensors, Envoys, own) and
+`legalActions`; that closes Stage A. Then Stage B's bot harness. **Crit 8 is next week**:
 Stage A done, Stage B harness running, Stage C full, Stage D slice (see
 "Crit calendar" in `build-process.md`).
 **Flagged assumptions** (numbers missing from `game-design.md`, all in
@@ -39,6 +40,11 @@ Stage A done, Stage B harness running, Stage C full, Stage D slice (see
   first. Army cargo has no space strength.
 - A capital moves to the remaining region with the most buildings, then
   slots, then lowest id. A conquered region's build queue is lost.
+- Off-Earth trades need no Freighter trip modelled: the sender must own
+  enough Freighters for the goods (500 each), and delivery takes the
+  capital-to-capital Hohmann time.
+- The Earth Exchange settles instantly.
+- An Envoy recalls when its owner's Energy stock runs dry.
 - Respawn resets stocks to the starting kit.
 - Off-Earth region names and asteroid J2000 longitudes are invented or
   approximate (`map.ts`).

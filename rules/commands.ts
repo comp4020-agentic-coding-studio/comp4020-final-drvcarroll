@@ -8,6 +8,9 @@ import {
 } from "./check.ts";
 import { credit, mods, scale, slotsOf, spend } from "./economy.ts";
 import { buildShip, colonise, launch } from "./fleets.ts";
+import {
+  acceptTrade, cancelTrade, declineTrade, exchange, gift, offerTrade, recallEnvoy, sendEnvoy,
+} from "./trade.ts";
 import { acceptPeace, declareWar, invade, march, offerPeace } from "./war.ts";
 import type { Command, Id } from "./protocol.ts";
 import { emptyStocks, news, schedule, touch, type NationState, type State } from "./state.ts";
@@ -173,9 +176,10 @@ const train: Handler<"train"> = (s, n, c) => {
   });
 };
 
-const handlers: { [T in Command["type"]]?: Handler<T> } = {
+const handlers: { [T in Exclude<Command["type"], "setEmpire">]: Handler<T> } = {
   join, build, demolish, cancelBuild, setMode, research, cancelResearch, train,
   buildShip, launch, colonise, march, invade, declareWar, offerPeace, acceptPeace,
+  offerTrade, acceptTrade, declineTrade, cancelTrade, gift, exchange, sendEnvoy, recallEnvoy,
 };
 
 export function check(s: State, nation: Id, c: Command): Plan {
@@ -186,7 +190,6 @@ export function check(s: State, nation: Id, c: Command): Plan {
   if (!n) return no("NOT_JOINED", "Create your empire first");
   if (n.eliminated && c.type !== "join") return no("NOT_JOINED", "You were eliminated; pick a region to return");
   const h = handlers[c.type] as Handler<typeof c.type> | undefined;
-  if (!h) return no("INVALID", "Unknown command");
-  return h(s, n, c as never);
+  return h ? h(s, n, c as never) : no("INVALID", "Unknown command");
 }
 
