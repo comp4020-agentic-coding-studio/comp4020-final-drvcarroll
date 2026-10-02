@@ -48,7 +48,7 @@ export function observe(state: State, nation: Id | null): { world: VisibleWorld;
     nations: Object.values(s.nations).filter((n) => n.joined).map(publicNation),
     regions,
     fleets,
-    wars: Object.values(s.wars).map(({ id, a, b, declaredAt, activeAt }) => ({ id, a, b, declaredAt, activeAt })),
+    wars: Object.values(s.wars).map((w) => ({ ...w })),
     scores: scores(s),
     presence: [],
     news: [...s.news],

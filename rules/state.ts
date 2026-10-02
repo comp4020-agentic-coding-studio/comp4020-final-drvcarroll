@@ -39,9 +39,7 @@ export interface FleetState {
   rev: number;
 }
 
-export interface WarState extends War {
-  peaceFrom?: Id;
-}
+export type WarState = War;
 
 export type GameEvent = { id: number; at: Ms } & (
   | { kind: "queue"; region: Id; item: Id }

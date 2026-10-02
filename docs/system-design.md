@@ -490,7 +490,7 @@ interface Fleet {
   transit?: { from: string; to: string; departAt: Ms; arriveAt: Ms };
 }
 
-interface War { id: Id; a: Id; b: Id; declaredAt: Ms; activeAt: Ms }
+interface War { id: Id; a: Id; b: Id; declaredAt: Ms; activeAt: Ms; peaceFrom?: Id } // peaceFrom: who has offered peace
 
 interface Score { territory: number; economy: number; tech: number; total: number }
 

@@ -75,7 +75,7 @@ export interface Fleet {
   transit?: Transit;
 }
 
-export interface War { id: Id; a: Id; b: Id; declaredAt: Ms; activeAt: Ms }
+export interface War { id: Id; a: Id; b: Id; declaredAt: Ms; activeAt: Ms; peaceFrom?: Id }
 
 export interface Score { territory: number; economy: number; tech: number; total: number }
 

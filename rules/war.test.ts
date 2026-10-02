@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addUnits, orbitFleet } from "./fleets.ts";
-import { advanceTo, validate, type State } from "./index.ts";
+import { advanceTo, observe, validate, type State } from "./index.ts";
 import { S, T0, ok, world } from "./test-helpers.ts";
 import { survivors } from "./war.ts";
 
@@ -38,6 +38,7 @@ describe("war rules (game-design.md §7)", () => {
     const w = Object.keys(s.wars)[0];
     expect(validate(s, "n_2", { type: "acceptPeace", war: w })).toMatchObject({ code: "INVALID" });
     s = ok(s, "n_1", { type: "offerPeace", nation: "n_2" });
+    expect(observe(s, "n_2").world.wars[0].peaceFrom).toBe("n_1");
     s = ok(s, "n_2", { type: "acceptPeace", war: w });
     expect(s.wars).toEqual({});
   });
