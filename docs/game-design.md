@@ -519,7 +519,8 @@ hours, not guessed.
 ### Rules engine
 
 - `rules/`: pure TypeScript, no I/O, no `Date.now()`, no randomness.
-  - `apply(state, command, at) → state | error`
+  - `apply(state, nation, command, at) → state | error`
+  - `validate(state, nation, command) → reason | null` (same check, no state change)
   - `advanceTo(state, t) → state` (processes due events)
   - `observe(state, nationId) → view` (vision-filtered: sensors + Envoys, per §11)
   - `legalActions(state, nationId) → command[]`

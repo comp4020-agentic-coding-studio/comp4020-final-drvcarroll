@@ -2,11 +2,13 @@
 
 export type Ladder = "voidcraft" | "industry" | "science" | "society";
 
-export type Mod =
-  | "launchCost" | "speed" | "windowCoefficient"
-  | "mineOutput" | "refineryOutput" | "foundryOutput" | "factoryOutput" | "solarOutput"
-  | "allProduction" | "labOutput" | "labOffEarth" | "techCost"
-  | "colonyUpkeep" | "buildingUpkeepE" | "slotsOffEarth" | "slotsEarth" | "envoySlots";
+export const MODS = [
+  "launchCost", "speed", "windowCoefficient",
+  "mineOutput", "refineryOutput", "foundryOutput", "factoryOutput", "solarOutput",
+  "allProduction", "labOutput", "labOffEarth", "techCost",
+  "colonyUpkeep", "buildingUpkeepE", "slotsOffEarth", "slotsEarth", "envoySlots",
+] as const;
+export type Mod = (typeof MODS)[number];
 
 export interface Rung {
   id: string; // "voidcraft.2"

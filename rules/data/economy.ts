@@ -4,6 +4,10 @@ export const RESOURCES = ["E", "M", "V", "A", "R", "Mt"] as const;
 export type Resource = (typeof RESOURCES)[number];
 export type Goods = Partial<Record<Resource, number>>;
 
+export const RESOURCE_NAMES: Record<Resource, string> = {
+  E: "Energy", M: "Metals", V: "Volatiles", A: "Alloys", R: "Research", Mt: "Materiel",
+};
+
 export type Building = "powerPlant" | "mine" | "refinery" | "foundry" | "lab" | "factory" | "spaceport";
 export type PowerMode = "solar" | "fission" | "fusion";
 

@@ -67,7 +67,7 @@ snapshots  (season_id, seq, at, rules_version, state BLOB)
 
 ### Write path
 
-1. Command arrives; `rules.apply(state, cmd, now)` validates it.
+1. Command arrives; `rules.apply(state, nation, cmd, now)` validates it.
 2. Rejected: reply with the reason. Nothing is stored.
 3. Accepted: `INSERT` into `commands` (WAL, synchronous, sub-millisecond),
    then swap in the new state, broadcast, acknowledge.
@@ -515,6 +515,7 @@ to `cap`, and fleets along their arc from `departAt` to `arriveAt`.
 ```ts
 type Command =
   // joining
+  | { type: "setEmpire"; name: string; primary: string; secondary: string } // server-issued by POST /api/empire, never accepted over the socket; logged so replay rebuilds empires
   | { type: "join"; region: Id }                                   // pick an Earth start region
   // economy
   | { type: "build"; region: Id; building: Building }
