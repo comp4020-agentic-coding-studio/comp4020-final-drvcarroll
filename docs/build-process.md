@@ -118,33 +118,39 @@ doesn't lose it.
 **Serves:** S1 through S7, P9, P2 (every rejection already carries a reason
 at this layer, before there's a UI to display it).
 
-### D. Minimal functional client
+### D. The game client: map first (`game-design.md` §12, goals.md P10)
 
-A bare client — DOM is enough, no Three.js yet — that can do everything:
-join, build, research, launch, trade, declare war, invade. This proves the
-full command surface and passes the Playwright core-loop check at both
-viewports and keyboard-only, before spending any effort on how it looks.
+The client is a game, not a web app, from its first version: the solar
+system map is the main screen (Three.js, full-screen), navigated like Google
+Maps (zoom from system to surface, pan, drag, rotate), with a thin
+Stellaris-like HUD and a selection panel that appears for whatever you click.
+Every command is reachable from the map: join, build, research, launch,
+colonise, trade, declare war, invade. Visuals are never deferred behind a
+"functional DOM client"; a page of forms fails P10 however correct it is.
+Region shapes start as stylised Voronoi patches (Earth seeded at real
+geography); real borders come later.
 
-**Exit criteria:** the core loop is completable end to end through this
-client, at 1920×1080 and 390×844, keyboard-only; P1's "first build queued
-< 30 s" is achievable using it.
-**Serves:** P1, P2, P7 (functionally; visually comes next), P9.
-**Crit 8 only needs a slice of this** — see the crit calendar below; full
-viewport/keyboard completeness is the Crit 9 bar, not Crit 8's.
+**Exit criteria:** after joining, the canvas fills the viewport and the
+camera moves by drag, scroll and keys; clicking a body or region opens its
+panel; the core loop (claim, build, launch, colonise) completes through map
+clicks at 1920×1080 and 390×844, and keyboard-only via the DOM mirror; P1's
+"first build queued < 30 s" holds. Screenshots are judged as a player would
+before calling it done.
+**Serves:** P1, P2, P7, P9, P10.
+**Crit 8 needs the map-first slice:** navigable system, clickable bodies and
+regions, the core loop playable through it. Full keyboard/viewport
+completeness is the Crit 9 bar.
 
-### E. Rendering (Three.js, `game-design.md` §12)
+### E. Visual fidelity and budgets (`game-design.md` §12, system-design.md §8)
 
-The 3D scene, camera, fog-of-war rendering (regions you can't see render
-flat and unlit, exactly like unclaimed space), budgets. This is sequenced
-last on purpose — it has no bearing on whether the mechanics are correct,
-only on whether they're legible and good to look at — not because it's
-optional scope. Nothing in `game-design.md`'s map or mechanics gets cut to
-make room for this; it's an addition on top of a client that already works.
+Polish on top of the map client, not a separate client: textures (KTX2),
+the Earth day/night shader and city lights, atmospheres, bloom, rings,
+texture tiers, adaptive quality, and meeting the rendering budgets.
 
 **Exit criteria:** budgets in `game-design.md` §12 and `system-design.md` §8
 are met (first render, frame rate, GPU memory); fog of war, sensors and
-Envoy beacons render per spec, not just the DOM mirror.
-**Serves:** P8, and the "judged" half of P1/P7's passes.
+Envoy beacons render per spec.
+**Serves:** P8, and the judged half of P1/P7/P10.
 
 ### F. Logging and observability (crit 10 ask)
 
@@ -171,14 +177,13 @@ be hit eventually; it just slips to the next one.
 
 | Crit | When | Bar to clear | Stages |
 |---|---|---|---|
-| **Crit 8 — "It's alive!"** | Next week | Stage A done. Stage B: harness running and reporting real numbers — they don't need to be tuned yet. Stage C: full exit criteria, no slipping this one — "backend polished" means the server, persistence and protocol are actually right. Stage D: only as far as the core loop being clickable through *some* client and displayable at the crit — not yet keyboard-complete, not yet both viewports, not styled. First `README.md` (400–600 words) live at `/readme/`. First `PROCESS.md`. | A, B (partial), **C (full)**, D (slice) |
+| **Crit 8 — "It's alive!"** | Next week | Stage A done. Stage B: harness running and reporting real numbers — they don't need to be tuned yet. Stage C: full exit criteria, no slipping this one — "backend polished" means the server, persistence and protocol are actually right. Stage D: the map-first slice — the solar system as the main screen, navigable, bodies and regions clickable, the core loop playable through it. First `README.md` (400–600 words) live at `/readme/`. First `PROCESS.md`. | A, B (partial), **C (full)**, D (map-first slice) |
 | **Crit 9 — "All at once"** | Week 10 | Real-time fully wired end to end, not just the protocol — the client reflects it live. Stage D's full exit criteria: both viewports, keyboard-only. One documented decision on multi-user contention behaviour (system-design.md §5's ordering rule already is that decision — cite it, don't re-decide it). | **D (full)** |
-| **Crit 10 — "Fly by instruments"** | Week 11 | Stage F done: logging, `/admin` live view. Stage E substantially in, since crit 10 is also where visuals get judged. | E, **F** |
+| **Crit 10 — "Fly by instruments"** | Week 11 | Stage F done: logging, `/admin` live view. Stage E (visual fidelity) substantially in. | E, **F** |
 | **Target: done** | End of week 12 | Self-imposed, ahead of the real deadline (noon Mon 9 Nov 2026) on purpose — a buffer, not a guess at the actual due date. Stage G's numbers in a reasonable place (never "finished" — that's the point of a loop). Final `README.md`/`PROCESS.md` pass, everything deployed and green. | G, polish |
 
-A DOM client that correctly does everything beats a prettier one that's
-missing commands — Stage E (rendering) is explicitly not a Crit 8
-requirement, and skipping it for Crit 8 is sequencing, not a scope cut.
+The map is the game from the first client on (goals.md P10): Stage E adds
+fidelity to a map client that already plays, it never stands in for one.
 
 ## The ledger: `docs/progress.md`
 

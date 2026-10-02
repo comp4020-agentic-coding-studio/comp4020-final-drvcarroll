@@ -47,6 +47,13 @@ docs/         design, ADRs, balance log
 `rules/` imports nothing outside itself: no I/O, no clock, no randomness. Time
 is always a parameter.
 
+**Client shape (game-design.md §12, goals.md P10).** The game shell is one
+full-screen Three.js canvas (`client/src/scene/`) with a Preact HUD layered
+over it (`client/src/ui/`). Both read the same signals store fed by the socket
+(`client/src/net.ts`); the scene never owns game state. The HUD calls
+`rules.validate` on a mirror of the visible state so every disabled action
+shows the server's own reason; the server's answer still decides.
+
 ## 4. Persistence: command log plus snapshots
 
 The world lives in memory as one state object. Durability comes from an
@@ -246,7 +253,8 @@ The target is a consumer laptop with integrated graphics, not a gaming GPU.
 | KTX2/Basis textures | GPU-native compression, ~4× less GPU memory, decoded in a worker |
 | Texture tiers 512 / 2K / 8K by distance | Only the focused body holds 8K; others are disposed down |
 | ~40 draw calls total | Orbits in one `LineSegments`; fleets and icons instanced; region borders merged per body |
-| Picking by region-index texture | One pixel lookup per click instead of raycasting region meshes |
+| Regions as a spherical Voronoi | Each body's regions are patches around seed points (Earth's at real lat/long, from `rules/data/map.ts`); colouring is a per-vertex attribute, borders one line mesh per body |
+| Picking by nearest seed | Raycast the body sphere once, then the nearest region seed to the hit point is the region: no per-region meshes to test |
 | Bloom at half resolution | Glow without full-resolution post-processing cost |
 | Adaptive quality | Watch frame time; drop pixel ratio, then bloom, then texture tier if frames exceed 20 ms |
 | Quality tiers | High, medium, low; auto-detected, user-overridable |
@@ -275,7 +283,7 @@ time.
 
 | Route | Rendered | Purpose |
 |---|---|---|
-| `/` | Server | Logged out: login and sign-up. Logged in: the game shell |
+| `/` | Server | Logged out: login and sign-up. Logged in: the game shell, a full-screen map with the HUD over it |
 | `/readme/` | Server | README rendered from markdown |
 | `/empire` | Server | Create or edit empire name and colours (a plain form) |
 | `/api/*` | Server | Auth form posts, health |

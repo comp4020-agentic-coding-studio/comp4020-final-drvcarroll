@@ -451,59 +451,112 @@ Supporting rules that make a long tutorial unnecessary:
 - Empty panels say what to do ("No fleets yet: build one at a Spaceport").
 - The protection timer is visible, so new players know they are safe.
 
-## 12. Visuals
+## 12. Visuals: the map is the game
 
-Stellaris-like: dark space, glowing UI, as physically realistic as a browser
-allows. All rendering is client-side; the server never draws.
+Stellaris-like: the solar system **is** the main screen, and everything you
+do, you do on it. Dark space, glowing orbits and borders, a lit sun, as
+physically realistic as a browser allows, with a thin, sleek HUD over the
+top. There is no page of forms: a panel appears only for what you've
+selected, beside it, and gets out of the way when you're done. User
+friendliness is a design principle here (goals.md P10), not a finish.
+
+All rendering is client-side; the server never draws.
+
+### The screen
+
+```
+┌ resources · date · timers ─────────────────────────── alerts · you ┐
+│                                                         outliner │
+│                    full-screen 3D solar system            your   │
+│               (zoom from the whole system to a surface)   planets │
+│                                                          + fleets │
+│ ┌ selection panel ┐                                               │
+│ │ what you clicked │                 goals · news ticker · board  │
+└─┴─────────────────┴──────────────────────────────────────────────-┘
+```
+
+- **Top bar:** six stocks with rates (live between ticks), shortfall
+  warning, game date, protection/boost/season timers, connection state.
+- **Outliner (right):** your bodies, regions and fleets, grouped; click to
+  fly there. Collapsible.
+- **Selection panel (bottom-left):** opens on clicking a body, region or
+  fleet. Holds that thing's actions: build, queue, train, ships, march,
+  colonise, invade, launch. Every disabled action says why.
+- **Overlays on demand:** tech (four ladders), diplomacy, trade, each a
+  drawer opened from the top bar, closed with Esc; the map stays visible
+  behind.
+- **Corner widgets:** the tutorial goals, a news ticker, the leaderboard,
+  all small and dismissible.
+
+### Navigating: Google Maps at solar-system scale
+
+| Input | Does |
+|---|---|
+| Scroll wheel, pinch, `+` `−` | Zoom toward the cursor, continuously, from the whole system down to low orbit over a region |
+| Left-drag, one-finger drag, arrows / WASD | Pan |
+| Right-drag, two-finger twist, `Q` `E` | Rotate the view |
+| Click a body, or pick it in the outliner | Eased fly-to; the camera then follows that body along its orbit |
+| Click a region (zoomed in) | Select it: the panel shows its actions |
+| `[` `]` | Cycle bodies; Enter focuses; Esc backs out one level (region → body → system) |
+
+The canvas is not the only way in: the outliner and selection panel are real
+DOM, and an off-screen list of every body and region (shown on keyboard
+focus) mirrors the map, so keyboard and screen-reader users reach every
+action (goals.md P7).
+
+Distances are log-scaled so the whole system fits on one screen yet Earth
+and Luna still separate when you zoom in; body sizes are exaggerated the same
+way. Labels fade in by zoom level so the screen never gets crowded.
 
 ### Rendering
 
 | Piece | Approach |
 |---|---|
 | Engine | Three.js |
-| Textures | Solar System Scope (CC BY 4.0), NASA Blue Marble and Black Marble (public domain); KTX2/Basis compressed |
+| Textures | Solar System Scope (CC BY 4.0), NASA Blue Marble and Black Marble (public domain); KTX2/Basis compressed. Procedural shading until textures land |
 | Earth | Day/night blend shader, city lights on the dark side, cloud layer, specular oceans |
 | Atmospheres | Rim-glow scattering shader for Earth, Venus, Mars, Titan |
-| Sun and space | Emissive sun, bloom, Milky Way skybox (NASA Deep Star Maps) |
+| Sun and space | Emissive sun, bloom, star-field skybox (NASA Deep Star Maps) |
 | Gas giants | Banded textures, Saturn's rings with alpha and shadow |
-| Scale | Logarithmic depth buffer and floating origin, so Neptune-to-city zoom never jitters |
+| Scale | Logarithmic depth buffer and floating origin, so zooming from Neptune to a city never jitters |
 | Detail | Texture tiers 512 / 2K / 8K by camera distance; only the focused body loads 8K |
 
-### Camera
+### Regions on the surface
 
-- **System view:** orbit the Sun; distances log-scaled so the whole system fits.
-  Click or keyboard-select a body to fly there with an eased transition.
-- **Body view:** orbit and zoom one body down to low orbit. The camera
-  **co-rotates with the surface**, so regions hold still while the terminator
-  sweeps across (a day passes every second).
-- **Free fly:** optional polish.
+Regions are drawn as **stylised patches** on each body's sphere: a spherical
+Voronoi partition around one seed point per region, softly shaded, with
+glowing borders. Earth's 24 start regions plus Antarctica are seeded at their
+real geographic centres (latitude/longitude in `rules/data/map.ts`), so the
+patches sit roughly where the countries are; other bodies' seeds are spread
+evenly. Real Natural Earth borders for Earth are a later upgrade, not a
+blocker.
 
 ### The mechanics on screen
 
-- **Ownership:** regions you can currently see filled with the owner's colour,
-  borders as glowing lines. A region on a body you have no sensor on, whose
-  owner you have no Envoy on, renders flat and unlit, identical to unclaimed
-  space — the map never hints at what it isn't showing you.
+- **Ownership:** a region you can currently see is tinted with its owner's
+  colour, borders glowing. A region on a body you have no sensor on, whose
+  owner you have no Envoy on, renders flat and untinted, identical to
+  unclaimed space: the map never hints at what it isn't showing you.
 - **Economy you can see:** city lights on the night side grow with each
-  building in a sensed region.
-- **Launch windows:** a phase-angle gauge per destination, green in the window.
-- **Fleets:** glowing icons on their Hohmann arc, with trail and ETA, for
-  fleets you currently have vision on only; nothing is drawn for a fleet
-  outside sensor and Envoy range, not even a stale marker.
-- **Envoys:** a small beacon on a nation's capital where you hold an active
-  Envoy, visible only to you.
+  building in a sensed region; buildings show as icons pinned on the region.
+- **Fleets:** glowing markers on their Hohmann arc with a trail and ETA,
+  for fleets you currently have vision on only; nothing for a fleet outside
+  sensor and Envoy range, not even a stale marker.
+- **Launching:** select a fleet, then click a destination body: the transfer
+  arc draws on the map with its energy cost, travel time and the launch-window
+  gauge (green in the window); confirm to launch.
+- **Envoys:** a small beacon on a nation's capital where you hold an Envoy,
+  visible only to you.
 - **Battles:** flashes in orbit and a ticker entry with the Lanchester result.
-- **Buildings:** icons pinned on the region, not 3D models.
+- **Choosing a start:** the camera opens on Earth with free start regions
+  lit and taken ones in their owners' colours; click one to begin (also
+  listed for keyboard users).
 
-### Interface
+### Phone (390×844)
 
-- Top bar: stocks with rates, Energy balance, game date.
-- Side panels: region (slots, queue), tech ladders, fleets, diplomacy, trade.
-- Live leaderboard and news ticker.
-- **Phone (390×844):** panels become bottom sheets; tap targets ≥ 44 px.
-- **Keyboard and screen readers:** a DOM layer mirrors the canvas (body list,
-  region list, every action as a button). Keys: `[` `]` cycle bodies, Enter
-  focus, arrows orbit, `+` `−` zoom, Esc back to system view.
+The map stays full-screen; the selection panel and drawers become bottom
+sheets; tap targets ≥ 44 px; pinch to zoom, two-finger twist to rotate;
+post-processing off.
 
 ### Budgets
 

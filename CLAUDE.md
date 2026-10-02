@@ -24,6 +24,11 @@ and trade are instruments toward those three, never scores themselves. Part
 of the world is a harsh one: territory you haven't sensed or paid an Envoy to
 watch is a blank on your map, same as unclaimed space.
 
+It plays like a game, not a web app: Stellaris-like, the solar system map is
+the main screen, navigated like Google Maps at solar-system scale (zoom, pan,
+drag), with a sleek HUD over it and panels that appear for what you select.
+User-friendliness is a design principle, not polish (goals.md P10).
+
 ## Ground truth (read in this order)
 
 | Doc | Answers |
@@ -35,6 +40,15 @@ watch is a blank on your map, same as unclaimed space.
 If something you're building isn't covered by one of these, it isn't scoped
 yet — don't invent scope, update the doc first (same commit as the code that
 needed it).
+
+**Every change goes into these three docs.** Any change of direction, a
+design decision, a user correction or preference ("the map is the main
+screen"), a new mechanic, a stack choice: write it into `goals.md`,
+`game-design.md` and `system-design.md`, each where it applies, before or in
+the same commit as the code. Check all three every time; a change that touches
+only one usually means the other two are now stale. Memory, chat and commit
+messages are not a substitute: if it isn't in these docs, the next session
+won't know it.
 
 ## How we build it
 

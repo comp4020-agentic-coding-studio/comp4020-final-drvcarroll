@@ -6,12 +6,16 @@ running, C done.
 against the Docker image (spec invariants + `spec/game.test.ts`: real-time
 <1 s, persists, accounts, isolation, fog, idempotency, reasons);
 `server/server.test.ts` also proves persistence across a restart.
-**Next:** Crit 8 (live spec, crits/08-its-alive): a stranger can visit, do
-the core thing, and find their trace when they come back. So: a DOM client
-at `client/client.js` (welcome/tick state, stocks, regions, join, build,
-research, train, launch, colonise), then README (what good means, 400-600
-words) at `/readme/`, PROCESS.md, deploy to fly.dev, repo public at cutoff.
-`reflections/crit-8.md` is the user's to write.
+**Next:** the map-first game client (build-process.md stage D, rewritten;
+game-design.md §12; goals.md P10). The user rejected the first DOM-panel
+client: the solar system map is the main screen, Three.js 3D, Google-Maps
+navigation (zoom system→surface, pan, drag, rotate), Stellaris-like HUD,
+contextual selection panel, regions as stylised Voronoi patches (Earth seeded
+at real lat/long, to add to `rules/data/map.ts`). The uncommitted
+`client/src/` work (store, net, mirror, format, panels) carries over as the
+HUD's logic; its page layout is replaced. Then README, PROCESS.md, deploy for
+Crit 8 (crits/08-its-alive: a stranger can visit, do the core thing, and find
+their trace when they come back). `reflections/crit-8.md` is the user's.
 **Flagged assumptions** (numbers missing from `game-design.md`, all in
 `rules/data/`, sim-tunable):
 - Envoy upkeep 3 E/min (`economy.ts`).
