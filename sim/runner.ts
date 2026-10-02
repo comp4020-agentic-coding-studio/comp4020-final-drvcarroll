@@ -4,7 +4,7 @@ import { BODIES, LADDERS, REGIONS, WAR } from "../rules/data/index.ts";
 import { owned } from "../rules/economy.ts";
 import { BUILDINGS, UNITS, type Building, type Unit } from "../rules/data/index.ts";
 import {
-  advanceTo, apply, legalActions, newSeason, observe, validate, type Command, type Id, type Score, type State,
+  advanceTo, apply, legalActions, newSeason, observe, settled, validate, type Command, type Id, type Score, type State,
 } from "../rules/index.ts";
 import { leader, scores } from "../rules/score.ts";
 import { decide, startRegions, type Archetype } from "./bots.ts";
@@ -140,13 +140,14 @@ export function run(o: RunOptions): RunResult {
         if (joinFree(nm.id)) respawns.push({ nation: nm.id, atMin: now });
         continue;
       }
-      const legal = legalActions(s, nm.id);
+      const view = settled(s);
+      const legal = legalActions(view, nm.id);
       if (now < 30) {
         nm.decisions++;
         if (!legal.some((c) => USEFUL.has(c.type))) nm.dead++;
       }
-      const { world, you } = observe(s, nm.id);
-      const ctx = { id: nm.id, t: s.t, start: T0, world, you: you!, legal, wanted: wanted(s, nm.id), rng: r };
+      const { world, you } = observe(view, nm.id);
+      const ctx = { id: nm.id, t: s.t, start: T0, world, you: you!, legal, wanted: wanted(view, nm.id), rng: r };
       for (const c of decide(nm.kind, ctx)) step(nm.id, c);
     }
   }

@@ -6,7 +6,7 @@ import type {
 
 export interface NationState extends NationPublic {
   joined: boolean;
-  stocks: Record<Resource, number>; // value at State.t
+  stocks: Record<Resource, number>; // value at State.stocksAt
   techs: string[];
   research: { tech: string; startAt: Ms; finishAt: Ms; paid: number } | null;
   envoys: { nation: Id; since: Ms }[];
@@ -58,6 +58,7 @@ export type GameEvent = { id: number; at: Ms } & (
 export interface State {
   season: Season;
   t: Ms;
+  stocksAt: Ms; // stocks are valid here: the last event or command, never a bare tick
   nextId: number;
   nations: Record<Id, NationState>;
   regions: Record<Id, RegionState>;
@@ -75,6 +76,7 @@ export function newSeason(id: Id, startedAt: Ms): State {
   const s: State = {
     season: { id, startedAt, endsAt: startedAt + SEASON.lengthS * 1000, threshold: SCORE.threshold, status: "running" },
     t: startedAt,
+    stocksAt: startedAt,
     nextId: 1,
     nations: {},
     regions: Object.fromEntries(

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { RESOURCES } from "./data/index.ts";
 import { capOf, economy } from "./economy.ts";
-import { advanceTo, apply, validate, type Command } from "./index.ts";
+import { advanceTo, apply, settled, validate, type Command } from "./index.ts";
 import { S, T0, ok, rng, world } from "./test-helpers.ts";
 
 describe("join and the starting kit (game-design.md §6)", () => {
@@ -37,7 +37,7 @@ describe("rates and the analytic stock model (game-design.md §3)", () => {
     expect(rate.V).toBeCloseTo(4 * 1.3);
     expect(rate.R).toBeCloseTo(5);
     expect(rate.Mt).toBeCloseTo(-0.5);
-    const later = advanceTo(s, T0 + 60 * S);
+    const later = settled(advanceTo(s, T0 + 60 * S));
     expect(later.nations.n_1.stocks.M).toBeCloseTo(200 + 7.8);
   });
 
@@ -135,6 +135,26 @@ describe("invariants", () => {
     const b = play(7).at(-1)!;
     expect(b).toEqual(a);
     expect(JSON.parse(JSON.stringify(a))).toEqual(a);
+  });
+
+  it("gives identical state whether advanced every tick or command to command", () => {
+    const cmds: [number, Command][] = [
+      [37_250, { type: "train", region: "r_canada", count: 2 }],
+      [121_500, { type: "research", tech: "voidcraft.1" }],
+      [400_000, { type: "demolish", region: "r_canada", slot: 3 }],
+    ];
+    let replay = world("r_canada");
+    let live = structuredClone(replay);
+    for (const [dt, c] of cmds) {
+      const res = apply(replay, "n_1", c, T0 + dt);
+      if (!res.ok) throw new Error(res.reason);
+      replay = res.state;
+      while (live.t + 500 < T0 + dt) live = advanceTo(live, live.t + 500);
+      const l = apply(live, "n_1", c, T0 + dt);
+      if (!l.ok) throw new Error(l.reason);
+      live = l.state;
+    }
+    expect(live).toEqual(replay);
   });
 
   it("ends the season at 60 minutes and refuses commands after", () => {

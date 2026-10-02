@@ -5,6 +5,7 @@ import {
   ADJACENT, BODIES, BUILDINGS, ECONOMY, LADDERS, POWER_MODES, REGIONS, RESOURCES, UNITS, type Building, type Unit,
 } from "./data/index.ts";
 import { isRejection } from "./check.ts";
+import { settled } from "./advance.ts";
 import { check } from "./commands.ts";
 import { capOf, economy, owned } from "./economy.ts";
 import type { Command, Fleet, Id, NationPublic, PrivateState, Region, VisibleWorld } from "./protocol.ts";
@@ -27,7 +28,8 @@ export function vision(s: State, nation: Id | null) {
   return { sensors, envoys };
 }
 
-export function observe(s: State, nation: Id | null): { world: VisibleWorld; you: PrivateState | null } {
+export function observe(state: State, nation: Id | null): { world: VisibleWorld; you: PrivateState | null } {
+  const s = settled(state);
   const { sensors, envoys } = vision(s, nation);
   const regions: Region[] = Object.values(s.regions).map((r) => {
     const body = REGIONS[r.id].body;
@@ -70,7 +72,8 @@ function privateState(s: State, n: NationState): PrivateState {
 
 // Every discrete command that would apply right now. Free-amount commands
 // (offerTrade, gift) are left to the caller, which picks the amounts.
-export function legalActions(s: State, nation: Id): Command[] {
+export function legalActions(state: State, nation: Id): Command[] {
+  const s = settled(state);
   const n = s.nations[nation];
   if (!n) return [];
   const out: Command[] = [];

@@ -12,6 +12,8 @@ const earliest = (es: GameEvent[]) =>
   es.reduce<GameEvent | undefined>((a, e) => (!a || e.at < a.at || (e.at === a.at && e.id < a.id) ? e : a), undefined);
 
 // Mutates s up to time t: events in (at, id) order, stocks integrated between.
+// Stocks integrate only between events, never to a bare time, so replay
+// (command to command) and live play (every tick) give identical floats.
 export function advance(s: State, t: Ms): void {
   for (;;) {
     if (s.season.status === "ended") {
@@ -26,27 +28,41 @@ export function advance(s: State, t: Ms): void {
       for (const r of RESOURCES) {
         const v = s.nations[id].stocks[r];
         if (v > EPS && e.rate[r] < -EPS) {
-          const at = s.t + (v / -e.rate[r]) * MS_PER_MIN;
+          const at = s.stocksAt + (v / -e.rate[r]) * MS_PER_MIN;
           if (!dep || at < dep.at) dep = { at, nation: id, res: r };
         }
       }
     }
     const next = earliest(s.events);
-    const target = Math.max(s.t, Math.min(t, next?.at ?? Infinity, dep?.at ?? Infinity));
-    integrate(s, ecos, target - s.t);
-    s.t = target;
+    const due = Math.min(next?.at ?? Infinity, dep?.at ?? Infinity);
+    if (due > t) {
+      s.t = Math.max(s.t, t);
+      return;
+    }
+    const target = Math.max(s.stocksAt, due);
+    integrate(s, ecos, target - s.stocksAt);
+    s.stocksAt = target;
+    s.t = Math.max(s.t, target);
 
     if (dep && dep.at <= target && (!next || dep.at <= next.at)) {
       s.nations[dep.nation].stocks[dep.res] = 0;
       onDepleted(s, dep.nation, dep.res);
-    } else if (next && next.at <= target) {
-      s.events.splice(s.events.indexOf(next), 1);
-      handle(s, next);
-      checkThreshold(s);
     } else {
-      return;
+      s.events.splice(s.events.indexOf(next!), 1);
+      handle(s, next!);
+      checkThreshold(s);
     }
   }
+}
+
+// Brings stocks up to s.t: done at each command, identically live and on replay.
+// After the season ends, stocks stay frozen.
+export function settle(s: State): void {
+  if (s.season.status === "ended") return;
+  const ecos: Record<Id, Economy> = {};
+  for (const n of Object.values(s.nations)) if (n.joined) ecos[n.id] = economy(s, n.id);
+  integrate(s, ecos, s.t - s.stocksAt);
+  s.stocksAt = s.t;
 }
 
 function integrate(s: State, ecos: Record<Id, Economy>, dt: Ms): void {
@@ -137,4 +153,12 @@ function checkThreshold(s: State): void {
   s.season.status = "ended";
   s.season.winner = id;
   news(s, "season", `${s.nations[id].name} reached the threshold and wins`, [id]);
+}
+
+// Stocks brought up to state.t, for reading only: no copy if already there.
+export function settled(state: State): State {
+  if (state.stocksAt === state.t || state.season.status === "ended") return state;
+  const s = structuredClone(state);
+  settle(s);
+  return s;
 }
