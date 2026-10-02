@@ -7,18 +7,27 @@
     "typecheck": "tsc --noEmit",
     "check": "pnpm typecheck && pnpm test",
     "check:evidence": "node scripts/check-evidence.ts",
-    "test": "vitest run --project spec --project rules",
+    "test": "vitest run --project spec --project rules --project server",
     "test:rules": "vitest run --project rules",
-    "sim:test": "vitest run --project sim"
+    "sim:test": "vitest run --project sim",
+    "test:server": "vitest run --project server",
+    "start": "node server/main.ts"
   },
   "devDependencies": {
     "@types/jsdom": "^30.0.0",
     "@types/node": "^24.0.0",
+    "@types/ws": "^8.18.2",
     "jsdom": "^30.1.0",
     "typescript": "^6.0.3",
     "vitest": "^5.0.1"
   },
   "engines": {
     "pnpm": ">=11"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.3",
+    "hono": "^4.13.12",
+    "marked": "^18.0.14",
+    "ws": "^8.22.0"
   }
 }

@@ -1,7 +1,7 @@
 import { defineConfig } from "vitest/config";
 
 // spec/ runs against the running app, which spec/global-setup.ts finds.
-// rules/ and sim/ need no app; sim/ is slow, so only `pnpm sim:test` runs it.
+// rules/, server/ (boots its own) and sim/ need no app; sim/ is slow, so only `pnpm sim:test` runs it.
 export default defineConfig({
   test: {
     projects: [
@@ -13,6 +13,7 @@ export default defineConfig({
         },
       },
       { test: { name: "rules", include: ["rules/**/*.test.ts"] } },
+      { test: { name: "server", include: ["server/**/*.test.ts"] } },
       { test: { name: "sim", include: ["sim/**/*.test.ts"] } },
     ],
   },

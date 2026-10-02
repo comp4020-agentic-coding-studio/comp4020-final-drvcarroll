@@ -104,8 +104,10 @@ decide outcomes.
    exact due time (an arrival at 12.3 s resolves as of 12.3 s, not 12.5 s).
 2. Apply queued commands **in arrival order**, each stamped `at = now`.
    Accepted commands are appended to `commands` (synchronous, WAL).
-3. Collect what changed (entities carry a `rev`; changed ids are tracked
-   during steps 1 and 2, so there is no whole-state diff).
+3. Collect what changed per client: its vision-filtered view is compared,
+   entity by entity, with what that client was last sent. At 74 regions and
+   a few hundred fleets this is cheap, and it treats an entity leaving
+   vision exactly like any other change.
 4. Send each client one `tick` message: its command results, globally public
    changes (news, presence, scores, war declarations), changes to what that
    nation currently has vision on (sensors and Envoys, filtered per
@@ -275,7 +277,7 @@ time.
 |---|---|---|
 | `/` | Server | Logged out: login and sign-up. Logged in: the game shell |
 | `/readme/` | Server | README rendered from markdown |
-| `/empire` | Client | Create or edit empire name and colours |
+| `/empire` | Server | Create or edit empire name and colours (a plain form) |
 | `/api/*` | Server | Auth form posts, health |
 | `/ws` | Server | Game socket |
 
@@ -297,9 +299,10 @@ Onboarding and the tutorial are specified in game-design.md §11.
 
 ## 12. Deploy
 
-- Multi-stage `Dockerfile`: stage 1 runs `pnpm build` for the client and
-  textures; stage 2 is `node:24-slim` with the server source, built client and
-  production dependencies only.
+- `Dockerfile` on `node:24-slim`: production dependencies, `rules/`,
+  `server/`, `client/` and the README, run as `.ts` directly. When the
+  client gains a build step (Vite, textures), a first stage builds it and
+  only its output is copied in.
 - Boot: run SQL migrations (numbered files, applied in a transaction), load
   the snapshot, replay, listen on `0.0.0.0:$PORT`.
 - `/` answers within a second of boot, so CI and Fly's health check pass.

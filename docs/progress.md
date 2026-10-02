@@ -1,16 +1,18 @@
 # Progress
 
-**Stage:** B — Headless sim and balance (`sim/`). Stage A done.
-**Last verified checkpoint:** Stage A done (`pnpm test:rules`). Stage B
-harness running: `pnpm sim:test` plays 24 full seasons of the six bot
-archetypes plus a late joiner (~10 s) and reports every §13 target with
-real numbers (`sim/last-report.md`, baseline in `docs/balance-log.md`).
-Targets are not tuned yet; the baseline shows an Alloy-starved early game
-(no off-Earth colony in 60 min).
-**Next:** Stage C, the server (system-design.md §4, §5, §9, §14): Hono +
-ws, SQLite command log and snapshots, 500 ms tick, auth, `/readme/`,
-Dockerfile; prove multi-user, real-time and persistence at the protocol
-level. Stage G tuning (start with Alloys) runs alongside after C.
+**Stage:** C — Server (`server/`). Stages A done, B harness running.
+**Last verified checkpoint:** server runs (`pnpm start`, Docker image):
+Hono HTTP routes per system-design.md §14.2, scrypt accounts and hashed
+sessions, SQLite (WAL, FULL sync, numbered migrations), command log with
+durable insert before swap, snapshots every 60 s and on SIGTERM, replay on
+boot, seasons starting on first arrival, WebSocket hub with the 500 ms tick
+and per-client vision-filtered diffs, `/readme/` rendered by `marked`.
+`pnpm check` green against the container (53 tests); `server/server.test.ts`
+proves two sockets see one command within 1 s and a restart loses nothing.
+**Next:** black-box `spec/` checks from system-design.md §13 against the
+running app (real-time, persists, accounts, isolation, fog, idempotency,
+reasons). Then the Stage D slice (a DOM client at `client/client.js`), the
+README (400 to 600 words) and PROCESS.md for Crit 8.
 **Crit 8 is next week**:
 Stage A done, Stage B harness running, Stage C full, Stage D slice (see
 "Crit calendar" in `build-process.md`).
