@@ -205,6 +205,18 @@ export class GameScene {
     if (sphere) this.lastFocusPos.copy(this.bodyPos(sphere));
   }
 
+  // Where a region's centre is on screen, if it's facing you.
+  screenOf(region: string): { x: number; y: number } | null {
+    const sphere = sphereOf(REGIONS[region].body);
+    const seed = seeds(sphere).find((s) => s.region === region)!;
+    const c = this.bodyPos(sphere);
+    const p = v3(seed.dir).multiplyScalar(SIZE[sphere]).add(c);
+    if (v3(seed.dir).dot(this.camera.position.clone().sub(c).normalize()) < 0.2) return null;
+    const s = p.project(this.camera);
+    const r = this.renderer.domElement.getBoundingClientRect();
+    return { x: r.left + ((s.x + 1) / 2) * r.width, y: r.top + ((1 - s.y) / 2) * r.height };
+  }
+
   toSystem(): void {
     this.flyTo(null);
   }

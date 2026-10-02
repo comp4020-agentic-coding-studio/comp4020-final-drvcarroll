@@ -1,21 +1,21 @@
 # Progress
 
-**Stage:** D — Minimal client (slice for Crit 8). A done, B harness
-running, C done.
-**Last verified checkpoint:** Stage C exit criteria met: `pnpm check` green
-against the Docker image (spec invariants + `spec/game.test.ts`: real-time
-<1 s, persists, accounts, isolation, fog, idempotency, reasons);
-`server/server.test.ts` also proves persistence across a restart.
-**Next:** the map-first game client (build-process.md stage D, rewritten;
-game-design.md §12; goals.md P10). The user rejected the first DOM-panel
-client: the solar system map is the main screen, Three.js 3D, Google-Maps
-navigation (zoom system→surface, pan, drag, rotate), Stellaris-like HUD,
-contextual selection panel, regions as stylised Voronoi patches (Earth seeded
-at real lat/long, to add to `rules/data/map.ts`). The uncommitted
-`client/src/` work (store, net, mirror, format, panels) carries over as the
-HUD's logic; its page layout is replaced. Then README, PROCESS.md, deploy for
-Crit 8 (crits/08-its-alive: a stranger can visit, do the core thing, and find
-their trace when they come back). `reflections/crit-8.md` is the user's.
+**Stage:** D — the map-first game client (build-process.md stage D).
+A done, B harness running, C done.
+**Last verified checkpoint:** the client is a full-screen Three.js solar
+system with a glass HUD (game-design.md §12, goals.md P10): Google-Maps
+navigation, fly-to and follow, Voronoi region patches with owner tints,
+start chooser on the globe, selection panel (body / region overview-build-
+military / fleet launch planner with a map-drawn preview arc), outliner,
+Tech/Empires/Trade drawers, goals and news, phone bottom sheets.
+`pnpm test:e2e` (5 tests, headless Chrome) green: map fills the viewport,
+wheel/drag/keys move the camera, clicking a region on the globe selects
+it, refusals explained, march, live arrivals, 390 px fit. `pnpm dev`
+serves it on :8080.
+**Next:** the user plays it and reports; then textures/bloom/atmospheres
+(stage E) as asked. Crit 8 still needs README (400–600 words), PROCESS.md,
+deploy to fly.dev, repo public at the cutoff. `reflections/crit-8.md` is
+the user's. Balance: the early game is Alloy-starved (docs/balance-log.md).
 **Flagged assumptions** (numbers missing from `game-design.md`, all in
 `rules/data/`, sim-tunable):
 - Envoy upkeep 3 E/min (`economy.ts`).

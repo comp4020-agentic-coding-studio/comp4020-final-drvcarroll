@@ -385,7 +385,9 @@ two of three can).
 - **Empire:** name (3 to 24 characters, unique per season), primary and
   secondary colour. Colours are picked from 24 presets chosen to stay
   distinguishable on the map, or custom; a custom colour too close to an
-  existing empire's is refused with the clash named. Editable any time.
+  existing empire's is refused with the clash named. The form starts on the
+  first preset nobody is using, so a new player never hits a clash by
+  default. Editable any time.
 - **World size:** at most 24 nations (one per Earth start region).
 - **Late joining:** allowed until minute 50, with ×2 production for the first
   5 min so a late start isn't hopeless.

@@ -15,7 +15,7 @@ export default defineConfig({
       { test: { name: "rules", include: ["rules/**/*.test.ts"] } },
       { test: { name: "server", include: ["server/**/*.test.ts"] } },
       { test: { name: "sim", include: ["sim/**/*.test.ts"] } },
-      { test: { name: "e2e", include: ["e2e/**/*.test.ts"] } },
+      { test: { name: "e2e", include: ["e2e/**/*.test.ts"], testTimeout: 30_000 } },
     ],
   },
 });

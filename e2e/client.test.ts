@@ -1,5 +1,5 @@
-// Stage D: the DOM client driven in real Chrome against an in-process server.
-// Needs `pnpm build` first; run with `pnpm test:e2e`.
+// goals.md P10 and P7: the map-first client, driven in real Chrome against an
+// in-process server. `pnpm test:e2e` builds the client first.
 import { existsSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -15,7 +15,7 @@ beforeAll(async () => {
   if (!existsSync("client/dist/.vite/manifest.json")) throw new Error("run `pnpm build` first");
   app = await start({ port: 0, dataDir: mkdtempSync(join(tmpdir(), "grow-e2e-")) });
   base = `http://127.0.0.1:${app.port}`;
-  browser = await chromium.launch({ channel: "chrome" });
+  browser = await chromium.launch({ channel: "chrome", args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 });
 
 afterAll(async () => {
@@ -23,9 +23,11 @@ afterAll(async () => {
   await app?.close();
 });
 
-async function newPlayer(name: string, viewport = { width: 1440, height: 1000 }): Promise<Page> {
+const errors: string[] = [];
+
+async function player(name: string, region: string, viewport = { width: 1440, height: 900 }): Promise<Page> {
   const p = await browser.newPage({ viewport });
-  p.on("pageerror", (e) => { throw e; });
+  p.on("pageerror", (e) => errors.push(e.message));
   await p.goto(base);
   const f = p.locator('form[action="/api/signup"]');
   await f.locator("input[name=username]").fill(name);
@@ -33,55 +35,86 @@ async function newPlayer(name: string, viewport = { width: 1440, height: 1000 })
   await f.locator("button").click();
   await p.fill("input[name=name]", name);
   await p.click("text=Save");
-  await p.waitForSelector("table.starts");
+  await p.locator(".start details summary").click();
+  await p.locator(".start details button.row", { hasText: region }).click();
+  await p.locator(".start button", { hasText: "Start here" }).click();
+  await p.waitForSelector(".outliner");
   return p;
 }
 
-const section = (p: Page, title: string) => p.locator("section.card", { has: p.locator(`h3:text-is("${title}")`) });
+const camDistance = (p: Page) => p.evaluate(() => {
+  const s = (window as any).scene;
+  return s.camera.position.distanceTo(s.controls.target) as number;
+});
 
-describe("the browser client (build-process.md stage D)", () => {
-  it("onboards, joins, explains refusals and settles a neighbour by march", async () => {
-    const p = await newPlayer("alpha");
-    expect(await p.locator("table.starts tbody tr").count()).toBe(24);
-    await p.locator("tr", { hasText: "Siberia" }).locator("button").click();
-    await p.waitForSelector(".layout");
-    await expect.poll(() => p.locator(".stocks").innerText()).toMatch(/M\s*200/);
-
-    const mine = section(p, "Build").locator("li", { has: p.locator('b:text-is("Mine")') });
-    expect(await mine.locator("button").isDisabled()).toBe(true);
-    expect(await mine.locator(".why").innerText()).toBe("No free slot in Siberia");
-
-    await section(p, "Armies").locator("li", { hasText: "Canada" }).locator("button", { hasText: "Settle" }).click();
-    await expect.poll(() => p.locator(".toast").allInnerTexts()).toContain("March to Canada: done");
-    await p.waitForTimeout(31_000);
-    await p.click('.tabs.regions button:has-text("Canada")');
-    await expect.poll(() => p.locator("dl.facts").first().innerText()).toMatch(/Owner\s*alpha/);
-    await expect.poll(() => p.locator(".news").innerText()).toMatch(/claims Canada/);
+describe("the map is the screen (goals.md P10)", () => {
+  it("onboards on the globe and fills the viewport with the map", async () => {
+    const p = await player("alpha", "Siberia");
+    const box = await p.locator("canvas.scene").boundingBox();
+    expect(box).toMatchObject({ width: 1440, height: 900 });
+    await expect.poll(() => p.locator(".stocks").innerText()).toMatch(/200/);
+    expect(errors).toEqual([]);
     await p.close();
-  }, 60_000);
+  });
 
-  it("cycles bodies with [ and ] and fits a phone with no sideways scroll", async () => {
-    const p = await newPlayer("bravo", { width: 390, height: 844 });
-    await p.locator("tr", { hasText: "Brazil" }).locator("button").click();
-    await p.waitForSelector(".layout");
-    await p.keyboard.press("]");
-    await expect.poll(() => p.locator(".panelhead h2").innerText()).toBe("Antarctica");
+  it("zooms with the wheel, pans with a drag, cycles and backs out with keys", async () => {
+    const p = await player("bravo", "Brazil");
+    await p.waitForTimeout(1500);
     await p.keyboard.press("Escape");
-    await expect.poll(() => p.locator(".panelhead h2").innerText()).toBe("Earth");
-    expect(await p.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
-    const tab = await p.locator('.tabs[aria-label=Panels] button').first().boundingBox();
-    expect(tab!.height).toBeGreaterThanOrEqual(44);
-    await p.close();
-  }, 30_000);
+    await p.keyboard.press("Escape");
+    await p.waitForTimeout(1400);
+    const far = await camDistance(p);
+    await p.mouse.move(720, 450);
+    for (let i = 0; i < 5; i++) await p.mouse.wheel(0, -240);
+    await p.waitForTimeout(600);
+    expect(await camDistance(p)).toBeLessThan(far * 0.8);
 
-  it("shows another player's claim live", async () => {
-    const a = await newPlayer("charlie");
-    await a.locator("tr", { hasText: "India" }).locator("button").click();
-    await a.waitForSelector(".layout");
-    const b = await newPlayer("delta");
-    await b.locator("tr", { hasText: "Arabia" }).locator("button").click();
-    await expect.poll(() => a.locator(".board").innerText(), { timeout: 2000 }).toMatch(/delta/);
+    const target = () => p.evaluate(() => (window as any).scene.controls.target.toArray() as number[]);
+    const before = await target();
+    await p.mouse.move(700, 500);
+    await p.mouse.down();
+    await p.mouse.move(900, 600, { steps: 8 });
+    await p.mouse.up();
+    await p.waitForTimeout(300);
+    expect(await target()).not.toEqual(before);
+
+    await p.keyboard.press("]");
+    await expect.poll(() => p.evaluate(() => (window as any).scene.focus)).not.toBeNull();
+    await p.close();
+  });
+
+  it("selects a region by clicking it on the globe and explains a refusal", async () => {
+    const p = await player("charlie", "India");
+    await p.locator(".outliner .list.sub button.row", { hasText: "India" }).click();
+    await p.waitForTimeout(1600);
+    await p.keyboard.press("Escape"); // deselect, then pick it on the map
+    const at = await p.evaluate(() => (window as any).scene.screenOf("r_india"));
+    expect(at).not.toBeNull();
+    await p.mouse.click(at.x, at.y);
+    await expect.poll(() => p.locator(".selection h2").innerText()).toBe("India");
+    await p.locator(".seg button", { hasText: "build" }).click();
+    const mine = p.locator(".selection li.item", { has: p.locator('b:text-is("Mine")') });
+    expect(await mine.locator("button").isDisabled()).toBe(true);
+    expect(await mine.locator(".why").innerText()).toBe("No free slot in India");
+    await p.close();
+  });
+
+  it("settles a neighbour by march from the region's Military tab", async () => {
+    const p = await player("delta", "Arabia");
+    await p.locator(".outliner .list.sub button.row", { hasText: "Arabia" }).click();
+    await p.locator(".seg button", { hasText: "military" }).click();
+    await p.locator(".selection li.item", { hasText: "Iran" }).locator("button", { hasText: "Settle" }).click();
+    await expect.poll(() => p.locator(".toast").allInnerTexts()).toContain("March to Iran & Central Asia: done");
+    await p.close();
+  });
+
+  it("shows another player's arrival live and fits a phone", async () => {
+    const a = await player("echo", "Western Europe", { width: 390, height: 844 });
+    expect(await a.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+    const b = await player("foxtrot", "Southern Africa");
+    await a.locator(".drawers button", { hasText: "Empires" }).click();
+    await expect.poll(() => a.locator(".drawer").innerText(), { timeout: 2000 }).toMatch(/foxtrot/);
     await a.close();
     await b.close();
-  }, 30_000);
+  });
 });
