@@ -1,9 +1,10 @@
 // game-design.md §3: snapshot + rates + scheduled events. No loop needed.
-import { BUILDINGS, RESOURCES, UNITS, type Building, type Resource, type Unit } from "./data/index.ts";
+import { BUILDINGS, REGIONS, RESOURCES, UNITS, type Building, type Resource, type Unit } from "./data/index.ts";
 import { EPS, MS_PER_MIN, capOf, economy, type Economy } from "./economy.ts";
-import { arrive, marchArrive, shipDone } from "./fleets.ts";
+import { arrive, shipDone } from "./fleets.ts";
 import type { Id, Ms } from "./protocol.ts";
 import { leader, scores } from "./score.ts";
+import { marchArrive, resolveSpace, warActive } from "./war.ts";
 import { news, schedule, touch, type GameEvent, type RegionState, type State } from "./state.ts";
 
 const earliest = (es: GameEvent[]) =>
@@ -82,8 +83,14 @@ function handle(s: State, e: GameEvent): void {
       n.research = null;
       return;
     }
-    case "arrive":
-      return arrive(s, e.fleet);
+    case "arrive": {
+      const body = s.fleets[e.fleet]?.transit?.to;
+      arrive(s, e.fleet);
+      if (body) resolveSpace(s, body);
+      return;
+    }
+    case "warActive":
+      return warActive(s, e.war);
     case "march":
       return marchArrive(s, e.nation, e.from, e.to, e.count);
     case "rateChange":
@@ -99,7 +106,9 @@ function complete(s: State, r: RegionState, item: string): void {
   if (item === "army") {
     r.armies++;
   } else if (item in UNITS) {
-    if (r.owner) shipDone(s, r.owner, r.id, item as Unit);
+    if (!r.owner) return;
+    shipDone(s, r.owner, r.id, item as Unit);
+    resolveSpace(s, REGIONS[r.id].body);
   } else if (item in BUILDINGS) {
     const used = new Set(r.buildings.map((b) => b.slot));
     let slot = 0;

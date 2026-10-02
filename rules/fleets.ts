@@ -1,5 +1,5 @@
 // game-design.md §4, §7, §11: ships, launches, arrival, colonising, marching.
-import { ADJACENT, BODIES, MILITARY, REGIONS, RUNGS, TRAVEL, UNITS, type Unit } from "./data/index.ts";
+import { BODIES, MILITARY, REGIONS, RUNGS, UNITS, type Unit } from "./data/index.ts";
 import { enqueue, isInt, isRejection, needs, no, ownRegion, regionName, type Handler } from "./check.ts";
 import { isEarth, mods, scale, spend } from "./economy.ts";
 import { launchEnergy, travelMs } from "./orbit.ts";
@@ -133,35 +133,6 @@ export function arrive(s: State, fleetId: Id): void {
     delete s.fleets[f.id];
   } else {
     touch(f);
-  }
-}
-
-export const march: Handler<"march"> = (s, n, c) => {
-  const from = ownRegion(s, n, c.from);
-  if (isRejection(from)) return from;
-  const to = s.regions[c.to];
-  if (!to || !isEarth(to.id) || !isEarth(from.id)) return no("INVALID", "Armies march only between Earth regions");
-  if (!ADJACENT[from.id]?.includes(to.id)) return no("NOT_ADJACENT", `${regionName(from.id)} doesn't border ${regionName(to.id)}`);
-  if (!isInt(c.count, 1, from.armies)) return no("INSUFFICIENT", `${regionName(from.id)} has ${from.armies} Armies`);
-  if (to.owner && to.owner !== n.id) return no("NOT_AT_WAR", `You aren't at war with ${s.nations[to.owner].name}`);
-  return () => {
-    from.armies -= c.count;
-    touch(from);
-    schedule(s, { kind: "march", at: s.t + TRAVEL.marchHopS * 1000, nation: n.id, from: from.id, to: to.id, count: c.count });
-  };
-};
-
-export function marchArrive(s: State, nation: Id, from: Id, to: Id, count: number): void {
-  const r = s.regions[to];
-  if (!r.owner) return claim(s, nation, to, count);
-  if (r.owner === nation) {
-    r.armies += count;
-    return touch(r);
-  }
-  const back = s.regions[from];
-  if (back.owner === nation) {
-    back.armies += count;
-    touch(back);
   }
 }
 

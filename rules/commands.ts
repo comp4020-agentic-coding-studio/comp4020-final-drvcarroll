@@ -7,7 +7,8 @@ import {
   enqueue, isInt, isRejection, needs, no, ownRegion, regionName, type Cmd, type Handler, type Plan,
 } from "./check.ts";
 import { credit, mods, scale, slotsOf, spend } from "./economy.ts";
-import { buildShip, colonise, launch, march } from "./fleets.ts";
+import { buildShip, colonise, launch } from "./fleets.ts";
+import { acceptPeace, declareWar, invade, march, offerPeace } from "./war.ts";
 import type { Command, Id } from "./protocol.ts";
 import { emptyStocks, news, schedule, touch, type NationState, type State } from "./state.ts";
 
@@ -174,7 +175,7 @@ const train: Handler<"train"> = (s, n, c) => {
 
 const handlers: { [T in Command["type"]]?: Handler<T> } = {
   join, build, demolish, cancelBuild, setMode, research, cancelResearch, train,
-  buildShip, launch, colonise, march,
+  buildShip, launch, colonise, march, invade, declareWar, offerPeace, acceptPeace,
 };
 
 export function check(s: State, nation: Id, c: Command): Plan {

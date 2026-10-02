@@ -8,12 +8,14 @@ shortfall rule (`economy.ts`), the analytic event loop with depletion events
 join, build, demolish, cancelBuild, setMode, research, cancelResearch,
 train). Orbits and fleets (`orbit.ts`, `fleets.ts`): positions, Hohmann
 time, window penalty, launch energy, buildShip, launch, arrival with the
-first-arrival colonise rule, march. Tests green: stocks never negative,
-deterministic replay.
-**Next:** war (declare, activation, peace), Lanchester space combat on
-arrival/activation, invasion and Earth ground combat via march, capital
-moves, elimination and respawn. Then trade and Envoys, `observe`,
-`legalActions`. **Crit 8 is next week**:
+first-arrival colonise rule. War (`war.ts`): declare/activate/peace,
+protection, Lanchester space combat on arrival, activation and ship
+completion, invasion with orbital superiority, ground combat by march,
+capital moves, elimination, respawn. Tests green: stocks never negative,
+deterministic replay, combat outcomes.
+**Next:** trade (offer/accept with escrow and delivery, gift, Earth
+Exchange, Trade Multiplier) and Envoys. Then `observe` (vision filter),
+`legalActions`; that closes Stage A. **Crit 8 is next week**:
 Stage A done, Stage B harness running, Stage C full, Stage D slice (see
 "Crit calendar" in `build-process.md`).
 **Flagged assumptions** (numbers missing from `game-design.md`, all in
@@ -33,6 +35,10 @@ Stage A done, Stage B harness running, Stage C full, Stage D slice (see
   order.
 - A march onto a region no longer valid on arrival returns home (or is lost
   if home fell).
+- Combat with 3+ nations in one orbit resolves pairwise, lowest owner ids
+  first. Army cargo has no space strength.
+- A capital moves to the remaining region with the most buildings, then
+  slots, then lowest id. A conquered region's build queue is lost.
 - Respawn resets stocks to the starting kit.
 - Off-Earth region names and asteroid J2000 longitudes are invented or
   approximate (`map.ts`).

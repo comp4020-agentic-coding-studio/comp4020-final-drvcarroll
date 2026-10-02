@@ -48,6 +48,7 @@ export type GameEvent = { id: number; at: Ms } & (
   | { kind: "research"; nation: Id; tech: string }
   | { kind: "arrive"; fleet: Id }
   | { kind: "march"; nation: Id; from: Id; to: Id; count: number }
+  | { kind: "warActive"; war: Id }
   | { kind: "rateChange" }
   | { kind: "seasonEnd" }
 );
