@@ -9,6 +9,7 @@ import { marked } from "marked";
 import {
   SESSION_MAX_AGE_S, checkSignup, createSession, createUser, endSession, rateLimited, sessionUser, verify, type User,
 } from "./auth.ts";
+import { freeColour } from "../rules/commands.ts";
 import { openDb, type Db } from "./db.ts";
 import { Hub } from "./hub.ts";
 import { page, empirePage, loginPage, shellPage } from "./pages.ts";
@@ -83,7 +84,11 @@ export function createApp(db: Db, world: World, opts: { secureCookies: boolean; 
 
   app.get("/empire", (c) => {
     const u = user(c);
-    return u ? c.html(empirePage(empireOf(u) ?? world.lastEmpire(u.id))) : c.redirect("/", 303);
+    if (!u) return c.redirect("/", 303);
+    const s = world.ensureSeason(opts.now());
+    const prev = world.lastEmpire(u.id);
+    const fresh = { name: prev?.name ?? "", primary: freeColour(s, nationOf(u.id)), secondary: prev?.secondary ?? "#ffffff" };
+    return c.html(empirePage(empireOf(u) ?? fresh));
   });
 
   app.post("/api/signup", async (c) => {

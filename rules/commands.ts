@@ -21,6 +21,12 @@ function hexDistance(a: string, b: string): number {
   return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]);
 }
 
+// The first preset colour no other nation is too close to.
+export function freeColour(s: State, nation: Id): string {
+  const others = Object.values(s.nations).filter((o) => o.id !== nation);
+  return EMPIRE.presets.find((c) => others.every((o) => hexDistance(o.primary, c) >= EMPIRE.colourClashDistance)) ?? EMPIRE.presets[0];
+}
+
 const setEmpire = (s: State, id: Id, c: Cmd<"setEmpire">): Plan => {
   const name = c.name?.trim() ?? "";
   if (name.length < EMPIRE.nameMin || name.length > EMPIRE.nameMax) {

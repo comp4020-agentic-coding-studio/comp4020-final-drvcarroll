@@ -77,6 +77,17 @@ describe("server: commands", () => {
 });
 
 describe("server: accounts", () => {
+  it("offers each new empire a colour nobody has taken", async () => {
+    await boot(mkdtempSync(join(tmpdir(), "grow-")));
+    const colourOf = async (cookie: string) =>
+      /name="primary" type="color" list="presets" value="(#[0-9a-f]{6})"/.exec(await (await fetch(url("/empire"), { headers: { cookie } })).text())![1];
+    const a = await account("erin");
+    const first = await colourOf(a);
+    const r = await api(base()).post("/api/empire", { name: "Erinland", primary: first, secondary: "#ffffff" }, a);
+    expect(r.status).toBe(200);
+    expect(await colourOf(await account("frank"))).not.toBe(first);
+  });
+
   it("rejects wrong passwords and duplicate usernames, and closes 4001 without a session", async () => {
     await boot(mkdtempSync(join(tmpdir(), "grow-")));
     await account("carol");
