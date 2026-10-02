@@ -1,16 +1,25 @@
 # Progress
 
 **Stage:** A — Rules engine and data (`rules/`)
-**Last verified checkpoint:** none yet. `goals.md`, `game-design.md` and
-`system-design.md` are committed and mutually aligned; no implementation
-exists.
-**Next:** scaffold `rules/` and `rules/data/`; port `game-design.md`'s
-numbers (resources, buildings, ships, tech, map) into `rules/data/` as the
-single source; implement `apply`/`advanceTo`/`observe`/`legalActions` against
-a minimal slice (one resource chain, one region) before expanding to the full
-data set. See `build-process.md` §A for exit criteria. **Crit 8 is next
-week** — the bar is Stage A done, Stage B harness running, Stage C's full
-exit criteria, and only a displayable slice of Stage D (see "Crit calendar"
-in `build-process.md`). Stage E (rendering) is not needed for Crit 8.
-**Flagged assumptions:** none yet.
-**Last updated:** 2026-10-02, this session (docs-only work so far).
+**Last verified checkpoint:** `rules/data/` holds every number in
+`game-design.md` (map, economy, military, tech, victory), with tests green
+(`pnpm test:rules`). No engine logic yet.
+**Next:** `rules/state.ts` + `rules/economy.ts` + `rules/advance.ts`: state
+shape, rates and the shortfall rule, `advanceTo` with stock-depletion
+events, then `join`/`build` through `apply`. Then orbits/fleets, combat and
+war, trade and Envoys, `observe`, `legalActions`. **Crit 8 is next week**:
+Stage A done, Stage B harness running, Stage C full, Stage D slice (see
+"Crit calendar" in `build-process.md`).
+**Flagged assumptions** (numbers missing from `game-design.md`, all in
+`rules/data/`, sim-tunable):
+- Envoy upkeep 3 E/min (`economy.ts`).
+- Research takes 15 s × rung after paying its cost (`tech.ts`).
+- Trade offers expire after 5 min (`victory.ts`).
+- Season threshold 300 points, first guess (`victory.ts`).
+- Launch to a Terrestrial body costs 10 E/mass, like Cislunar (`military.ts`).
+- Torch Ships' "almost none" window penalty = coefficient 0.2 (`tech.ts`).
+- Tech bonuses stack additively (`tech.ts`).
+- Colour clash = RGB distance < 60 (`victory.ts`).
+- Off-Earth region names and asteroid J2000 longitudes are invented or
+  approximate (`map.ts`).
+**Last updated:** 2026-10-02, resume session.
