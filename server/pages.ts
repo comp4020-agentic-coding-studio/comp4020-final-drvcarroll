@@ -12,6 +12,7 @@ export function page(title: string, body: string, head = ""): string {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
 <link rel="stylesheet" href="/static/site.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Ccircle cx=%228%22 cy=%228%22 r=%227%22 fill=%22%235cc8ff%22/%3E%3C/svg%3E">
 ${head}
 </head>
 <body>
@@ -58,13 +59,12 @@ export function empirePage(e?: { name: string; primary: string; secondary: strin
 </main>`);
 }
 
-export function shellPage(username: string): string {
+export function shellPage(username: string, assets: { js: string; css: string[] } | null): string {
+  const head = assets
+    ? [...assets.css.map((h) => `<link rel="stylesheet" href="${h}">`), `<script type="module" src="${assets.js}"></script>`].join("\n")
+    : "";
   return page("Grow", `
-<header class="bar">
-  <strong>Grow</strong>
-  <span>${esc(username)}</span>
-  <a href="/empire">Empire</a>
-  <form method="post" action="/api/logout"><button>Sign out</button></form>
-</header>
-<main id="app"><p>Connecting…</p></main>`, `<script type="module" src="/static/client.js"></script>`);
+<div id="app" data-user="${esc(username)}">
+  <p class="narrow">${assets ? "Connecting…" : "The client isn't built: run <code>pnpm build</code>."}</p>
+</div>`, head);
 }

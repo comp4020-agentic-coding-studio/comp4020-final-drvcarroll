@@ -15,6 +15,19 @@ import { page, empirePage, loginPage, shellPage } from "./pages.ts";
 import { World, nationOf } from "./world.ts";
 
 const ROOT = join(import.meta.dirname, "..");
+const DIST = join(ROOT, "client", "dist");
+
+// The built client's entry, from Vite's manifest; read per request so a
+// watch rebuild is picked up.
+function clientAssets(): { js: string; css: string[] } | null {
+  try {
+    const m = JSON.parse(readFileSync(join(DIST, ".vite", "manifest.json"), "utf8"));
+    const e = Object.values(m).find((x: any) => x.isEntry) as { file: string; css?: string[] };
+    return { js: `/static/${e.file}`, css: (e.css ?? []).map((f) => `/static/${f}`) };
+  } catch {
+    return null;
+  }
+}
 const COOKIE = "session";
 
 export interface ServerOptions {
@@ -58,11 +71,15 @@ export function createApp(db: Db, world: World, opts: { secureCookies: boolean; 
 
   app.get("/", (c) => {
     const u = user(c);
-    return c.html(u ? shellPage(u.username) : loginPage());
+    return c.html(u ? shellPage(u.username, clientAssets()) : loginPage());
   });
   app.get("/readme/", (c) => c.html(readme));
   app.get("/healthz", (c) => c.text("ok"));
-  app.use("/static/*", serveStatic({ root: join(ROOT, "client"), rewriteRequestPath: (p) => p.replace(/^\/static/, "") }));
+  app.use("/static/assets/*", async (c, next) => {
+    await next();
+    c.header("Cache-Control", "public, max-age=31536000, immutable");
+  });
+  app.use("/static/*", serveStatic({ root: DIST, rewriteRequestPath: (p) => p.replace(/^\/static/, "") }));
 
   app.get("/empire", (c) => {
     const u = user(c);

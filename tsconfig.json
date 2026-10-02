@@ -15,7 +15,9 @@
     "skipLibCheck": true,
     "moduleDetection": "force",
     "verbatimModuleSyntax": true,
-    "erasableSyntaxOnly": true
+    "erasableSyntaxOnly": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact"
   },
-  "include": ["*.ts", "spec", "scripts", "rules", "sim", "server"]
+  "include": ["*.ts", "spec", "scripts", "rules", "sim", "server", "client"]
 }

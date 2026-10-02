@@ -299,10 +299,9 @@ Onboarding and the tutorial are specified in game-design.md §11.
 
 ## 12. Deploy
 
-- `Dockerfile` on `node:24-slim`: production dependencies, `rules/`,
-  `server/`, `client/` and the README, run as `.ts` directly. When the
-  client gains a build step (Vite, textures), a first stage builds it and
-  only its output is copied in.
+- Multi-stage `Dockerfile` on `node:24-slim`: stage 1 runs `pnpm build`
+  (Vite) for the client; stage 2 has production dependencies, `rules/`,
+  `server/`, the built `client/dist` and the README, run as `.ts` directly.
 - Boot: run SQL migrations (numbered files, applied in a transaction), load
   the snapshot, replay, listen on `0.0.0.0:$PORT`.
 - `/` answers within a second of boot, so CI and Fly's health check pass.
