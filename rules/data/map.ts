@@ -38,32 +38,33 @@ const orbits = {
   pluto: { a: 39.48, periodDays: 90560, l0Deg: 238.93 },
 } satisfies Record<string, Orbit>;
 
-// Fairness rule: every start region's M + V + S sums to 3.3.
-const earthRows: [string, string, number, number, number][] = [
-  ["r_canada", "Canada", 1.3, 1.3, 0.7],
-  ["r_us_west", "US West", 1.2, 0.9, 1.2],
-  ["r_us_east", "US East", 1.1, 1.1, 1.1],
-  ["r_mexico", "Mexico & Central America", 1.1, 1.0, 1.2],
-  ["r_brazil", "Brazil", 1.1, 1.1, 1.1],
-  ["r_andean", "Andean States", 1.4, 0.7, 1.2],
-  ["r_southern_cone", "Southern Cone", 1.2, 1.1, 1.0],
-  ["r_w_europe", "Western Europe", 1.0, 1.3, 1.0],
-  ["r_n_europe", "Northern Europe", 1.2, 1.4, 0.7],
-  ["r_e_europe", "Eastern Europe", 1.2, 1.2, 0.9],
-  ["r_w_russia", "Western Russia", 1.2, 1.4, 0.7],
-  ["r_siberia", "Siberia", 1.6, 1.2, 0.5],
-  ["r_n_africa", "North Africa", 0.8, 1.1, 1.4],
-  ["r_w_africa", "West Africa", 1.0, 1.1, 1.2],
-  ["r_e_africa", "East Africa", 1.1, 0.9, 1.3],
-  ["r_s_africa", "Southern Africa", 1.5, 0.6, 1.2],
-  ["r_arabia", "Arabia", 0.4, 1.5, 1.4],
-  ["r_iran", "Iran & Central Asia", 1.0, 1.1, 1.2],
-  ["r_india", "India", 1.1, 0.9, 1.3],
-  ["r_n_china", "North China", 1.4, 0.9, 1.0],
-  ["r_s_china", "South China", 1.1, 1.1, 1.1],
-  ["r_se_asia", "Southeast Asia", 1.0, 1.2, 1.1],
-  ["r_japan_korea", "Japan & Korea", 1.0, 1.3, 1.0],
-  ["r_aus_nz", "Australia & New Zealand", 1.5, 0.6, 1.2],
+// Fairness rule: every start region's M + V + S sums to 3.3. Lat/lon seed the
+// region's patch on the globe (game-design.md §12).
+const earthRows: [string, string, number, number, number, number, number][] = [
+  ["r_canada", "Canada", 1.3, 1.3, 0.7, 60, -100],
+  ["r_us_west", "US West", 1.2, 0.9, 1.2, 40, -115],
+  ["r_us_east", "US East", 1.1, 1.1, 1.1, 38, -84],
+  ["r_mexico", "Mexico & Central America", 1.1, 1.0, 1.2, 19, -96],
+  ["r_brazil", "Brazil", 1.1, 1.1, 1.1, -10, -52],
+  ["r_andean", "Andean States", 1.4, 0.7, 1.2, -10, -74],
+  ["r_southern_cone", "Southern Cone", 1.2, 1.1, 1.0, -36, -63],
+  ["r_w_europe", "Western Europe", 1.0, 1.3, 1.0, 46, 3],
+  ["r_n_europe", "Northern Europe", 1.2, 1.4, 0.7, 63, 16],
+  ["r_e_europe", "Eastern Europe", 1.2, 1.2, 0.9, 50, 23],
+  ["r_w_russia", "Western Russia", 1.2, 1.4, 0.7, 57, 42],
+  ["r_siberia", "Siberia", 1.6, 1.2, 0.5, 63, 105],
+  ["r_n_africa", "North Africa", 0.8, 1.1, 1.4, 26, 12],
+  ["r_w_africa", "West Africa", 1.0, 1.1, 1.2, 10, -3],
+  ["r_e_africa", "East Africa", 1.1, 0.9, 1.3, 3, 36],
+  ["r_s_africa", "Southern Africa", 1.5, 0.6, 1.2, -22, 25],
+  ["r_arabia", "Arabia", 0.4, 1.5, 1.4, 24, 45],
+  ["r_iran", "Iran & Central Asia", 1.0, 1.1, 1.2, 38, 63],
+  ["r_india", "India", 1.1, 0.9, 1.3, 22, 79],
+  ["r_n_china", "North China", 1.4, 0.9, 1.0, 40, 108],
+  ["r_s_china", "South China", 1.1, 1.1, 1.1, 26, 112],
+  ["r_se_asia", "Southeast Asia", 1.0, 1.2, 1.1, 12, 103],
+  ["r_japan_korea", "Japan & Korea", 1.0, 1.3, 1.0, 37, 134],
+  ["r_aus_nz", "Australia & New Zealand", 1.5, 0.6, 1.2, -26, 136],
 ];
 
 type BodyRow = Omit<BodyData, "id" | "fusionBonus"> & { fusionBonus?: boolean };
@@ -165,6 +166,8 @@ export interface RegionData {
   v: number;
   s: number;
   start: boolean; // an Earth start region
+  lat?: number; // Earth's patches sit at real geography; other bodies spread evenly
+  lon?: number;
 }
 
 const slug = (name: string) =>
@@ -187,8 +190,8 @@ const offEarth: RegionData[] = Object.values(BODIES)
 
 export const REGIONS: Record<string, RegionData> = Object.fromEntries(
   [
-    ...earthRows.map(([id, name, m, v, s]) => ({ id, name, body: "earth", m, v, s, start: true })),
-    { id: "r_antarctica", name: "Antarctica", body: "antarctica", m: 1.3, v: 2.0, s: 0.3, start: false },
+    ...earthRows.map(([id, name, m, v, s, lat, lon]) => ({ id, name, body: "earth", m, v, s, start: true, lat, lon })),
+    { id: "r_antarctica", name: "Antarctica", body: "antarctica", m: 1.3, v: 2.0, s: 0.3, start: false, lat: -82, lon: 0 },
     ...offEarth,
   ].map((r) => [r.id, r]),
 );

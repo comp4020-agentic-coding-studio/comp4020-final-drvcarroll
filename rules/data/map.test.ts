@@ -21,6 +21,14 @@ describe("map data (game-design.md §4)", () => {
     for (const r of starts) expect(r.m + r.v + r.s, r.name).toBeCloseTo(3.3, 9);
   });
 
+  it("places every Earth region on the globe, Antarctica at the pole", () => {
+    for (const r of regions.filter((x) => x.body === "earth" || x.body === "antarctica")) {
+      expect(Math.abs(r.lat!), r.name).toBeLessThanOrEqual(90);
+      expect(Math.abs(r.lon!), r.name).toBeLessThanOrEqual(180);
+    }
+    expect(REGIONS.r_antarctica.lat).toBeLessThan(-60);
+  });
+
   it("derives off-Earth Solar as 1/d² (Mercury ≈ ×6.6)", () => {
     expect(REGIONS.r_mercury_caloris.s).toBeCloseTo(6.68, 2);
     expect(REGIONS.r_luna_far_side.s).toBe(1);
