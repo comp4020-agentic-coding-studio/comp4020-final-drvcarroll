@@ -538,9 +538,13 @@ non-colonisable** bodies so it feels alive: the main asteroid belt
 (thousands of rocks), Jupiter's Trojan swarms at ±60°, the Kuiper belt, the
 dwarf planets Eris, Makemake, Haumea and Sedna, Pluto's Charon, the minor
 moons of the giants (Mimas, Tethys, Dione, Rhea, Iapetus, Amalthea, Miranda,
-Ariel, Umbriel), and comets on long elliptical orbits with tails pointing
-away from the Sun. All move on their own orbits, computed on the GPU. They
-carry names on hover but no game rules: nothing there can be claimed.
+Ariel, Umbriel), and six real comets (Halley, Encke, Hale-Bopp,
+Swift-Tuttle, 67P, Tempel 1) on their real elliptical orbits, with tails
+pointing away from the Sun that grow as they near it. Moons sit in their real
+order around their planet. All move on their own orbits; the belt has
+Kirkwood gaps. Named minor bodies carry dim, unclickable labels (far dwarf
+planets only in the system view) and no game rules: nothing there can be
+claimed.
 
 ### Regions on the surface
 

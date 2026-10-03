@@ -8,9 +8,10 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
-import { BODIES, REGIONS } from "../../../rules/data/index.ts";
+import { BODIES, MAP, REGIONS } from "../../../rules/data/index.ts";
 import { me, nations, offset, season, selBody, selRegion, world } from "../store.ts";
-import { moonDistance, orbitRadius, position, regionAt, seeds, SIZE, sphereOf, SPHERES, SUN_SIZE, type V3 } from "./layout.ts";
+import { Decor } from "./decor.ts";
+import { MINOR, moonDistance, orbitRadius, parentOf, position, regionAt, seeds, SIZE, sphereOf, SPHERES, SUN_SIZE, type V3 } from "./layout.ts";
 import { FleetLayer } from "./fleets.ts";
 import { atmosphereMaterial, LOOK, regionMaterial, ringMaterial, sunMaterial } from "./regionMaterial.ts";
 
@@ -26,6 +27,7 @@ interface BodyView {
   regions: string[];
   label: HTMLElement;
   moonOrbit?: THREE.LineLoop;
+  decor: boolean; // scenery: not clickable, no rules
 }
 
 interface Flight { t0: number; fromTarget: THREE.Vector3; fromOffset: THREE.Vector3; body: string | null; toOffset: THREE.Vector3 }
@@ -46,6 +48,7 @@ export class GameScene {
   private views = new Map<string, BodyView>();
   private orbits: { line: THREE.LineLoop; base: number }[] = [];
   private fleets: FleetLayer;
+  private decor: Decor;
   private regionLabels = new Map<string, HTMLElement>();
   private flight: Flight | null = null;
   private lastFocusPos = new THREE.Vector3();
@@ -73,7 +76,8 @@ export class GameScene {
 
     this.buildSpace();
     this.fleets = new FleetLayer(this.scene);
-    for (const id of SPHERES) this.buildBody(id);
+    this.decor = new Decor(this.scene, PHONE);
+    for (const id of [...SPHERES, ...Object.keys(MINOR)]) this.buildBody(id);
     this.bindInput(canvas);
     if (!PHONE) {
       this.composer = new EffectComposer(this.renderer);
@@ -152,14 +156,15 @@ export class GameScene {
       r.rotation.x = -Math.PI / 2 + (id === "uranus" ? 1.4 : 0.47);
       mesh.add(r);
     }
-    const label = document.createElement("button");
-    label.className = "label body";
-    label.textContent = BODIES[id].name.replace(" orbital", "");
+    const decor = !!MINOR[id];
+    const label = document.createElement(decor ? "span" : "button");
+    label.className = decor ? "label body decor" : "label body";
+    label.textContent = decor ? MINOR[id].name : BODIES[id].name.replace(" orbital", "");
     label.tabIndex = -1;
-    label.addEventListener("click", () => this.select(id, null));
+    if (!decor) label.addEventListener("click", () => this.select(id, null));
     this.overlay.append(label);
-    const view: BodyView = { id, mesh, mat, regions: ss.map((s) => s.region), label };
-    if (BODIES[id].parent) {
+    const view: BodyView = { id, mesh, mat, regions: ss.map((s) => s.region), label, decor };
+    if (parentOf(id)) {
       view.moonOrbit = ring(moonDistance(id), 0x24324a, 0.7);
       this.scene.add(view.moonOrbit);
     }
@@ -323,7 +328,7 @@ export class GameScene {
     for (const v of this.views.values()) {
       const c = v.mesh.position;
       const dist = this.camera.position.distanceTo(c);
-      if (!v.mesh.visible) continue;
+      if (!v.mesh.visible || v.decor) continue;
       const real = SIZE[v.id] * v.mesh.scale.x;
       const r = Math.max(real, dist * 0.018);
       const oc = ray.origin.clone().sub(c);
@@ -375,13 +380,13 @@ export class GameScene {
     const cam = this.camera.position;
     for (const v of this.views.values()) {
       v.mesh.position.copy(this.bodyPos(v.id));
-      const parent = BODIES[v.id].parent;
+      const parent = parentOf(v.id);
       // A minimum on-screen size so the inner planets read from far out;
       // moons only appear once you're near their planet.
       const d = cam.distanceTo(v.mesh.position);
       const near = parent ? cam.distanceTo(this.bodyPos(parent)) < SIZE[parent] * 14 : true;
       v.mesh.visible = near;
-      v.mesh.scale.setScalar(parent ? 1 : Math.max(1, (d * 0.0085) / SIZE[v.id]));
+      v.mesh.scale.setScalar(parent ? 1 : Math.max(1, (d * (v.decor ? 0.004 : 0.0085)) / SIZE[v.id]));
       if (v.moonOrbit) {
         v.moonOrbit.position.copy(this.bodyPos(parent!));
         v.moonOrbit.visible = near;
@@ -422,6 +427,9 @@ export class GameScene {
     this.controls.update();
 
     this.fleets.update(this.now(), this.start(), this.camera);
+    const h = this.renderer.domElement.clientHeight || innerHeight;
+    const days = MAP.calendarStartJ2000Days + (this.now() - this.start()) / MAP.dayMs;
+    this.decor.update(days, h / (2 * Math.tan((this.camera.fov * Math.PI) / 360)), this.camera);
     this.hover();
     this.labels();
     this.sun.uniforms.time.value = performance.now() / 1000;
@@ -466,10 +474,12 @@ export class GameScene {
     for (const v of this.views.values()) {
       const p = v.mesh.position;
       const d = camPos.distanceTo(p);
-      const parent = BODIES[v.id].parent;
+      const parent = parentOf(v.id);
       const near = parent ? camPos.distanceTo(this.bodyPos(parent)) < SIZE[parent] * 14 : true;
       const px = (SIZE[v.id] / d) * (h / 0.83);
-      place(v.label, p, near && px < h * 0.18, Math.max(6, px * 0.5 + 4));
+      // Far-off dwarf planets name themselves only in the system view.
+      const scenery = v.decor && !parent && !!this.focus;
+      place(v.label, p, near && !scenery && px < h * 0.18, Math.max(6, px * 0.5 + 4));
       v.label.classList.toggle("sel", !!selBody.value && sphereOf(selBody.value) === v.id);
       v.label.classList.toggle("mine", !!me.value && (world.value?.regions ?? []).some((r) => r.owner === me.value && sphereOf(r.body) === v.id));
     }

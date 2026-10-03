@@ -38,6 +38,20 @@ export const LOOK: Record<string, Look> = {
   neptune: { style: "ice", a: "#4b72dc", b: "#2c4aa6", c: "#8fb0ff", atmosphere: "#7aa4ff" },
   triton: { style: "cracked", a: "#d3c3bb", b: "#9d8a83", c: "#efe4de" },
   pluto: { style: "rock", a: "#cdb79f", b: "#8f7a66", c: "#f0e2d0" },
+  charon: { style: "rock", a: "#9c948e", b: "#5e4a42", c: "#c2bbb5" },
+  mimas: { style: "rock", a: "#b9b6b1", b: "#85827d", c: "#dcd9d4" },
+  tethys: { style: "cracked", a: "#e6e3dd", b: "#a8a39b", c: "#f7f5f1" },
+  dione: { style: "cracked", a: "#d6d3cd", b: "#99948c", c: "#efede9" },
+  rhea: { style: "rock", a: "#c9c5bf", b: "#8e8a84", c: "#e6e3de" },
+  iapetus: { style: "rock", a: "#d2c9b8", b: "#3c3128", c: "#ebe4d6" },
+  amalthea: { style: "rock", a: "#a85d40", b: "#6b3826", c: "#c98060" },
+  miranda: { style: "cracked", a: "#b4b2ae", b: "#76736e", c: "#d4d2ce" },
+  ariel: { style: "rock", a: "#bdb8b2", b: "#7f7a74", c: "#dcd8d2" },
+  umbriel: { style: "rock", a: "#6f6c69", b: "#474543", c: "#8e8b88" },
+  eris: { style: "ice", a: "#e9e6e2", b: "#c8c4be", c: "#f8f7f5" },
+  makemake: { style: "rock", a: "#c98f6a", b: "#8f5b3e", c: "#e3b896" },
+  haumea: { style: "ice", a: "#dcdde0", b: "#b5b7bc", c: "#f2f3f5" },
+  sedna: { style: "rock", a: "#a8442c", b: "#6e2817", c: "#cf6f50" },
 };
 
 const vertex = /* glsl */ `

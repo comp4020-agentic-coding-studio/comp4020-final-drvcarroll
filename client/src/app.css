@@ -181,3 +181,4 @@ button.small { min-height: 26px; padding: 2px 8px; font-size: 0.78rem; }
   .ladders { grid-template-columns: 1fr; }
   button, select, input, button.row, .seg button, .drawers button { min-height: 44px; }
 }
+.label.decor { pointer-events: none; opacity: 0.5; font-weight: 400; }

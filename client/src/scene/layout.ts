@@ -1,6 +1,6 @@
 // Where things sit in the scene (game-design.md §12): orbits log-scaled so
 // the whole system fits, bodies exaggerated so they read at every zoom.
-import { BODIES, REGIONS } from "../../../rules/data/index.ts";
+import { BODIES, MAP, REGIONS } from "../../../rules/data/index.ts";
 import { longitude } from "../../../rules/orbit.ts";
 
 export type V3 = [number, number, number];
@@ -14,6 +14,8 @@ export const RADIUS_KM: Record<string, number> = {
   ceres: 470, vesta: 263, psyche: 113, jupiter: 69_911, io: 1822, europa: 1561, ganymede: 2634, callisto: 2410,
   saturn: 58_232, titan: 2575, enceladus: 252, uranus: 25_362, titania: 789, oberon: 761, neptune: 24_622,
   triton: 1353, pluto: 1188,
+  charon: 606, mimas: 198, tethys: 531, dione: 561, rhea: 764, iapetus: 735, amalthea: 84, miranda: 236,
+  ariel: 579, umbriel: 585, eris: 1163, makemake: 715, haumea: 780, sedna: 500,
 };
 const EARTH_SIZE = 4;
 export const sizeOf = (km: number, min = 0.35) => Math.max(min, EARTH_SIZE * (km / RADIUS_KM.earth) ** 0.75);
@@ -26,28 +28,64 @@ export const SUN_SIZE = 46; // compressed further still, or it would swallow Mer
 export const sphereOf = (body: string) => (body === "antarctica" ? "earth" : body);
 export const SPHERES = Object.keys(BODIES).filter((b) => b !== "antarctica");
 
-const MOON_DAYS_MIN = 8; // slow the fastest moons so they don't strobe
+// Decorative, non-colonisable bodies (§12 "A full, busy system"): moons by
+// real period in days; dwarf planets by orbit (AU, days, degrees).
+interface Minor { name: string; parent?: string; periodDays: number; a?: number; l0Deg?: number; incDeg?: number }
+export const MINOR: Record<string, Minor> = {
+  charon: { name: "Charon", parent: "pluto", periodDays: 6.4 },
+  mimas: { name: "Mimas", parent: "saturn", periodDays: 0.94 },
+  tethys: { name: "Tethys", parent: "saturn", periodDays: 1.89 },
+  dione: { name: "Dione", parent: "saturn", periodDays: 2.74 },
+  rhea: { name: "Rhea", parent: "saturn", periodDays: 4.52 },
+  iapetus: { name: "Iapetus", parent: "saturn", periodDays: 79.3 },
+  amalthea: { name: "Amalthea", parent: "jupiter", periodDays: 0.5 },
+  miranda: { name: "Miranda", parent: "uranus", periodDays: 1.41 },
+  ariel: { name: "Ariel", parent: "uranus", periodDays: 2.52 },
+  umbriel: { name: "Umbriel", parent: "uranus", periodDays: 4.14 },
+  eris: { name: "Eris", a: 67.9, periodDays: 204_199, l0Deg: 205, incDeg: 44 },
+  makemake: { name: "Makemake", a: 45.4, periodDays: 111_845, l0Deg: 168, incDeg: 29 },
+  haumea: { name: "Haumea", a: 43.2, periodDays: 103_774, l0Deg: 218, incDeg: 28 },
+  sedna: { name: "Sedna", a: 506, periodDays: 4_160_000, l0Deg: 358, incDeg: 12 },
+};
 
-const moons = (parent: string) => SPHERES.filter((b) => BODIES[b].parent === parent);
+export const parentOf = (id: string): string | undefined => (MINOR[id] ?? BODIES[id]).parent;
+
+// Each planet's moons in real order, playable and decorative together.
+const MOON_ORDER: Record<string, string[]> = {
+  earth: ["luna"], mars: ["phobos", "deimos"], pluto: ["charon"], neptune: ["triton"],
+  jupiter: ["amalthea", "io", "europa", "ganymede", "callisto"],
+  saturn: ["mimas", "enceladus", "tethys", "dione", "rhea", "titan", "iapetus"],
+  uranus: ["miranda", "ariel", "umbriel", "titania", "oberon"],
+};
 
 // Moons sit out from their planet in proportion to its size, clear of rings.
 export function moonDistance(id: string): number {
-  const parent = BODIES[id].parent!;
+  const parent = parentOf(id)!;
   const start = parent === "saturn" ? 2.9 : 2.2;
-  return SIZE[parent] * (start + 0.6 * moons(parent).indexOf(id)) + 3;
+  return SIZE[parent] * (start + 0.6 * MOON_ORDER[parent].indexOf(id)) + 3;
 }
 
+// Real order kept, but compressed so the fastest moons don't strobe.
+const moonDays = (real: number) => 6 + 4 * Math.sqrt(real);
+
 export function position(id: string, t: number, start: number): V3 {
-  const b = BODIES[id];
-  const parent = b.parent && id !== "antarctica" ? b.parent : null;
+  const minor = MINOR[id];
+  if (minor && !minor.parent) {
+    const r = orbitRadius(minor.a!);
+    const days = MAP.calendarStartJ2000Days + (t - start) / MAP.dayMs;
+    const th = (minor.l0Deg! * Math.PI) / 180 + (2 * Math.PI * days) / minor.periodDays;
+    const y = r * Math.sin((minor.incDeg! * Math.PI) / 180) * Math.sin(th) * 0.5;
+    return [r * Math.cos(th), y, -r * Math.sin(th)];
+  }
+  const parent = id === "antarctica" ? null : parentOf(id) ?? null;
   const host = parent ?? sphereOf(id);
   const r = orbitRadius(BODIES[host].orbit.a);
   const th = longitude(host, t, start);
   const p: V3 = [r * Math.cos(th), 0, -r * Math.sin(th)];
   if (!parent) return p;
   const days = (t - start) / 1000;
-  const k = moons(parent).indexOf(id);
-  const a = (2 * Math.PI * days) / Math.max(MOON_DAYS_MIN, b.moonPeriodDays ?? 30) + k * 2.1;
+  const k = MOON_ORDER[parent].indexOf(id);
+  const a = (2 * Math.PI * days) / moonDays(minor?.periodDays ?? BODIES[id].moonPeriodDays ?? 30) + k * 2.1;
   const d = moonDistance(id);
   return [p[0] + d * Math.cos(a), 0, p[2] - d * Math.sin(a)];
 }

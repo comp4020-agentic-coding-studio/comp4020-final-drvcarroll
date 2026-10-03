@@ -259,7 +259,7 @@ The target is a consumer laptop with integrated graphics, not a gaming GPU.
 | Regions as a spherical Voronoi | Each body's regions are patches around seed points (Earth's at real lat/long, from `rules/data/map.ts`); colouring is a per-vertex attribute, borders one line mesh per body |
 | Picking by nearest seed | Raycast the body sphere once, then the nearest region seed to the hit point is the region: no per-region meshes to test |
 | Bloom at half resolution | Glow without full-resolution post-processing cost; off on phones |
-| Decorative bodies on the GPU | Asteroid belt, Trojans and Kuiper belt are one instanced mesh each; each rock's orbit (radius, phase, period, tilt) is an instance attribute and the vertex shader moves it, so thousands of rocks cost one draw call and no CPU per frame |
+| Decorative bodies on the GPU | Asteroid belt, Trojans and Kuiper belt are one `Points` cloud each (`scene/decor.ts`); each rock's orbit (a, phase, rate, eccentricity, tilt) is a vertex attribute and the shader moves and sun-shades it, so ~34k rocks (a third on phones) cost three draw calls and no CPU per frame. The six comets and fourteen named minor bodies are few enough to move on the CPU; minor bodies reuse the region material with zero regions |
 | Shaders write the log depth buffer | Custom materials include Three's logdepth chunks, so depth sorting is right and bodies are opaque |
 | Adaptive quality | Watch frame time; drop pixel ratio, then bloom, then texture tier if frames exceed 20 ms |
 | Quality tiers | High, medium, low; auto-detected, user-overridable |
