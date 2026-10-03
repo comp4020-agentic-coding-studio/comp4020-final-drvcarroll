@@ -3,6 +3,7 @@
 // are blank here, so the server's answer still decides.
 import { computed } from "@preact/signals";
 import { RESOURCES } from "../../rules/data/index.ts";
+import { economy, type Economy } from "../../rules/economy.ts";
 import { validate, type Command, type Rejection, type State } from "../../rules/index.ts";
 import type { NationState } from "../../rules/state.ts";
 import { clock, me, season, stockNow, world, you } from "./store.ts";
@@ -54,3 +55,9 @@ export function why(cmd: Command): Rejection | null {
   if (!s || !me.value) return { ok: false, code: "NOT_JOINED", reason: "Connecting…" };
   return validate(s, me.value, cmd);
 }
+
+// Your economy, flow by flow, for the HUD's breakdowns (game-design.md §12).
+export const eco = computed<Economy | null>(() => {
+  const s = mirror.value, id = me.value;
+  return s && id && s.nations[id]?.joined ? economy(s, id) : null;
+});

@@ -1,6 +1,9 @@
-// The HUD's top strip: stocks with live rates, date, timers, and the drawers.
-import { RESOURCES, RESOURCE_NAMES } from "../../../rules/data/index.ts";
-import { dur, gameDate, num, signed } from "../format.ts";
+// The HUD's top strip: empire totals with per-day gains and their
+// breakdowns, date, timers, and the drawers (game-design.md §12).
+import { useEffect, useState } from "preact/hooks";
+import { RESOURCES, RESOURCE_NAMES, type Resource } from "../../../rules/data/index.ts";
+import { dur, gameDate, num, perDay, signed, sourceName } from "../format.ts";
+import { eco } from "../mirror.ts";
 import { clock, conn, drawer, joined, myNation, season, stockNow, you, type Drawer } from "../store.ts";
 import { scene } from "./SceneHost.tsx";
 
@@ -9,20 +12,37 @@ const DRAWERS: [Drawer, string][] = [["tech", "Tech"], ["empires", "Empires"], [
 
 export function TopBar({ user }: { user: string }) {
   const y = you.value, sz = season.value, n = myNation.value, t = clock.value;
+  const [open, setOpen] = useState<Resource | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: Event) => !(e.target as HTMLElement).closest(".stocks") && setOpen(null);
+    addEventListener("pointerdown", away);
+    return () => removeEventListener("pointerdown", away);
+  }, [open]);
+  // Esc closes the breakdown only, not the map selection too.
+  const esc = (e: KeyboardEvent) => {
+    if (e.key !== "Escape" || !open) return;
+    e.stopPropagation();
+    setOpen(null);
+  };
   return (
     <header class="hud topbar">
       <button class="brand" title="Whole system (Esc)" onClick={() => scene.value?.toSystem()}>GROW</button>
       {y && joined.value && (
-        <ul class="stocks" aria-label="Stocks">
+        <ul class="stocks" aria-label="Stocks" onKeyDown={esc}>
           {RESOURCES.map((r) => {
             const s = y.stocks[r];
             const v = stockNow(r);
             return (
-              <li key={r} title={`${RESOURCE_NAMES[r]}: ${num(v)} of ${num(s.cap)} · ${signed(s.rate)}/min`}>
+              <li key={r} title={`${RESOURCE_NAMES[r]}: ${num(v)} of ${num(s.cap)}`}>
                 <i class={`res res-${r}`} aria-hidden="true">{r}</i>
                 <span class="sr">{RESOURCE_NAMES[r]}</span>
                 <b class={v >= s.cap - 0.5 ? "full" : ""}>{num(v)}</b>
-                <small class={s.rate < -0.01 ? "neg" : "pos"}>{signed(s.rate)}</small>
+                <button class={`gain ${s.rate < -1e-6 ? "neg" : "pos"} ${open === r ? "on" : ""}`} aria-expanded={open === r}
+                  aria-label={`${RESOURCE_NAMES[r]} ${perDay(s.rate)} per day: breakdown`} onClick={() => setOpen(open === r ? null : r)}>
+                  {perDay(s.rate)}
+                </button>
+                {open === r && <Breakdown res={r} />}
               </li>
             );
           })}
@@ -56,5 +76,31 @@ export function TopBar({ user }: { user: string }) {
         </div>
       </details>
     </header>
+  );
+}
+
+// What makes and uses one resource, per day and per minute.
+function Breakdown({ res }: { res: Resource }) {
+  const s = you.value!.stocks[res];
+  const by = new Map<string, number>();
+  for (const l of eco.value?.lines ?? []) {
+    if (l.res === res && Math.abs(l.amt) > 1e-9) by.set(sourceName(l.source), (by.get(sourceName(l.source)) ?? 0) + l.amt);
+  }
+  const rows = [...by].sort((a, b) => b[1] - a[1]);
+  return (
+    <div class="breakdown" role="dialog" aria-label={`${RESOURCE_NAMES[res]} breakdown`}>
+      <h4>{RESOURCE_NAMES[res]} <small>{num(stockNow(res))} of {num(s.cap)}</small></h4>
+      {rows.length === 0 ? <p class="hint">Nothing makes or uses this yet.</p> : (
+        <table>
+          <thead><tr><th /><th>/day</th><th>/min</th></tr></thead>
+          <tbody>
+            {rows.map(([k, v]) => (
+              <tr key={k}><td>{k}</td><td class={v < 0 ? "neg" : "pos"}>{perDay(v)}</td><td>{signed(v)}</td></tr>
+            ))}
+          </tbody>
+          <tfoot><tr><td>Net</td><td class={s.rate < -1e-6 ? "neg" : "pos"}>{perDay(s.rate)}</td><td>{signed(s.rate)}</td></tr></tfoot>
+        </table>
+      )}
+    </div>
   );
 }

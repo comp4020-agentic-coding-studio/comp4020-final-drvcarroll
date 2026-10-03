@@ -1,21 +1,26 @@
 # Progress
 
-**Stage:** D — the map-first game client (build-process.md stage D).
+**Stage:** D done, E (visual fidelity) largely done (build-process.md).
 A done, B harness running, C done.
 **Last verified checkpoint:** the client is a full-screen Three.js solar
-system with a glass HUD (game-design.md §12, goals.md P10): Google-Maps
-navigation, fly-to and follow, Voronoi region patches with owner tints,
-start chooser on the globe, selection panel (body / region overview-build-
-military / fleet launch planner with a map-drawn preview arc), outliner,
-Tech/Empires/Trade drawers, goals and news, phone bottom sheets.
-`pnpm test:e2e` (5 tests, headless Chrome) green: map fills the viewport,
-wheel/drag/keys move the camera, clicking a region on the globe selects
-it, refusals explained, march, live arrivals, 390 px fit. `pnpm dev`
-serves it on :8080.
-**Next:** the user plays it and reports; then textures/bloom/atmospheres
-(stage E) as asked. Crit 8 still needs README (400–600 words), PROCESS.md,
-deploy to fly.dev, repo public at the cutoff. `reflections/crit-8.md` is
-the user's. Balance: the early game is Alloy-starved (docs/balance-log.md).
+system with a glass HUD (game-design.md §12, goals.md P10):
+- Map: Google-Maps navigation, fly-to and follow, Voronoi region patches
+  with owner tints; procedural opaque surfaces per body (oceans, clouds,
+  craters, bands, ice, volcanoes, city lights), atmospheres, rings, bloom;
+  radius^0.75 sizes, wider orbits.
+- A busy system: GPU-orbited asteroid belt (Kirkwood gaps), Trojans,
+  Kuiper belt; dwarf planets and minor moons in real order; six comets on
+  real Kepler orbits with tails (`scene/decor.ts`, `scene/layout.ts`).
+- HUD: top bar totals with +X/day buttons opening per-source breakdowns
+  (`economy().lines`); left empire bar (regions by body, dropdown slots and
+  per-day output/upkeep, fleets, goals, all bodies); right selection panel;
+  bottom news ticker; Tech/Empires/Trade drawers; phone bottom sheets.
+`pnpm test` (63) and `pnpm test:e2e` (6, headless Chrome) green. `pnpm dev`
+serves it on :8080. Screenshots: a scratch Playwright script (untracked).
+**Next:** the user plays it and reports. Crit 8 still needs README
+(400–600 words), PROCESS.md (user's), deploy to fly.dev, repo public at the
+cutoff. `reflections/crit-8.md` is the user's. Balance: the early game is
+Alloy-starved (docs/balance-log.md).
 **Flagged assumptions** (numbers missing from `game-design.md`, all in
 `rules/data/`, sim-tunable):
 - Envoy upkeep 3 E/min (`economy.ts`).
@@ -48,4 +53,4 @@ the user's. Balance: the early game is Alloy-starved (docs/balance-log.md).
 - Respawn resets stocks to the starting kit.
 - Off-Earth region names and asteroid J2000 longitudes are invented or
   approximate (`map.ts`).
-**Last updated:** 2026-10-02, resume session.
+**Last updated:** 2026-10-03.

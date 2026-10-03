@@ -1,5 +1,6 @@
 // Display helpers: names, numbers, durations, the game calendar.
-import { BODIES, BUILDINGS, REGIONS, RESOURCE_NAMES, RUNGS, UNITS, type Goods, type Resource } from "../../rules/data/index.ts";
+import { BODIES, BUILDINGS, MAP, REGIONS, RESOURCE_NAMES, RUNGS, UNITS, type Building, type Goods, type Resource } from "../../rules/data/index.ts";
+import type { Source } from "../../rules/economy.ts";
 import type { Command, Ms } from "../../rules/index.ts";
 
 export const regionName = (id: string) => REGIONS[id]?.name ?? id;
@@ -11,6 +12,15 @@ export function num(x: number, digits = 0): string {
 }
 
 export const signed = (x: number, digits = 1) => `${x >= 0 ? "+" : "−"}${num(Math.abs(x), digits)}`;
+
+// A per-minute rate as gain per game day (one day is MAP.dayMs of play).
+export function perDay(perMin: number): string {
+  const d = (perMin * MAP.dayMs) / 60_000;
+  return signed(d, Math.abs(d) < 1 ? 2 : 1);
+}
+
+const UPKEEP: Record<string, string> = { colony: "Colony upkeep", armies: "Armies", fleets: "Fleets", envoys: "Envoys" };
+export const sourceName = (s: Source) => UPKEEP[s] ?? BUILDINGS[s as Building].name;
 
 export function dur(ms: Ms): string {
   const s = Math.max(0, Math.ceil(ms / 1000));

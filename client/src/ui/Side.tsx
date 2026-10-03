@@ -75,17 +75,23 @@ export function Leaderboard() {
   );
 }
 
+// A slim ticker with the latest event; expands to the recent history.
 export function News() {
   const w = world.value!;
   const t = clock.value;
+  const [open, setOpen] = useState(false);
+  const items = [...w.news].reverse().slice(0, 25);
+  if (!items.length) return null;
   return (
-    <section class="card news" aria-live="polite">
-      <h3>News</h3>
-      <ul class="plain">
-        {[...w.news].reverse().slice(0, 25).map((n, i) => (
-          <li key={`${n.at}${i}`}><small>{dur(t - n.at)} ago</small> {n.text}</li>
-        ))}
-      </ul>
+    <section class={`hud ticker ${open ? "open" : ""}`} aria-label="News">
+      {open && (
+        <ul class="plain">
+          {items.map((n, i) => <li key={`${n.at}${i}`}><small>{dur(t - n.at)} ago</small> {n.text}</li>)}
+        </ul>
+      )}
+      <button class="latest" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <b>News</b> <span aria-live="polite">{items[0].text}</span> <small>{dur(t - items[0].at)} ago {open ? "▾" : "▴"}</small>
+      </button>
     </section>
   );
 }

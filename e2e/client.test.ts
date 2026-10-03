@@ -38,7 +38,7 @@ async function player(name: string, region: string, viewport = { width: 1440, he
   await p.locator(".start details summary").click();
   await p.locator(".start details button.row", { hasText: region }).click();
   await p.locator(".start button", { hasText: "Start here" }).click();
-  await p.waitForSelector(".outliner");
+  await p.waitForSelector(".empire");
   return p;
 }
 
@@ -85,7 +85,7 @@ describe("the map is the screen (goals.md P10)", () => {
 
   it("selects a region by clicking it on the globe and explains a refusal", async () => {
     const p = await player("charlie", "India");
-    await p.locator(".outliner .list.sub button.row", { hasText: "India" }).click();
+    await p.locator(".empire .list.sub button.row", { hasText: "India" }).click();
     await p.waitForTimeout(1600);
     await p.keyboard.press("Escape"); // deselect, then pick it on the map
     const at = await p.evaluate(() => (window as any).scene.screenOf("r_india"));
@@ -99,9 +99,22 @@ describe("the map is the screen (goals.md P10)", () => {
     await p.close();
   });
 
+  it("drops a region down to its slots and output, and breaks a gain down per day", async () => {
+    const p = await player("golf", "Canada");
+    await p.locator(".empire .list.sub button.row", { hasText: "Canada" }).click();
+    expect(await p.locator(".drop .slot").allInnerTexts()).toEqual(["Solar plant", "Mine", "Refinery", "Lab"]);
+    expect(await p.locator(".drop .flows").first().innerText()).toMatch(/M\s*\+0\.13/); // 7.8 Metals/min
+    await p.locator(".stocks button.gain").nth(1).click();
+    const rows = await p.locator(".breakdown tbody tr").allInnerTexts();
+    expect(rows).toEqual([expect.stringMatching(/Mine\s+\+0\.13\s+\+7\.8/)]);
+    await p.keyboard.press("Escape");
+    await expect.poll(() => p.locator(".breakdown").count()).toBe(0);
+    await p.close();
+  });
+
   it("settles a neighbour by march from the region's Military tab", async () => {
     const p = await player("delta", "Arabia");
-    await p.locator(".outliner .list.sub button.row", { hasText: "Arabia" }).click();
+    await p.locator(".empire .list.sub button.row", { hasText: "Arabia" }).click();
     await p.locator(".seg button", { hasText: "military" }).click();
     await p.locator(".selection li.item", { hasText: "Iran" }).locator("button", { hasText: "Settle" }).click();
     await expect.poll(() => p.locator(".toast").allInnerTexts()).toContain("March to Iran & Central Asia: done");

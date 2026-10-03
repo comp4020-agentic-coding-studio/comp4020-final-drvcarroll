@@ -8,7 +8,7 @@ import { drawer, launchTo, selBody, selFleet, selRegion, world } from "../store.
 export const scene = signal<GameScene | null>(null);
 
 // While a fleet in orbit is selected, clicking another body aims it there.
-function picked(body: string, region: string | null): boolean {
+export function picked(body: string, region: string | null): boolean {
   const f = world.value?.fleets.find((x) => x.id === selFleet.value);
   if (f?.at && sphereOf(body) !== sphereOf(f.at)) {
     launchTo.value = body;

@@ -1,10 +1,10 @@
 // The game: the full-screen map, with the HUD over it (game-design.md §12).
 import { conn, drawer, joined, toasts, world, you } from "../store.ts";
 import { Drawer } from "./Drawer.tsx";
-import { Outliner } from "./Outliner.tsx";
+import { EmpireBar } from "./EmpireBar.tsx";
 import { SceneHost } from "./SceneHost.tsx";
 import { Selection } from "./Selection.tsx";
-import { News, Tutorial } from "./Side.tsx";
+import { News } from "./Side.tsx";
 import { StartPanel } from "./StartPanel.tsx";
 import { TopBar } from "./TopBar.tsx";
 
@@ -24,13 +24,10 @@ export function App({ user }: { user: string }) {
       {w && you.value && !joined.value && <StartPanel />}
       {w && you.value && joined.value && (
         <>
-          <Outliner />
+          <EmpireBar />
           <Selection />
           <Drawer />
-          <div class="hud corner" hidden={!!drawer.value}>
-            <Tutorial />
-            <News />
-          </div>
+          {!drawer.value && <News />}
         </>
       )}
       <div class="toasts" aria-live="assertive">

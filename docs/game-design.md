@@ -433,8 +433,8 @@ two of three can).
 
 ### Tutorial: five goals, no walls of text
 
-The design should explain itself; the tutorial is a short checklist pinned to
-the corner, each goal teaching one system. Dismissible, and it never blocks
+The design should explain itself; the tutorial is a short checklist in the
+empire bar, each goal teaching one system. Dismissible, and it never blocks
 play.
 
 1. **Build a Mine**: the resource bar and rates
@@ -484,8 +484,9 @@ All rendering is client-side; the server never draws.
   consumes it, per day and per minute. Also the shortfall warning, game
   date, protection/boost/season timers, connection state, and the drawers.
 - **Empire bar (left):** every region you hold, grouped by body. Click one to
-  drop it down: its building slots (filled and empty) and its resource
-  output and upkeep; a second click flies there. Your fleets and the
+  drop it down: its building slots (built, under construction, empty) and
+  its output and upkeep per day; a second click flies there. The dropdown
+  follows the selection, so picking a region on the globe opens it too. Your fleets and the
   tutorial goals sit below. Collapsible.
 - **Selection panel (right):** opens on clicking a body, region or fleet.
   Holds that thing's actions: build, queue, train, ships, march, colonise,
@@ -502,11 +503,11 @@ All rendering is client-side; the server never draws.
 | Scroll wheel, pinch, `+` `−` | Zoom toward the cursor, continuously, from the whole system down to low orbit over a region |
 | Left-drag, one-finger drag, arrows / WASD | Pan |
 | Right-drag, two-finger twist, `Q` `E` | Rotate the view |
-| Click a body, or pick it in the outliner | Eased fly-to; the camera then follows that body along its orbit |
+| Click a body, or pick it in the empire bar | Eased fly-to; the camera then follows that body along its orbit |
 | Click a region (zoomed in) | Select it: the panel shows its actions |
-| `[` `]` | Cycle bodies; Enter focuses; Esc backs out one level (region → body → system) |
+| `[` `]` | Cycle bodies; Enter focuses; Esc backs out one level (open breakdown → region → body → system) |
 
-The canvas is not the only way in: the outliner and selection panel are real
+The canvas is not the only way in: the empire bar and selection panel are real
 DOM, and an off-screen list of every body and region (shown on keyboard
 focus) mirrors the map, so keyboard and screen-reader users reach every
 action (goals.md P7).
