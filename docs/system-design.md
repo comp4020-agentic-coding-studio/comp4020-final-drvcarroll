@@ -50,9 +50,10 @@ is always a parameter.
 **Client shape (game-design.md §12, goals.md P10).** The game shell is one
 full-screen Three.js canvas (`client/src/scene/`) with a Preact HUD layered
 over it (`client/src/ui/`). Numbers the HUD shows about your economy (per
-region output, each resource's income and expense breakdown) come from pure
-`rules/economy.ts` functions, the same flows the engine integrates, never a
-client-side re-derivation. Both read the same signals store fed by the socket
+region output, each resource's income and expense breakdown) come from
+`economy().lines` in `rules/economy.ts`, run on the mirror: one signed,
+post-shortfall amount per flow (region, source, resource) that sums to the
+rate the engine integrates, never a client-side re-derivation. Both read the same signals store fed by the socket
 (`client/src/net.ts`); the scene never owns game state. The HUD calls
 `rules.validate` on a mirror of the visible state so every disabled action
 shows the server's own reason; the server's answer still decides.

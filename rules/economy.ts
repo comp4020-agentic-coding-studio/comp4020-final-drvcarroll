@@ -34,21 +34,27 @@ export function controlsBody(s: State, nation: Id, body: string): boolean {
   return Object.values(s.regions).every((r) => REGIONS[r.id].body !== body || r.owner === nation);
 }
 
+// What a flow is, for the HUD's breakdowns: a building type, or upkeep.
+export type Source = Building | "colony" | "armies" | "fleets" | "envoys";
+
 interface Flow {
   out?: { res: Resource; amt: number };
   needs: Goods;
   offEarth: boolean;
+  region: Id | null;
+  source: Source;
 }
 
 function buildingFlow(b: Building, mode: PowerMode, regionId: Id, bonus: number, m: Record<Mod, number>): Flow {
   const d = BUILDINGS[b];
   const rd = REGIONS[regionId];
   const offEarth = !isEarth(regionId);
+  const tag = { offEarth, region: regionId, source: b };
   const needs: Goods = { ...d.input };
   for (const [r, v] of Object.entries(d.upkeep) as [Resource, number][]) {
     needs[r] = (needs[r] ?? 0) + (r === "E" ? v * Math.max(0, 1 + m.buildingUpkeepE) : v);
   }
-  if (!d.output) return { needs, offEarth };
+  if (!d.output) return { needs, ...tag };
   let amt = d.output.base * (d.output.yield ? rd[d.output.yield] : 1);
   const specific: Partial<Record<Building, number>> = {
     mine: m.mineOutput, refinery: m.refineryOutput, foundry: m.foundryOutput,
@@ -65,7 +71,7 @@ function buildingFlow(b: Building, mode: PowerMode, regionId: Id, bonus: number,
       if (mode === "fusion" && BODIES[rd.body].fusionBonus) extra = ECONOMY.fusionBodyBonus;
     }
   }
-  return { out: { res: d.output.res, amt: amt * (1 + bonus + extra) }, needs, offEarth };
+  return { out: { res: d.output.res, amt: amt * (1 + bonus + extra) }, needs, ...tag };
 }
 
 function flows(s: State, n: NationState): Flow[] {
@@ -74,7 +80,9 @@ function flows(s: State, n: NationState): Flow[] {
   const out: Flow[] = [];
   const unitE = (units: Partial<Record<Unit, number>>) =>
     Object.entries(units).reduce((e, [u, c]) => e + UNITS[u as Unit].upkeepE * (c ?? 0), 0);
-  let upkeepE = n.envoys.length * ECONOMY.envoyUpkeepE;
+  const upkeep = (e: number, region: Id | null, source: Source) => {
+    if (e > 0) out.push({ needs: { E: e }, offEarth: false, region, source });
+  };
   for (const r of owned(s, n.id)) {
     const body = REGIONS[r.id].body;
     const bonus = m.allProduction + (controlsBody(s, n.id, body) ? MAP.bodyControlBonus : 0);
@@ -84,19 +92,25 @@ function flows(s: State, n: NationState): Flow[] {
       out.push(f);
     }
     if (!isEarth(r.id)) {
-      out.push({ needs: { Mt: ECONOMY.colonyUpkeepMt * Math.max(0, 1 + m.colonyUpkeep) }, offEarth: true });
+      const mt = ECONOMY.colonyUpkeepMt * Math.max(0, 1 + m.colonyUpkeep);
+      out.push({ needs: { Mt: mt }, offEarth: true, region: r.id, source: "colony" });
     }
-    upkeepE += unitE({ army: r.armies });
+    upkeep(unitE({ army: r.armies }), r.id, "armies");
   }
-  for (const f of Object.values(s.fleets)) if (f.owner === n.id) upkeepE += unitE(f.units);
-  if (upkeepE > 0) out.push({ needs: { E: upkeepE }, offEarth: false });
+  const fleets = Object.values(s.fleets).filter((f) => f.owner === n.id);
+  upkeep(fleets.reduce((e, f) => e + unitE(f.units), 0), null, "fleets");
+  upkeep(n.envoys.length * ECONOMY.envoyUpkeepE, null, "envoys");
   return out;
 }
+
+// One flow's actual effect on one resource after shortfall, per minute.
+export interface Line { region: Id | null; source: Source; res: Resource; amt: number }
 
 export interface Economy {
   rate: Record<Resource, number>; // net, per minute
   production: Record<Resource, number>; // gross output, per minute
   efficiency: number;
+  lines: Line[]; // sums to rate, per resource
 }
 
 const zeros = () => Object.fromEntries(RESOURCES.map((r) => [r, 0])) as Record<Resource, number>;
@@ -109,17 +123,25 @@ export function economy(s: State, nation: Id): Economy {
   const rho = Object.fromEntries(RESOURCES.map((r) => [r, 1])) as Record<Resource, number>;
   let supply = zeros();
   let used = zeros();
+  let lines: Line[] = [];
   for (let iter = 0; iter < 32; iter++) {
     supply = zeros();
     used = zeros();
+    lines = [];
     const demand = zeros();
     for (const f of fs) {
       const needs = Object.entries(f.needs) as [Resource, number][];
       const op = needs.reduce((o, [r]) => Math.min(o, rho[r]), 1);
-      if (f.out) supply[f.out.res] += f.out.amt * op * (f.offEarth && rho.Mt < 1 ? ECONOMY.colonyShortfallOutput : 1);
+      const tag = { region: f.region, source: f.source };
+      if (f.out) {
+        const amt = f.out.amt * op * (f.offEarth && rho.Mt < 1 ? ECONOMY.colonyShortfallOutput : 1);
+        supply[f.out.res] += amt;
+        lines.push({ ...tag, res: f.out.res, amt });
+      }
       for (const [r, v] of needs) {
         demand[r] += v;
         used[r] += v * op;
+        lines.push({ ...tag, res: r, amt: -v * op });
       }
     }
     let changed = false;
@@ -132,7 +154,7 @@ export function economy(s: State, nation: Id): Economy {
   }
   const rate = zeros();
   for (const r of RESOURCES) rate[r] = supply[r] - used[r];
-  return { rate, production: supply, efficiency: Math.min(...Object.values(rho)) };
+  return { rate, production: supply, efficiency: Math.min(...Object.values(rho)), lines };
 }
 
 export function canAfford(n: NationState, cost: Goods): Resource | null {

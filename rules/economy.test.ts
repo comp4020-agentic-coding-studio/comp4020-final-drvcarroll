@@ -41,6 +41,21 @@ describe("rates and the analytic stock model (game-design.md §3)", () => {
     expect(later.nations.n_1.stocks.M).toBeCloseTo(200 + 7.8);
   });
 
+  it("breaks the rate into lines by region and source (game-design.md §12 HUD)", () => {
+    const s = world("r_canada");
+    s.nations.n_1.stocks.E = 0; // under shortfall, lines still sum to the rate
+    const e = economy(s, "n_1");
+    for (const r of RESOURCES) {
+      expect(e.lines.filter((l) => l.res === r).reduce((a, l) => a + l.amt, 0)).toBeCloseTo(e.rate[r]);
+    }
+    const mine = economy(world("r_canada"), "n_1").lines.filter((l) => l.source === "mine");
+    expect(mine).toEqual([
+      { region: "r_canada", source: "mine", res: "M", amt: expect.closeTo(7.8) },
+      { region: "r_canada", source: "mine", res: "E", amt: -2 },
+    ]);
+    expect(e.lines.find((l) => l.source === "armies")).toMatchObject({ region: "r_canada", res: "E" });
+  });
+
   it("throttles consumers at supply ÷ demand once a stock runs dry", () => {
     const s = world("r_canada");
     s.nations.n_1.stocks.E = 1; // −2 E/min: empty after 30 s
