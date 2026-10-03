@@ -49,7 +49,10 @@ is always a parameter.
 
 **Client shape (game-design.md §12, goals.md P10).** The game shell is one
 full-screen Three.js canvas (`client/src/scene/`) with a Preact HUD layered
-over it (`client/src/ui/`). Both read the same signals store fed by the socket
+over it (`client/src/ui/`). Numbers the HUD shows about your economy (per
+region output, each resource's income and expense breakdown) come from pure
+`rules/economy.ts` functions, the same flows the engine integrates, never a
+client-side re-derivation. Both read the same signals store fed by the socket
 (`client/src/net.ts`); the scene never owns game state. The HUD calls
 `rules.validate` on a mirror of the visible state so every disabled action
 shows the server's own reason; the server's answer still decides.
@@ -255,7 +258,9 @@ The target is a consumer laptop with integrated graphics, not a gaming GPU.
 | ~40 draw calls total | Orbits in one `LineSegments`; fleets and icons instanced; region borders merged per body |
 | Regions as a spherical Voronoi | Each body's regions are patches around seed points (Earth's at real lat/long, from `rules/data/map.ts`); colouring is a per-vertex attribute, borders one line mesh per body |
 | Picking by nearest seed | Raycast the body sphere once, then the nearest region seed to the hit point is the region: no per-region meshes to test |
-| Bloom at half resolution | Glow without full-resolution post-processing cost |
+| Bloom at half resolution | Glow without full-resolution post-processing cost; off on phones |
+| Decorative bodies on the GPU | Asteroid belt, Trojans and Kuiper belt are one instanced mesh each; each rock's orbit (radius, phase, period, tilt) is an instance attribute and the vertex shader moves it, so thousands of rocks cost one draw call and no CPU per frame |
+| Shaders write the log depth buffer | Custom materials include Three's logdepth chunks, so depth sorting is right and bodies are opaque |
 | Adaptive quality | Watch frame time; drop pixel ratio, then bloom, then texture tier if frames exceed 20 ms |
 | Quality tiers | High, medium, low; auto-detected, user-overridable |
 | Pause | Render loop stops when the tab is hidden or a full-screen panel covers the scene |

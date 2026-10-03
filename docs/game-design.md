@@ -467,28 +467,33 @@ All rendering is client-side; the server never draws.
 ### The screen
 
 ```
-┌ resources · date · timers ─────────────────────────── alerts · you ┐
-│                                                         outliner │
-│                    full-screen 3D solar system            your   │
-│               (zoom from the whole system to a surface)   planets │
-│                                                          + fleets │
-│ ┌ selection panel ┐                                               │
-│ │ what you clicked │                 goals · news ticker · board  │
-└─┴─────────────────┴──────────────────────────────────────────────-┘
+┌ GROW · E 512 [+0.25/day] M 210 [+0.16/day] … · Tech Empires Trade · date ┐
+│ empire bar │                                          │ selection panel  │
+│ your       │        full-screen 3D solar system       │ what you clicked │
+│ regions ▾  │   (zoom from the whole system to a       │ and its actions  │
+│  slots     │    surface; asteroids, comets, moons)    │                  │
+│  output    │                                          │                  │
+│ fleets     │                                          │                  │
+│ goals      │ ─────────────── news ticker ──────────── │                  │
+└────────────┴──────────────────────────────────────────┴──────────────────┘
 ```
 
-- **Top bar:** six stocks with rates (live between ticks), shortfall
-  warning, game date, protection/boost/season timers, connection state.
-- **Outliner (right):** your bodies, regions and fleets, grouped; click to
-  fly there. Collapsible.
-- **Selection panel (bottom-left):** opens on clicking a body, region or
-  fleet. Holds that thing's actions: build, queue, train, ships, march,
-  colonise, invade, launch. Every disabled action says why.
-- **Overlays on demand:** tech (four ladders), diplomacy, trade, each a
-  drawer opened from the top bar, closed with Esc; the map stays visible
-  behind.
-- **Corner widgets:** the tutorial goals, a news ticker, the leaderboard,
-  all small and dismissible.
+- **Top bar:** each of the six resources shows the empire's total and a
+  **+X/day** button (a day is one second of play, so this is the gain per
+  day). Clicking it opens that resource's breakdown: what produces it, what
+  consumes it, per day and per minute. Also the shortfall warning, game
+  date, protection/boost/season timers, connection state, and the drawers.
+- **Empire bar (left):** every region you hold, grouped by body. Click one to
+  drop it down: its building slots (filled and empty) and its resource
+  output and upkeep; a second click flies there. Your fleets and the
+  tutorial goals sit below. Collapsible.
+- **Selection panel (right):** opens on clicking a body, region or fleet.
+  Holds that thing's actions: build, queue, train, ships, march, colonise,
+  invade, launch. Every disabled action says why.
+- **Overlays on demand:** tech (four ladders), empires (diplomacy and
+  standings), trade, each a drawer opened from the top bar, closed with Esc;
+  the map stays visible behind.
+- **News ticker (bottom):** the latest events in one slim line.
 
 ### Navigating: Google Maps at solar-system scale
 
@@ -506,22 +511,36 @@ DOM, and an off-screen list of every body and region (shown on keyboard
 focus) mirrors the map, so keyboard and screen-reader users reach every
 action (goals.md P7).
 
-Distances are log-scaled so the whole system fits on one screen yet Earth
-and Luna still separate when you zoom in; body sizes are exaggerated the same
-way. Labels fade in by zoom level so the screen never gets crowded.
+Scale is meant to impress: orbits are log-scaled but generously spaced, and
+body sizes keep their real proportions compressed rather than flattened
+(radius^0.75, so Jupiter is about six Earths across and the Sun dwarfs
+everything). Far away, bodies keep a minimum on-screen size so the inner
+planets still read. Labels fade in by zoom level so the screen never gets
+crowded. Bodies don't spin on screen: a day is one second, which would only
+blur; the terminator follows each body round its orbit.
 
-### Rendering
+### Rendering: a visual spectacle, within budget
 
 | Piece | Approach |
 |---|---|
-| Engine | Three.js |
-| Textures | Solar System Scope (CC BY 4.0), NASA Blue Marble and Black Marble (public domain); KTX2/Basis compressed. Procedural shading until textures land |
-| Earth | Day/night blend shader, city lights on the dark side, cloud layer, specular oceans |
-| Atmospheres | Rim-glow scattering shader for Earth, Venus, Mars, Titan |
-| Sun and space | Emissive sun, bloom, star-field skybox (NASA Deep Star Maps) |
-| Gas giants | Banded textures, Saturn's rings with alpha and shadow |
-| Scale | Logarithmic depth buffer and floating origin, so zooming from Neptune to a city never jitters |
-| Detail | Texture tiers 512 / 2K / 8K by camera distance; only the focused body loads 8K |
+| Engine | Three.js, logarithmic depth buffer (every custom shader writes it, so bodies are solid, never see-through) |
+| Surfaces | Hand-styled procedural shaders per body, drawn under the region patches. Earth: oceans, continents, ice caps, clouds, and city lights on the night side that grow with buildings in regions you can see. Luna and Mercury: craters. Mars: rust with dark plains and polar caps. Venus: swirling cloud deck. Gas giants: turbulent bands, Jupiter's Great Red Spot. Europa: cracked ice. Io: sulphur and volcanoes. Titan: orange haze |
+| Textures | Solar System Scope (CC BY 4.0), NASA Blue Marble / Black Marble (public domain), KTX2: a later upgrade over the procedural look, not a blocker |
+| Atmospheres | Rim-glow shells for Earth, Venus, Mars, Titan and the gas giants |
+| Sun and space | Large emissive sun with corona glow, bloom (off on phones), deep star field |
+| Rings | Saturn's banded rings with gaps; faint rings on Uranus |
+| Detail | Sphere detail by body size; texture tiers if textures land |
+
+### A full, busy system
+
+Beyond the 25 playable bodies, the system is crowded with **decorative,
+non-colonisable** bodies so it feels alive: the main asteroid belt
+(thousands of rocks), Jupiter's Trojan swarms at ±60°, the Kuiper belt, the
+dwarf planets Eris, Makemake, Haumea and Sedna, Pluto's Charon, the minor
+moons of the giants (Mimas, Tethys, Dione, Rhea, Iapetus, Amalthea, Miranda,
+Ariel, Umbriel), and comets on long elliptical orbits with tails pointing
+away from the Sun. All move on their own orbits, computed on the GPU. They
+carry names on hover but no game rules: nothing there can be claimed.
 
 ### Regions on the surface
 
@@ -557,8 +576,8 @@ blocker.
 ### Phone (390×844)
 
 The map stays full-screen; the selection panel and drawers become bottom
-sheets; tap targets ≥ 44 px; pinch to zoom, two-finger twist to rotate;
-post-processing off.
+sheets; the empire bar collapses to a button; tap targets ≥ 44 px; pinch to
+zoom, two-finger twist to rotate; bloom off, decorative bodies thinned.
 
 ### Budgets
 
