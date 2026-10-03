@@ -4,13 +4,18 @@
 import { effect } from "@preact/signals";
 import * as THREE from "three";
 import { MapControls } from "three/addons/controls/MapControls.js";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { BODIES, REGIONS } from "../../../rules/data/index.ts";
 import { me, nations, offset, season, selBody, selRegion, world } from "../store.ts";
-import { moonDistance, orbitRadius, position, regionAt, seeds, SIZE, sphereOf, SPHERES, type V3 } from "./layout.ts";
+import { moonDistance, orbitRadius, position, regionAt, seeds, SIZE, sphereOf, SPHERES, SUN_SIZE, type V3 } from "./layout.ts";
 import { FleetLayer } from "./fleets.ts";
-import { LOOK, regionMaterial } from "./regionMaterial.ts";
+import { atmosphereMaterial, LOOK, regionMaterial, ringMaterial, sunMaterial } from "./regionMaterial.ts";
 
-const SYSTEM_VIEW = { target: new THREE.Vector3(0, 0, 0), offset: new THREE.Vector3(0, 620, 560) };
+const SYSTEM_VIEW = { target: new THREE.Vector3(0, 0, 0), offset: new THREE.Vector3(0, 1500, 1350) };
+const PHONE = innerWidth < 720;
 const FLY_MS = 1100;
 const GLOBE_DRAG = 22; // within SIZE × this, left-drag spins the globe
 
@@ -49,18 +54,20 @@ export class GameScene {
   private stop: (() => void)[] = [];
   private raf = 0;
   private overlay: HTMLElement;
+  private composer: EffectComposer | null = null;
+  private sun!: THREE.ShaderMaterial;
 
   constructor(canvas: HTMLCanvasElement, overlay: HTMLElement) {
     this.overlay = overlay;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, logarithmicDepthBuffer: true });
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, innerWidth < 720 ? 1.5 : 2));
-    this.renderer.setClearColor(0x03050a);
-    this.camera = new THREE.PerspectiveCamera(45, 1, 0.05, 40000);
+    this.renderer.setClearColor(0x000000);
+    this.camera = new THREE.PerspectiveCamera(45, 1, 0.05, 200_000);
     this.camera.position.copy(SYSTEM_VIEW.offset);
     this.controls = new MapControls(this.camera, canvas);
     Object.assign(this.controls, {
       enableDamping: true, dampingFactor: 0.12, zoomToCursor: true, screenSpacePanning: false,
-      minDistance: 2, maxDistance: 2600, maxPolarAngle: Math.PI, zoomSpeed: 1.4, panSpeed: 1.2,
+      minDistance: 2, maxDistance: 6000, maxPolarAngle: Math.PI, zoomSpeed: 1.4, panSpeed: 1.2,
     });
     this.controls.addEventListener("start", () => (this.flight = null));
 
@@ -68,6 +75,12 @@ export class GameScene {
     this.fleets = new FleetLayer(this.scene);
     for (const id of SPHERES) this.buildBody(id);
     this.bindInput(canvas);
+    if (!PHONE) {
+      this.composer = new EffectComposer(this.renderer);
+      this.composer.addPass(new RenderPass(this.scene, this.camera));
+      this.composer.addPass(new UnrealBloomPass(new THREE.Vector2(512, 512), 0.85, 0.55, 0.8));
+      this.composer.addPass(new OutputPass());
+    }
     this.stop.push(effect(() => this.paintOwners()));
     this.stop.push(effect(() => this.paintSelection()));
     this.resize();
@@ -92,8 +105,8 @@ export class GameScene {
     const stars = new THREE.BufferGeometry();
     const pts: number[] = [];
     const col: number[] = [];
-    for (let i = 0; i < 6000; i++) {
-      const u = Math.random() * 2 - 1, th = Math.random() * Math.PI * 2, r = 9000 + Math.random() * 6000;
+    for (let i = 0; i < 9000; i++) {
+      const u = Math.random() * 2 - 1, th = Math.random() * Math.PI * 2, r = 60_000 + Math.random() * 40_000;
       const s = Math.sqrt(1 - u * u);
       pts.push(r * s * Math.cos(th), r * u, r * s * Math.sin(th));
       const c = 0.55 + Math.random() * 0.45, warm = Math.random();
@@ -101,16 +114,18 @@ export class GameScene {
     }
     stars.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
     stars.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
-    this.scene.add(new THREE.Points(stars, new THREE.PointsMaterial({ size: 1.6, sizeAttenuation: false, vertexColors: true })));
+    this.scene.add(new THREE.Points(stars, new THREE.PointsMaterial({ size: 1.5, sizeAttenuation: false, vertexColors: true })));
 
-    const sun = new THREE.Mesh(new THREE.SphereGeometry(14, 48, 32), new THREE.MeshBasicMaterial({ color: 0xffe2a0 }));
-    this.scene.add(sun);
-    const glow = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: radialTexture(["rgba(255,220,150,0.9)", "rgba(255,170,80,0.35)", "rgba(255,140,60,0)"]),
-      blending: THREE.AdditiveBlending, depthWrite: false, transparent: true,
-    }));
-    glow.scale.setScalar(150);
-    this.scene.add(glow);
+    this.sun = sunMaterial();
+    this.scene.add(new THREE.Mesh(new THREE.SphereGeometry(SUN_SIZE, 96, 64), this.sun));
+    for (const [scale, stops] of [
+      [SUN_SIZE * 5, ["rgba(255,225,160,0.85)", "rgba(255,170,80,0.3)", "rgba(255,140,60,0)"]],
+      [SUN_SIZE * 16, ["rgba(255,190,120,0.18)", "rgba(255,150,80,0.05)", "rgba(255,140,60,0)"]],
+    ] as [number, string[]][]) {
+      const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: radialTexture(stops), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+      glow.scale.setScalar(scale);
+      this.scene.add(glow);
+    }
 
     for (const id of SPHERES.filter((b) => !BODIES[b].parent)) {
       const line = ring(orbitRadius(BODIES[id].orbit.a), BODIES[id].zone === "belt" ? 0x4a4230 : 0x23324a, 0.9);
@@ -121,18 +136,21 @@ export class GameScene {
 
   private buildBody(id: string): void {
     const ss = seeds(id);
-    const mat = regionMaterial(LOOK[id], ss.map((s) => s.dir));
-    const detail = SIZE[id] > 3 ? 96 : 48;
+    const mat = regionMaterial(id, ss.map((s) => s.dir));
+    const detail = SIZE[id] > 3 ? 128 : 64;
     const mesh = new THREE.Mesh(new THREE.SphereGeometry(SIZE[id], detail, detail / 2), mat);
     mesh.userData.body = id;
     this.scene.add(mesh);
-    if (id === "saturn") {
-      const rings = new THREE.Mesh(
-        new THREE.RingGeometry(SIZE[id] * 1.3, SIZE[id] * 2.2, 96),
-        new THREE.MeshBasicMaterial({ color: 0xcdb48a, transparent: true, opacity: 0.45, side: THREE.DoubleSide }),
-      );
-      rings.rotation.x = -Math.PI / 2 + 0.45;
-      mesh.add(rings);
+    const air = LOOK[id].atmosphere;
+    if (air) mesh.add(new THREE.Mesh(new THREE.SphereGeometry(SIZE[id] * (SIZE[id] > 8 ? 1.025 : 1.05), 64, 32), atmosphereMaterial(air)));
+    const rings: Record<string, [number, number, string, number]> = {
+      saturn: [1.25, 2.3, "#d9c49a", 0.85], uranus: [1.6, 1.9, "#a9c6cc", 0.25],
+    };
+    if (rings[id]) {
+      const [a, b, colour, opacity] = rings[id];
+      const r = new THREE.Mesh(new THREE.RingGeometry(SIZE[id] * a, SIZE[id] * b, 160, 1), ringMaterial(SIZE[id] * a, SIZE[id] * b, colour, opacity));
+      r.rotation.x = -Math.PI / 2 + (id === "uranus" ? 1.4 : 0.47);
+      mesh.add(r);
     }
     const label = document.createElement("button");
     label.className = "label body";
@@ -161,6 +179,7 @@ export class GameScene {
         const n = owner ? ns[owner] : undefined;
         u.owned.value[i] = n ? (owner === me.value ? 1 : 0.85) : 0;
         if (n) u.tints.value[i].set(n.primary);
+        u.lights.value[i] = Math.min(1, (byId.get(id)?.buildings?.length ?? 0) / 4);
       });
     }
   }
@@ -195,7 +214,7 @@ export class GameScene {
       // From the sunlit side, a little off-axis so the terminator shows.
       const sun = this.bodyPos(sphere).negate().setY(0).normalize();
       const side = new THREE.Vector3(-sun.z, 0, sun.x);
-      const dir = sun.multiplyScalar(0.8).add(side.multiplyScalar(0.45)).add(new THREE.Vector3(0, 0.45, 0)).normalize();
+      const dir = sun.multiplyScalar(0.8).add(side.multiplyScalar(0.45)).add(new THREE.Vector3(0, 0.75, 0)).normalize();
       toOffset = dir.multiplyScalar(SIZE[sphere] * (BODIES[sphere].parent ? 7 : 5.5));
     } else {
       toOffset = SYSTEM_VIEW.offset.clone();
@@ -341,6 +360,7 @@ export class GameScene {
     const c = this.renderer.domElement;
     const w = c.clientWidth || innerWidth, h = c.clientHeight || innerHeight;
     this.renderer.setSize(w, h, false);
+    this.composer?.setSize(w, h);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
   }
@@ -359,9 +379,9 @@ export class GameScene {
       // A minimum on-screen size so the inner planets read from far out;
       // moons only appear once you're near their planet.
       const d = cam.distanceTo(v.mesh.position);
-      const near = parent ? cam.distanceTo(this.bodyPos(parent)) < SIZE[parent] * 40 : true;
+      const near = parent ? cam.distanceTo(this.bodyPos(parent)) < SIZE[parent] * 14 : true;
       v.mesh.visible = near;
-      v.mesh.scale.setScalar(parent ? 1 : Math.max(1, (d * 0.009) / SIZE[v.id]));
+      v.mesh.scale.setScalar(parent ? 1 : Math.max(1, (d * 0.0085) / SIZE[v.id]));
       if (v.moonOrbit) {
         v.moonOrbit.position.copy(this.bodyPos(parent!));
         v.moonOrbit.visible = near;
@@ -390,7 +410,7 @@ export class GameScene {
     }
 
     // Orbit lines fade out as you close on a body, so they don't slice it.
-    const fade = THREE.MathUtils.clamp((this.camera.position.distanceTo(this.controls.target) - 25) / 90, 0, 1);
+    const fade = THREE.MathUtils.clamp((this.camera.position.distanceTo(this.controls.target) - 40) / 200, 0, 1);
     for (const o of this.orbits) (o.line.material as THREE.LineBasicMaterial).opacity = o.base * fade;
 
     const focusR = this.focus ? SIZE[this.focus] : 0;
@@ -404,7 +424,9 @@ export class GameScene {
     this.fleets.update(this.now(), this.start(), this.camera);
     this.hover();
     this.labels();
-    this.renderer.render(this.scene, this.camera);
+    this.sun.uniforms.time.value = performance.now() / 1000;
+    if (this.composer) this.composer.render();
+    else this.renderer.render(this.scene, this.camera);
   }
 
   private hover(): void {
@@ -423,9 +445,20 @@ export class GameScene {
 
   private labels(): void {
     const w = innerWidth, h = innerHeight;
+    // Labels behind the focused body hide, as the body would.
+    const fv = this.focus ? this.views.get(this.focus) : undefined;
+    const hidden = (p: THREE.Vector3) => {
+      if (!fv) return false;
+      const c = fv.mesh.position, r = SIZE[fv.id] * fv.mesh.scale.x;
+      const to = p.clone().sub(this.camera.position);
+      const len = to.length();
+      const t = c.clone().sub(this.camera.position).dot(to.normalize());
+      if (t <= 0 || t >= len - r * 0.02) return false;
+      return this.camera.position.clone().addScaledVector(to, t).distanceTo(c) < r * 0.98;
+    };
     const place = (el: HTMLElement, p: THREE.Vector3, show: boolean, dy = 0) => {
       const s = p.clone().project(this.camera);
-      const on = show && s.z < 1 && Math.abs(s.x) < 1.1 && Math.abs(s.y) < 1.1;
+      const on = show && s.z < 1 && Math.abs(s.x) < 1.1 && Math.abs(s.y) < 1.1 && !hidden(p);
       el.style.display = on ? "" : "none";
       if (on) el.style.transform = `translate(-50%, 0) translate(${((s.x + 1) / 2) * w}px, ${((1 - s.y) / 2) * h + dy}px)`;
     };
@@ -434,7 +467,7 @@ export class GameScene {
       const p = v.mesh.position;
       const d = camPos.distanceTo(p);
       const parent = BODIES[v.id].parent;
-      const near = parent ? camPos.distanceTo(this.bodyPos(parent)) < SIZE[parent] * 40 : true;
+      const near = parent ? camPos.distanceTo(this.bodyPos(parent)) < SIZE[parent] * 14 : true;
       const px = (SIZE[v.id] / d) * (h / 0.83);
       place(v.label, p, near && px < h * 0.18, Math.max(6, px * 0.5 + 4));
       v.label.classList.toggle("sel", !!selBody.value && sphereOf(selBody.value) === v.id);

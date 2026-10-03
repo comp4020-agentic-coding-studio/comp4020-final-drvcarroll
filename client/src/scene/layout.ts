@@ -5,13 +5,22 @@ import { longitude } from "../../../rules/orbit.ts";
 
 export type V3 = [number, number, number];
 
-export const orbitRadius = (a: number) => 60 + 110 * Math.log(a / 0.3);
+export const orbitRadius = (a: number) => 140 + 260 * Math.log(a / 0.3);
 
-export const SIZE: Record<string, number> = {
-  earth: 4, luna: 1.3, mercury: 2, venus: 3.7, mars: 2.6, phobos: 0.45, deimos: 0.4,
-  ceres: 1.2, vesta: 1, psyche: 1, jupiter: 11, io: 1.4, europa: 1.25, ganymede: 1.9, callisto: 1.75,
-  saturn: 9.5, titan: 1.85, enceladus: 0.8, uranus: 6.5, titania: 1, oberon: 1, neptune: 6.3, triton: 1.15, pluto: 1.1,
+// Mean radii in km. Display size keeps real proportions, compressed by a
+// 0.75 power, so Jupiter is ~6 Earths across rather than 11 or 1.
+export const RADIUS_KM: Record<string, number> = {
+  sun: 696_000, earth: 6371, luna: 1737, mercury: 2440, venus: 6052, mars: 3390, phobos: 11, deimos: 6,
+  ceres: 470, vesta: 263, psyche: 113, jupiter: 69_911, io: 1822, europa: 1561, ganymede: 2634, callisto: 2410,
+  saturn: 58_232, titan: 2575, enceladus: 252, uranus: 25_362, titania: 789, oberon: 761, neptune: 24_622,
+  triton: 1353, pluto: 1188,
 };
+const EARTH_SIZE = 4;
+export const sizeOf = (km: number, min = 0.35) => Math.max(min, EARTH_SIZE * (km / RADIUS_KM.earth) ** 0.75);
+export const SIZE: Record<string, number> = Object.fromEntries(
+  Object.entries(RADIUS_KM).filter(([k]) => k !== "sun").map(([k, km]) => [k, sizeOf(km)]),
+);
+export const SUN_SIZE = 46; // compressed further still, or it would swallow Mercury
 
 // Antarctica is a body in the rules but a patch on Earth's globe.
 export const sphereOf = (body: string) => (body === "antarctica" ? "earth" : body);
@@ -21,9 +30,11 @@ const MOON_DAYS_MIN = 8; // slow the fastest moons so they don't strobe
 
 const moons = (parent: string) => SPHERES.filter((b) => BODIES[b].parent === parent);
 
+// Moons sit out from their planet in proportion to its size, clear of rings.
 export function moonDistance(id: string): number {
   const parent = BODIES[id].parent!;
-  return SIZE[parent] * 2.4 + 3.2 * moons(parent).indexOf(id);
+  const start = parent === "saturn" ? 2.9 : 2.2;
+  return SIZE[parent] * (start + 0.6 * moons(parent).indexOf(id)) + 3;
 }
 
 export function position(id: string, t: number, start: number): V3 {
