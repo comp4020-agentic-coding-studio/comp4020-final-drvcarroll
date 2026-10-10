@@ -299,7 +299,8 @@ The login and sign-up forms are plain HTML `POST`s that work before (and
 without) JavaScript, so a slow connection can sign in while the 3D bundle is
 still loading.
 
-Onboarding and the tutorial are specified in game-design.md §11.
+Onboarding, the tutorial and the in-game Guide are specified in
+game-design.md §11; the Guide is a client overlay, not a route.
 
 ## 11. Logging and the live view (crit 10)
 
@@ -515,7 +516,7 @@ interface PrivateState {
   efficiency: number;      // 1 = all consumers fully supplied
   techs: string[];
   research: { tech: string; startAt: Ms; finishAt: Ms } | null;
-  queues: Record<Id, { item: string; startAt: Ms; finishAt: Ms }[]>;
+  queues: Record<Id, { item: string; startAt: Ms; finishAt: Ms; slot?: number }[]>; // slot: pinned by replace
   trades: TradeOffer[];    // offers you sent or received
   envoys: { nation: Id; since: Ms }[]; // Envoy relationships you maintain (private: targets are never public)
 }
@@ -536,6 +537,7 @@ type Command =
   // economy
   | { type: "build"; region: Id; building: Building }
   | { type: "demolish"; region: Id; slot: number }
+  | { type: "replace"; region: Id; slot: number; building: Building } // demolish + build in that slot, atomic
   | { type: "cancelBuild"; region: Id; index: number }
   | { type: "setMode"; region: Id; slot: number; mode: string }    // Power Plant only (Solar/Fission/Fusion)
   | { type: "research"; tech: string }

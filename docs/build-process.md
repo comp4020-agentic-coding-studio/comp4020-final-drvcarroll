@@ -141,6 +141,33 @@ before calling it done.
 regions, the core loop playable through it. Full keyboard/viewport
 completeness is the Crit 9 bar.
 
+### D2. HUD revision: playtest feedback (`game-design.md` §11, §12)
+
+Players asked for two things: clearer instructions, and a less cluttered,
+more polished HUD. This revises the D client in place, no new client:
+
+- **Icons, never letters:** SVG icons for the six resources (with accessible
+  names and hover tooltips) replace every resource letter or name in the
+  UI; detailed SVG icons for every building, Power Plant mode, ship and Army.
+- **Selection panel without tabs:** the slot grid (empty `+` tiles, built
+  tiles with produce/consume per day underneath, a tile menu for replace,
+  upgrade, demolish, and ships and Armies at a Spaceport), then Forces here.
+  `replace` is one atomic command (system-design.md §14.5).
+- **Empire menu:** Territory, Armies, Fleets, Tech tree.
+- **Empires overlay:** rank, war status and trade deals per nation, and the
+  Earth Exchange. The Tech and Trade top-bar drawers go.
+- **The Guide:** the in-game wiki, one click from the top bar, numbers read
+  from `rules/data/`.
+
+**Exit criteria:** no resource letter is left in the rendered UI (an e2e
+check scans the HUD text); every resource icon has an accessible name; a
+held region shows `slotsOf` tiles and its build, replace, upgrade and
+demolish work from them; `replace` is refused with a reason when the new
+building can't be afforded after the refund (spec); the Guide opens from the
+top bar with its pages; the core loop still completes at both viewports and
+by keyboard; screenshots judged as a player would before calling it done.
+**Serves:** P1, P2, P7, P10.
+
 ### E. Visual fidelity and budgets (`game-design.md` §12, system-design.md §8)
 
 Polish on top of the map client, not a separate client: textures (KTX2),
@@ -178,8 +205,8 @@ be hit eventually; it just slips to the next one.
 | Crit | When | Bar to clear | Stages |
 |---|---|---|---|
 | **Crit 8 — "It's alive!"** | Next week | Stage A done. Stage B: harness running and reporting real numbers — they don't need to be tuned yet. Stage C: full exit criteria, no slipping this one — "backend polished" means the server, persistence and protocol are actually right. Stage D: the map-first slice — the solar system as the main screen, navigable, bodies and regions clickable, the core loop playable through it. First `README.md` (400–600 words) live at `/readme/`. First `PROCESS.md`. | A, B (partial), **C (full)**, D (map-first slice) |
-| **Crit 9 — "All at once"** | Week 10 | Real-time fully wired end to end, not just the protocol — the client reflects it live. Stage D's full exit criteria: both viewports, keyboard-only. One documented decision on multi-user contention behaviour (system-design.md §5's ordering rule already is that decision — cite it, don't re-decide it). | **D (full)** |
-| **Crit 10 — "Fly by instruments"** | Week 11 | Stage F done: logging, `/admin` live view. Stage E (visual fidelity) substantially in. | E, **F** |
+| **Crit 9 — "All at once"** | Week 10 | Real-time fully wired end to end, not just the protocol — the client reflects it live. Stage D's full exit criteria: both viewports, keyboard-only. Stage D2 done (the playtest HUD revision). One documented decision on multi-user contention behaviour (system-design.md §5's ordering rule already is that decision — cite it, don't re-decide it). | **D (full)**, **D2** |
+| **Crit 10 — "Fly by instruments"** | Week 11 | Stage F done: logging, `/admin` live view. Stage E (visual fidelity) substantially in. Rendering polish beyond what's built waits until after D2. | E, **F** |
 | **Target: done** | End of week 12 | Self-imposed, ahead of the real deadline (noon Mon 9 Nov 2026) on purpose — a buffer, not a guess at the actual due date. Stage G's numbers in a reasonable place (never "finished" — that's the point of a loop). Final `README.md`/`PROCESS.md` pass, everything deployed and green. | G, polish |
 
 The map is the game from the first client on (goals.md P10): Stage E adds

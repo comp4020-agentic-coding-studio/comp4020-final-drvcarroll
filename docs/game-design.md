@@ -186,7 +186,8 @@ Six resource buildings, each producing exactly one resource, plus the
 Spaceport, which builds ships and Armies rather than producing a resource. All
 six are available to everyone from the start; Industry tech (§8) adds yield
 and modes, never gates the building itself. One build queue per region.
-Demolish refunds 50%. Slots: Earth 4, large bodies 3, small bodies 2.
+Demolish refunds 50%; Replace is a demolish and a build in the same slot,
+as one command. Slots: Earth 4, large bodies 3, small bodies 2.
 
 | Building | Cost | Time | Output /min | Upkeep /min |
 |---|---|---|---|---|
@@ -428,20 +429,42 @@ two of three can).
 2. **Create empire:** name and colours, previewed live as a region fill and
    banner.
 3. **Choose a start region:** free Earth regions highlighted on the globe (and
-   listed for keyboard users), each showing its M, V, S.
+   listed for keyboard users), each showing its Metals, Volatiles and Solar
+   yields as icons.
 4. Camera flies in to your capital. The game begins.
 
-### Tutorial: five goals, no walls of text
+### Tutorial: five goals and a Guide
 
-The design should explain itself; the tutorial is a short checklist in the
-empire bar, each goal teaching one system. Dismissible, and it never blocks
-play.
+The design should explain itself; the tutorial is a short checklist under the
+empire menu, each goal teaching one system and linking to its Guide page.
+Dismissible, and it never blocks play.
 
 1. **Build a Mine**: the resource bar and rates
 2. **Research Thrust Vectoring**: the tech ladders
 3. **Build a Spaceport**: slots and build queues
 4. **Launch a Colony Ship to Luna**: the launch window gauge and travel
 5. **Claim a Luna region**: expansion and colony upkeep
+
+**The Guide** is an in-game wiki, opened any time from the top bar (or `?`)
+as an overlay with the map behind it, so players can check it mid-game. One
+short page per task, each a few numbered steps naming the exact clicks, with
+the real icons inline:
+
+| Page | Covers |
+|---|---|
+| Resources | The six icons, what makes and uses each, stock caps, shortfall |
+| Building | Slots, the build picker, replace, upgrade, demolish (50% back) |
+| Armies | Training, marching on Earth, garrisons and the +50% defence |
+| Research | The four ladders, one research at a time, what each unlocks |
+| Colonising | Colony Ship, launch, pick a region, colony upkeep |
+| Sending ships | Select a fleet, click a destination, the window gauge, energy |
+| War and invasion | Declaring, protection, orbit battles, landing Armies |
+| Trade and Envoys | Offers, gifts, the Earth Exchange, the trade multiplier |
+| Winning | The three scores, the 40% cap, the threshold and season end |
+
+Pages are data in the client, and every number in them is read from
+`rules/data/`, so the Guide can't drift from the rules. Empty states and
+tutorial goals link to the page that explains them.
 
 Supporting rules that make a long tutorial unnecessary:
 
@@ -467,34 +490,112 @@ All rendering is client-side; the server never draws.
 ### The screen
 
 ```
-┌ GROW · E 512 [+0.25/day] M 210 [+0.16/day] … · Tech Empires Trade · date ┐
-│ empire bar │                                          │ selection panel  │
-│ your       │        full-screen 3D solar system       │ what you clicked │
-│ regions ▾  │   (zoom from the whole system to a       │ and its actions  │
-│  slots     │    surface; asteroids, comets, moons)    │                  │
-│  output    │                                          │                  │
-│ fleets     │                                          │                  │
-│ goals      │ ─────────────── news ticker ──────────── │                  │
+┌ GROW · ⚡512 +0.25/day  ⛏210 +0.16/day  …  · date ·      Empires  Guide ┐
+│ Empire ▾   │                                          │ Mars North    ✕  │
+│ Territory  │        full-screen 3D solar system       │ ┌──┐┌──┐┌──┐     │
+│ Armies     │   (zoom from the whole system to a       │ │⛏ ││⚡ ││ +│     │
+│ Fleets     │    surface; asteroids, comets, moons)    │ └──┘└──┘└──┘     │
+│ Tech tree  │                                          │ +6⛏ −2⚡ +10⚡     │
+│ goals      │                                          │ Forces here      │
+│            │ ─────────────── news ticker ──────────── │ ⚔ 4 · fleet ▸    │
 └────────────┴──────────────────────────────────────────┴──────────────────┘
 ```
 
-- **Top bar:** each of the six resources shows the empire's total and a
-  **+X/day** button (a day is one second of play, so this is the gain per
-  day). Clicking it opens that resource's breakdown: what produces it, what
-  consumes it, per day and per minute. Also the shortfall warning, game
-  date, protection/boost/season timers, connection state, and the drawers.
-- **Empire bar (left):** every region you hold, grouped by body. Click one to
-  drop it down: its building slots (built, under construction, empty) and
-  its output and upkeep per day; a second click flies there. The dropdown
-  follows the selection, so picking a region on the globe opens it too. Your fleets and the
-  tutorial goals sit below. Collapsible.
-- **Selection panel (right):** opens on clicking a body, region or fleet.
-  Holds that thing's actions: build, queue, train, ships, march, colonise,
-  invade, launch. Every disabled action says why.
-- **Overlays on demand:** tech (four ladders), empires (diplomacy and
-  standings), trade, each a drawer opened from the top bar, closed with Esc;
-  the map stays visible behind.
-- **News ticker (bottom):** the latest events in one slim line.
+The look is modern and quiet: one glass surface style, one accent colour,
+icons over words, generous spacing, no boxes inside boxes. Fewer, larger
+controls beat many small ones.
+
+#### Icons, never letters
+
+Every resource has an SVG icon, and the icon replaces the resource's letter
+or name **everywhere** it appears: top bar, costs, yields, upkeep,
+breakdowns, trade forms, the Guide. No "M" for Metals anywhere in the UI.
+Each icon carries an accessible name (`role="img"` and `aria-label`, e.g.
+"Metals") and shows it as a tooltip on hover and keyboard focus, so it is
+never a puzzle (goals.md P2, P7). Region yields use the same set, plus a sun
+icon for Solar.
+
+Every building has a detailed SVG icon, and so does each upgrade: Power
+Plant's Solar, Fission and Fusion modes each get their own. A building whose
+Industry rung is held shows a small boost pip on its icon. Ships and Armies
+have icons too, used in fleet lists and forces.
+
+#### Top bar
+
+Each of the six resources shows its icon, the empire's total and a
+**+X/day** button (a day is one second of play, so this is the gain per
+day). Clicking it opens that resource's breakdown: what produces it, what
+consumes it, per day and per minute. Also the shortfall warning, game date,
+protection/boost/season timers, connection state, and two buttons on the
+right: **Empires** and **Guide** (§11). There is no Tech or Trade button:
+tech lives in the empire menu, trade in Empires.
+
+#### Empire menu (left)
+
+One collapsible menu headed **Empire**, with four sections:
+
+- **Territory:** every region you hold, grouped by body. Click one to drop
+  it down: its slots as a row of small building icons and its output and
+  upkeep per day; a second click flies there and opens its panel. The
+  dropdown follows the selection.
+- **Armies:** every garrison by region, and Armies marching, with ETAs.
+  Click one to select its region.
+- **Fleets:** every fleet, in orbit or in transit with its ETA. Click one to
+  select it.
+- **Tech tree:** opens the four ladders as an overlay beside the menu, map
+  visible behind, closed with Esc. Current research and its progress show
+  on the section itself.
+
+The tutorial goals sit below the menu until done.
+
+#### Empires (top right)
+
+One overlay, one row per nation: leaderboard rank and score (Territory,
+Economy, Tech), war status (protected, at peace, war declared, at war, peace
+offered) with the matching action (declare war, offer or accept peace), your
+Envoy on them, and your trade deals with them (open offers in both
+directions, with accept, decline, cancel, plus new offer and gift). The
+Earth Exchange is the last row. This replaces the old Tech, Empires and
+Trade drawers.
+
+#### Selection panel (right)
+
+Opens on clicking a body, region or fleet. No tabs: everything for the
+selection is on one scrolling surface. Every disabled action says why.
+
+For a **region you hold**:
+
+1. **Header:** name, body, yields (icons with multipliers).
+2. **Slot grid:** one tile per slot the region has (`slotsOf`). An empty slot
+   is a plain tile with a `+`; clicking it opens the build picker (each
+   building's icon, cost, time, and what it would produce and consume here).
+   A tile under construction shows its icon dimmed with a progress ring and
+   a cancel. A built tile shows its building's icon. Under every built tile,
+   what it produces and consumes per day, as icons (a Mine: `+6⛏ −2⚡`).
+   Clicking a built tile opens its actions:
+   - **Replace:** pick another building for this slot; it demolishes (50%
+     back) and queues the new one in the same slot, as one command, refused
+     with a reason if the new one can't be afforded after the refund.
+   - **Upgrade:** Power Plant mode (Solar, Fission, Fusion). Other buildings
+     upgrade through their Industry rung, so the button is disabled and says
+     which rung (P2).
+   - **Demolish:** 50% refund, confirmed.
+   - **Spaceport only:** build ships (each with icon, cost, count) and train
+     Armies.
+3. **Forces here:** your garrison with Train Armies and, on Earth, March to a
+   neighbour; fleets in orbit at this body, yours and any you can see;
+   hostile fleets inbound with ETA; and the last battle here with its
+   Lanchester result and losses on each side. While a hostile force is in
+   orbit or landing, this section leads with it, outlined in red.
+
+A **foreign or unclaimed region** shows its header, its slots read-only
+where you have a sensor, Forces here, and its claim or attack actions
+(colonise, march, invade). A **body** lists its regions and the fleets in its
+orbit. A **fleet** shows its units and the launch planner.
+
+#### News ticker (bottom)
+
+The latest events in one slim line.
 
 ### Navigating: Google Maps at solar-system scale
 
@@ -503,11 +604,11 @@ All rendering is client-side; the server never draws.
 | Scroll wheel, pinch, `+` `−` | Zoom toward the cursor, continuously, from the whole system down to low orbit over a region |
 | Left-drag, one-finger drag, arrows / WASD | Pan |
 | Right-drag, two-finger twist, `Q` `E` | Rotate the view |
-| Click a body, or pick it in the empire bar | Eased fly-to; the camera then follows that body along its orbit |
+| Click a body, or pick it in the empire menu | Eased fly-to; the camera then follows that body along its orbit |
 | Click a region (zoomed in) | Select it: the panel shows its actions |
 | `[` `]` | Cycle bodies; Enter focuses; Esc backs out one level (open breakdown → region → body → system) |
 
-The canvas is not the only way in: the empire bar and selection panel are real
+The canvas is not the only way in: the empire menu and selection panel are real
 DOM, and an off-screen list of every body and region (shown on keyboard
 focus) mirrors the map, so keyboard and screen-reader users reach every
 action (goals.md P7).
@@ -580,8 +681,9 @@ blocker.
 
 ### Phone (390×844)
 
-The map stays full-screen; the selection panel and drawers become bottom
-sheets; the empire bar collapses to a button; tap targets ≥ 44 px; pinch to
+The map stays full-screen; the selection panel, Empires, Guide and tech
+overlays become bottom sheets; the empire menu collapses to a button; the
+slot grid keeps its tiles at ≥ 44 px; tap targets ≥ 44 px; pinch to
 zoom, two-finger twist to rotate; bloom off, decorative bodies thinned.
 
 ### Budgets

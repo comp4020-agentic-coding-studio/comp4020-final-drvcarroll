@@ -17,11 +17,15 @@ system with a glass HUD (game-design.md §12, goals.md P10):
   bottom news ticker; Tech/Empires/Trade drawers; phone bottom sheets.
 `pnpm test` (63) and `pnpm test:e2e` (6, headless Chrome) green. `pnpm dev`
 serves it on :8080. Screenshots: a scratch Playwright script (untracked).
-**Next:** the user plays it and reports. Crit 8 still needs README
-(400–600 words), PROCESS.md (user's), deploy to fly.dev, repo public at the
-cutoff. `reflections/crit-8.md` is the user's. Balance: the early game is
-Alloy-starved (docs/balance-log.md).
-**Flagged assumptions** (numbers missing from `game-design.md`, all in
+**Next:** Stage D2, the playtest HUD revision (build-process.md D2,
+game-design.md §11 Guide, §12 screen): resource and building SVG icons
+everywhere, tab-free selection panel with slot grid and Forces here, atomic
+`replace` command, Empire menu (Territory, Armies, Fleets, Tech tree),
+Empires overlay (rank, war, trade, Earth Exchange), the Guide. Balance runs
+continue alongside (early game Alloy-starved, docs/balance-log.md).
+**Flagged assumptions** (D2: the user's "garrison" building = the Spaceport;
+"upgrade" = Power Plant modes, other buildings upgrade via Industry rungs.
+Numbers missing from `game-design.md`, all in
 `rules/data/`, sim-tunable):
 - Envoy upkeep 3 E/min (`economy.ts`).
 - Research takes 15 s × rung after paying its cost (`tech.ts`).
@@ -53,4 +57,4 @@ Alloy-starved (docs/balance-log.md).
 - Respawn resets stocks to the starting kit.
 - Off-Earth region names and asteroid J2000 longitudes are invented or
   approximate (`map.ts`).
-**Last updated:** 2026-10-03.
+**Last updated:** 2026-10-10.
