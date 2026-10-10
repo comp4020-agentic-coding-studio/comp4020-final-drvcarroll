@@ -11,7 +11,8 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { BODIES, MAP, REGIONS } from "../../../rules/data/index.ts";
 import { me, nations, offset, season, selBody, selRegion, world } from "../store.ts";
 import { Decor } from "./decor.ts";
-import { MINOR, moonDistance, orbitRadius, parentOf, position, regionAt, seeds, SIZE, sphereOf, SPHERES, SUN_SIZE, type V3 } from "./layout.ts";
+import { anchor, MINOR, moonDistance, orbitRadius, parentOf, position, regionsOn, SIZE, sphereOf, SPHERES, SUN_SIZE, type V3 } from "./layout.ts";
+import { loadRegionMap, regionAt } from "./worlds.ts";
 import { FleetLayer } from "./fleets.ts";
 import { atmosphereMaterial, LOOK, regionMaterial, ringMaterial, sunMaterial } from "./regionMaterial.ts";
 
@@ -139,8 +140,16 @@ export class GameScene {
   }
 
   private buildBody(id: string): void {
-    const ss = seeds(id);
-    const mat = regionMaterial(id, ss.map((s) => s.dir));
+    const regions = MINOR[id] ? [] : regionsOn(id).map((r) => r.id);
+    const mat = regionMaterial(id);
+    if (regions.some((r) => REGIONS[r].km !== 0)) {
+      loadRegionMap(id).then((m) => {
+        const u = mat.uniforms;
+        u.regionMap.value = m.tex;
+        u.mapSize.value.set(m.w, m.h);
+        u.hasMap.value = 1;
+      }).catch(() => { /* stays unpainted; picking falls back to the body */ });
+    }
     const detail = SIZE[id] > 3 ? 128 : 64;
     const mesh = new THREE.Mesh(new THREE.SphereGeometry(SIZE[id], detail, detail / 2), mat);
     mesh.userData.body = id;
@@ -163,7 +172,7 @@ export class GameScene {
     label.tabIndex = -1;
     if (!decor) label.addEventListener("click", () => this.select(id, null));
     this.overlay.append(label);
-    const view: BodyView = { id, mesh, mat, regions: ss.map((s) => s.region), label, decor };
+    const view: BodyView = { id, mesh, mat, regions, label, decor };
     if (parentOf(id)) {
       view.moonOrbit = ring(moonDistance(id), 0x24324a, 0.7);
       this.scene.add(view.moonOrbit);
@@ -202,8 +211,7 @@ export class GameScene {
     const sphere = sphereOf(body);
     const close = this.camera.position.distanceTo(this.bodyPos(sphere)) < SIZE[sphere] * GLOBE_DRAG;
     if (!this.onPick(body, region)) return;
-    const seed = region && face ? seeds(sphere).find((x) => x.region === region) : undefined;
-    if (seed) this.flyTo(sphere, v3(seed.dir));
+    if (region && face) this.flyTo(sphere, v3(anchor(region)));
     else if (this.focus !== sphere || !close) this.flyTo(sphere);
   }
 
@@ -232,10 +240,10 @@ export class GameScene {
   // Where a region's centre is on screen, if it's facing you.
   screenOf(region: string): { x: number; y: number } | null {
     const sphere = sphereOf(REGIONS[region].body);
-    const seed = seeds(sphere).find((s) => s.region === region)!;
+    const dir = v3(anchor(region));
     const c = this.bodyPos(sphere);
-    const p = v3(seed.dir).multiplyScalar(SIZE[sphere]).add(c);
-    if (v3(seed.dir).dot(this.camera.position.clone().sub(c).normalize()) < 0.2) return null;
+    const p = dir.clone().multiplyScalar(SIZE[sphere]).add(c);
+    if (dir.dot(this.camera.position.clone().sub(c).normalize()) < 0.2) return null;
     const s = p.project(this.camera);
     const r = this.renderer.domElement.getBoundingClientRect();
     return { x: r.left + ((s.x + 1) / 2) * r.width, y: r.top + ((1 - s.y) / 2) * r.height };
@@ -356,6 +364,7 @@ export class GameScene {
     const close = this.camera.position.distanceTo(this.bodyPos(h.body)) < SIZE[h.body] * GLOBE_DRAG;
     if (!close || !h.dir) return this.select(h.body, null);
     const region = regionAt(h.body, h.dir);
+    if (!region) return this.select(h.body, null);
     this.select(REGIONS[region].body, region, false);
   }
 
@@ -444,7 +453,8 @@ export class GameScene {
       if (h) {
         body = h.body;
         const close = this.camera.position.distanceTo(this.bodyPos(h.body)) < SIZE[h.body] * GLOBE_DRAG;
-        if (close && h.dir) idx = this.views.get(h.body)!.regions.indexOf(regionAt(h.body, h.dir));
+        const region = close && h.dir ? regionAt(h.body, h.dir) : null;
+        if (region) idx = this.views.get(h.body)!.regions.indexOf(region);
       }
     }
     for (const v of this.views.values()) v.mat.uniforms.hover.value = v.id === body ? idx : -1;
@@ -488,7 +498,7 @@ export class GameScene {
     for (const [id, el] of this.regionLabels) if (!showRegions || REGIONS[id] && sphereOf(REGIONS[id].body) !== f) el.style.display = "none";
     if (!showRegions) return;
     const c = this.bodyPos(f!);
-    for (const s of seeds(f!)) {
+    for (const s of regionsOn(f!).map((r) => ({ region: r.id, dir: anchor(r.id) }))) {
       let el = this.regionLabels.get(s.region);
       if (!el) {
         el = document.createElement("button");

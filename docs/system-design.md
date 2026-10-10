@@ -262,7 +262,7 @@ The target is a consumer laptop with integrated graphics, not a gaming GPU.
 | KTX2/Basis textures | GPU-native compression, ~4× less GPU memory, decoded in a worker |
 | Texture tiers 512 / 2K / 8K by distance | Only the focused body holds 8K; others are disposed down |
 | ~40 draw calls total | Orbits in one `LineSegments`; fleets and icons instanced; region borders merged per body |
-| Region maps | One 8-bit equirectangular index image per body (2048×1024 Earth, 1024×512 others, lossless PNG): Earth from real Natural Earth borders, others a weighted Voronoi on real feature centres (game-design.md §12). Owner tints are a 256-entry palette texture, so a claim updates one texel, not the mesh; borders are drawn in the shader where the index changes |
+| Region maps | One 8-bit equirectangular index image per body (2048×1024 Earth, 1024×512 others, lossless PNG): Earth from real Natural Earth borders, others a weighted Voronoi on real feature centres (game-design.md §12). Owner tints are per-region uniform arrays indexed by the map's value, so a claim updates one uniform, not the mesh; borders are drawn in the shader where the index changes |
 | Picking by region map | Raycast the body sphere once, convert the hit to lat/lon, read the index from a CPU copy of the region map: no per-region meshes to test. Index 0 (ocean) selects the body |
 | Real textures streamed | Procedural surfaces draw first; KTX2 tiers load after interactive, top tier only for the focused body (Earth 4K, others 2K), 512 for the rest. Total under 60 MB on disk, committed |
 | Bloom at half resolution | Glow without full-resolution post-processing cost; off on phones |

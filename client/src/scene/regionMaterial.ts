@@ -1,13 +1,10 @@
-// game-design.md §12: each body's stylised surface, with its regions drawn on
-// top as Voronoi patches (owner tint, glowing borders). Fog renders exactly
-// like unclaimed ground. Writes the log depth buffer, so bodies are opaque.
+// game-design.md §12: each body's surface, with its regions read from the
+// region map (owner tint, glowing borders where the index changes). Fog
+// renders exactly like unclaimed ground. Writes the log depth buffer.
 import * as THREE from "three";
 import { LOGDEPTH_FRAG, LOGDEPTH_FRAG_PARS, LOGDEPTH_VERT, LOGDEPTH_VERT_PARS, NOISE } from "./glsl.ts";
-import { WARP as W } from "./layout.ts";
 
-const WARP = Object.fromEntries(Object.entries(W).map(([k, v]) => [k, v.toFixed(4)])) as Record<keyof typeof W, string>;
-
-export const MAX_SEEDS = 25;
+export const MAX_REGIONS = 25;
 
 export const STYLE = { earth: 0, rock: 1, mars: 2, venus: 3, gas: 4, ice: 5, cracked: 6, volcanic: 7, haze: 8 } as const;
 
@@ -71,11 +68,12 @@ const vertex = /* glsl */ `
 
 const fragment = /* glsl */ `
   ${LOGDEPTH_FRAG_PARS}
-  uniform vec3 seeds[${MAX_SEEDS}];
-  uniform vec3 tints[${MAX_SEEDS}];
-  uniform float owned[${MAX_SEEDS}];
-  uniform float lights[${MAX_SEEDS}];
-  uniform int count;
+  uniform sampler2D regionMap;
+  uniform vec2 mapSize;
+  uniform float hasMap;
+  uniform vec3 tints[${MAX_REGIONS}];
+  uniform float owned[${MAX_REGIONS}];
+  uniform float lights[${MAX_REGIONS}];
   uniform int hover;
   uniform int selected;
   uniform int style;
@@ -89,11 +87,12 @@ const fragment = /* glsl */ `
   varying vec3 vPosW;
   ${NOISE}
 
-  vec3 warp(vec3 d) {
-    return normalize(d + vec3(
-      ${WARP.amp} * sin(d.y * ${WARP.f1} + d.z * ${WARP.f2}) + ${WARP.amp2} * sin(d.y * ${WARP.g1} + d.z * ${WARP.g2}),
-      ${WARP.amp} * sin(d.z * ${WARP.f1} + d.x * ${WARP.f2}) + ${WARP.amp2} * sin(d.z * ${WARP.g1} + d.x * ${WARP.g2}),
-      ${WARP.amp} * sin(d.x * ${WARP.f1} + d.y * ${WARP.f2}) + ${WARP.amp2} * sin(d.x * ${WARP.g1} + d.y * ${WARP.g2})));
+  // Equirectangular, row 0 at the north pole (scripts/worlds.ts).
+  vec2 lonLat(vec3 d) {
+    return vec2(atan(-d.z, d.x) / 6.2831853 + 0.5, 0.5 - asin(clamp(d.y, -1.0, 1.0)) / 3.1415927);
+  }
+  int regionOf(vec2 uv) {
+    return hasMap > 0.5 ? int(texture2D(regionMap, vec2(fract(uv.x), clamp(uv.y, 0.0, 1.0))).r * 255.0 + 0.5) - 1 : -1;
   }
 
   float craters(vec3 p, float scale) {
@@ -181,30 +180,31 @@ const fragment = /* glsl */ `
 
   void main() {
     ${LOGDEPTH_FRAG}
-    vec3 d = warp(vLocal);
-    float b1 = -2.0, b2 = -2.0;
-    int i1 = 0;
-    for (int i = 0; i < ${MAX_SEEDS}; i++) {
-      if (i >= count) break;
-      float s = dot(d, seeds[i]);
-      if (s > b1) { b2 = b1; b1 = s; i1 = i; }
-      else if (s > b2) { b2 = s; }
+    vec2 uv = lonLat(normalize(vLocal));
+    int i1 = regionOf(uv);
+    // Borders: a neighbour a pixel (or a texel) away is in another region.
+    vec2 px = max(vec2(min(fwidth(uv.x), fwidth(fract(uv.x + 0.5))), fwidth(uv.y)), 1.0 / mapSize);
+    float edge = 0.0, glow = 0.0;
+    if (hasMap > 0.5) {
+      for (int k = 0; k < 4; k++) {
+        vec2 o = vec2(k == 0 ? 1.0 : k == 1 ? -1.0 : 0.0, k == 2 ? 1.0 : k == 3 ? -1.0 : 0.0);
+        if (regionOf(uv + o * px * 1.2) != i1) edge = 1.0;
+        if (regionOf(uv + o * px * 4.0) != i1) glow = 1.0;
+      }
     }
     float land, spec;
     vec3 col = surface(vLocal, land, spec);
 
-    float own = owned[i1];
-    vec3 tint = tints[i1];
+    float own = i1 >= 0 ? owned[i1] : 0.0;
+    vec3 tint = i1 >= 0 ? tints[i1] : vec3(0.0);
     col = mix(col, col * 0.45 + tint * 0.75, own * 0.42);
 
-    float w = fwidth(b1 - b2);
-    float edge = count > 1 ? 1.0 - smoothstep(0.0, w * (own > 0.0 ? 2.4 : 1.3), b1 - b2) : 0.0;
-    float glow = count > 1 ? 1.0 - smoothstep(0.0, 0.05, b1 - b2) : 0.0;
-    vec3 line = own > 0.0 ? tint * 1.5 + 0.25 : vec3(0.85, 0.9, 1.0);
-    col = mix(col, line, edge * (own > 0.0 ? 0.95 : 0.32));
+    vec3 line = own > 0.0 ? tint * 1.5 + 0.25 : vec3(0.6, 0.85, 1.0);
+    float lineOn = i1 >= 0 ? edge : edge * 0.6; // coastlines of claimable land
+    col = mix(col, line, lineOn * (own > 0.0 ? 0.95 : 0.4));
     col += line * glow * own * 0.14;
-    if (i1 == hover) col += 0.1;
-    if (i1 == selected) col = mix(col, vec3(1.0), 0.14 + 0.55 * edge);
+    if (i1 >= 0 && i1 == hover) col += 0.1;
+    if (i1 >= 0 && i1 == selected) col = mix(col, vec3(1.0), 0.14 + 0.55 * edge);
 
     vec3 n = normalize(vNormalW);
     vec3 toSun = normalize(-vPosW);
@@ -216,25 +216,26 @@ const fragment = /* glsl */ `
     lit += vec3(0.9, 0.95, 1.0) * spec * pow(max(dot(n, normalize(toSun + v)), 0.0), 60.0) * 0.6 * day;
 
     // City lights on the night side, denser with buildings in sensed regions.
-    float city = land * lights[i1] * smoothstep(0.35, 0.8, snoise(vLocal * 38.0) * 0.5 + 0.5 + 0.3 * snoise(vLocal * 9.0));
+    float city = (i1 >= 0 ? lights[i1] : 0.0) * land * smoothstep(0.35, 0.8, snoise(vLocal * 38.0) * 0.5 + 0.5 + 0.3 * snoise(vLocal * 9.0));
     lit += vec3(1.0, 0.78, 0.45) * city * (1.0 - day) * 1.4;
     lit += line * edge * own * 0.4 * (1.0 - day);
     gl_FragColor = vec4(lit, 1.0);
   }
 `;
 
-export function regionMaterial(id: string, seedDirs: [number, number, number][]): THREE.ShaderMaterial {
+export function regionMaterial(id: string): THREE.ShaderMaterial {
   const look = LOOK[id];
-  const pad = <T>(xs: T[], n: number, fill: () => T) => [...xs, ...Array.from({ length: n - xs.length }, fill)];
+  const fill = <T>(make: () => T) => Array.from({ length: MAX_REGIONS }, make);
   return new THREE.ShaderMaterial({
     vertexShader: vertex,
     fragmentShader: fragment,
     uniforms: {
-      seeds: { value: pad(seedDirs.map((d) => new THREE.Vector3(...d)), MAX_SEEDS, () => new THREE.Vector3(0, 1, 0)) },
-      tints: { value: pad([], MAX_SEEDS, () => new THREE.Color()) },
-      owned: { value: pad([], MAX_SEEDS, () => 0) },
-      lights: { value: pad([], MAX_SEEDS, () => 0) },
-      count: { value: seedDirs.length },
+      regionMap: { value: null },
+      mapSize: { value: new THREE.Vector2(1, 1) },
+      hasMap: { value: 0 },
+      tints: { value: fill(() => new THREE.Color()) },
+      owned: { value: fill(() => 0) },
+      lights: { value: fill(() => 0) },
       hover: { value: -1 },
       selected: { value: -1 },
       style: { value: STYLE[look.style] },

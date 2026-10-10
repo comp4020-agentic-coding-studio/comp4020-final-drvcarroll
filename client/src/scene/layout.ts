@@ -95,43 +95,8 @@ export function latLon(lat: number, lon: number): V3 {
   return [Math.cos(la) * Math.cos(lo), Math.sin(la), -Math.cos(la) * Math.sin(lo)];
 }
 
-// One seed per region: Earth's at real geography, others spread evenly.
-export function seeds(sphere: string): { region: string; dir: V3 }[] {
-  const regions = Object.values(REGIONS).filter((r) => sphereOf(r.body) === sphere);
-  if (regions.every((r) => r.lat !== undefined)) return regions.map((r) => ({ region: r.id, dir: latLon(r.lat!, r.lon!) }));
-  const n = regions.length;
-  const golden = Math.PI * (3 - Math.sqrt(5));
-  return regions.map((r, i) => {
-    const y = n === 1 ? 1 : 1 - (2 * (i + 0.5)) / n;
-    const rad = Math.sqrt(1 - y * y);
-    return { region: r.id, dir: norm([Math.cos(golden * i) * rad, y * 0.85, Math.sin(golden * i) * rad]) };
-  });
-}
+// Regions on a sphere in map order: index i + 1 on its region map.
+export const regionsOn = (sphere: string) => Object.values(REGIONS).filter((r) => sphereOf(r.body) === sphere);
 
-const norm = (v: V3): V3 => {
-  const l = Math.hypot(...v);
-  return [v[0] / l, v[1] / l, v[2] / l];
-};
-
-// Bends patch edges into organic shapes. Mirrored exactly in the region
-// shader, so a click lands on the patch you see.
-export const WARP = { amp: 0.11, f1: 3.1, f2: 5.3, amp2: 0.045, g1: 9.7, g2: 13.1 };
-export function warp(d: V3): V3 {
-  const [x, y, z] = d, w = WARP;
-  return norm([
-    x + w.amp * Math.sin(y * w.f1 + z * w.f2) + w.amp2 * Math.sin(y * w.g1 + z * w.g2),
-    y + w.amp * Math.sin(z * w.f1 + x * w.f2) + w.amp2 * Math.sin(z * w.g1 + x * w.g2),
-    z + w.amp * Math.sin(x * w.f1 + y * w.f2) + w.amp2 * Math.sin(x * w.g1 + y * w.g2),
-  ]);
-}
-
-// The region under a direction from the body's centre: the nearest seed.
-export function regionAt(sphere: string, dir: V3): string {
-  const w = warp(norm(dir));
-  let best = "", bestDot = -Infinity;
-  for (const s of seeds(sphere)) {
-    const d = s.dir[0] * w[0] + s.dir[1] * w[1] + s.dir[2] * w[2];
-    if (d > bestDot) [best, bestDot] = [s.region, d];
-  }
-  return best;
-}
+// Where a region's label and fly-to point sit: its anchor in map.ts.
+export const anchor = (region: string): V3 => latLon(REGIONS[region].lat, REGIONS[region].lon);

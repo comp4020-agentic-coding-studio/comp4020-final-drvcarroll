@@ -5,8 +5,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import sharp from "sharp";
 import { feature } from "topojson-client";
 type Topology = Parameters<typeof feature>[0];
-import { EARTH_MEMBERS, REGIONS } from "../rules/data/index.ts";
-import { RADIUS_KM, sphereOf, SPHERES } from "../client/src/scene/layout.ts";
+import { EARTH_MEMBERS } from "../rules/data/index.ts";
+import { RADIUS_KM, regionsOn, SPHERES } from "../client/src/scene/layout.ts";
 
 const OUT = "client/public/worlds";
 const CACHE = ".cache/worlds";
@@ -19,8 +19,7 @@ type Ring = [number, number][];
 type Poly = Ring[];
 interface Geo { properties: Record<string, string | null>; geometry: { type: string; coordinates: unknown } }
 
-// Regions on a sphere, in the order the client numbers them (index = i + 1).
-export const regionsOf = (sphere: string) => Object.values(REGIONS).filter((r) => sphereOf(r.body) === sphere);
+export const regionsOf = regionsOn;
 export const size = (sphere: string): [number, number] => (sphere === "earth" ? [4096, 2048] : [1024, 512]);
 
 const polys = (g: Geo["geometry"]): Poly[] =>
