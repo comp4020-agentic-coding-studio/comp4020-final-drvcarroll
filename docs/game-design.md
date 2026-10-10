@@ -206,19 +206,19 @@ as one command. Slots: Earth 4, large bodies 3, small bodies 2.
 | Building | Cost | Time | Output /min | Upkeep /min |
 |---|---|---|---|---|
 | Power Plant | 40 M | 20 s | Solar: 10 E × S · Fission [Industry 5]: 15 E flat · Fusion [Industry 6]: 25 E flat, +50% at Fusion-flagged bodies | none |
-| Mine | 30 M | 20 s | 6 M × region M | 2 E |
+| Mine | 30 M | 20 s | 10 M × region M | 2 E |
 | Refinery | 30 M | 20 s | 4 V × region V | 3 E |
-| Foundry | 50 M | 30 s | 4 M → 2 A | 4 E |
-| Lab | 40 M, 10 V | 30 s | 5 R | 3 E, 0.5 Materiel |
+| Foundry | 50 M | 30 s | 4 M → 3 A | 4 E |
+| Lab | 40 M, 10 V | 30 s | 5 R | 3 E |
 | Factory | 60 M, 10 V | 30 s | 2 A + 1 V → 3 Materiel | 5 E |
-| Spaceport | 60 M, 20 A | 45 s | Builds ships and Armies; launches from this body | 2 E |
+| Spaceport | 60 M, 20 A | 75 s | Builds ships and Armies; launches from this body | 2 E |
 
 Each off-Earth region costs **1 Materiel/min** colony upkeep; a shortfall
 halves its output. Society tech (§8) reduces both this and building Energy
 upkeep.
 
 **Starting kit:** capital with Power Plant, Mine, Refinery, Lab; 2 Armies;
-200 M, 100 V, 30 A, 50 Materiel, 30 R, 500 E.
+200 M, 100 V, 60 A, 50 Materiel, 30 R, 500 E.
 
 ## 7. Military
 
@@ -405,7 +405,9 @@ two of three can).
   default. Editable any time.
 - **World size:** at most 24 nations (one per Earth start region).
 - **Late joining:** allowed until minute 50, with ×2 production for the first
-  5 min so a late start isn't hopeless.
+  5 min so a late start isn't hopeless. If every Earth start region is
+  taken by then, a newcomer starts on one free off-Earth region instead,
+  as a respawn does.
 - **Presence:** online nations glow; a live news ticker reports launches,
   claims, declarations, battles, trades.
 - **Concurrency:** commands are serialised and validated against current state.

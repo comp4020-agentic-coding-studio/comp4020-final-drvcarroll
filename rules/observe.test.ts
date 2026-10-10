@@ -44,7 +44,7 @@ describe("observe: sensors, Envoys and fog (game-design.md §11)", () => {
 
   it("returns private state with stocks, rates and caps", () => {
     const { you } = observe(setup(), "n_1");
-    expect(you?.stocks.M).toEqual({ v: 200, rate: expect.closeTo(7.8), cap: 1500 });
+    expect(you?.stocks.M).toEqual({ v: 200, rate: expect.closeTo(13), cap: 1500 });
     expect(observe(setup(), null).you).toBeNull();
   });
 });

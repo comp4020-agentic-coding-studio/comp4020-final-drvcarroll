@@ -1,6 +1,6 @@
 // game-design.md §13: scripted bot archetypes. Each scores legalActions
 // against what observe shows it, the same view a client gets.
-import { BODIES, REGIONS, type Ladder } from "../rules/data/index.ts";
+import { BODIES, BUILDINGS, REGIONS, UNITS, type Goods, type Ladder, type Resource } from "../rules/data/index.ts";
 import type { Command, Id, Ms, PrivateState, VisibleWorld } from "../rules/index.ts";
 
 export const ARCHETYPES = ["expander", "builder", "trader", "conqueror", "researcher", "random"] as const;
@@ -56,7 +56,8 @@ function score(w: Weights, c: Command, x: Ctx): number {
   const armies = mine.reduce((a, r) => a + (r.armies ?? 0), 0);
   const myFleets = x.world.fleets.filter((f) => f.owner === x.id);
   const has = (u: string) => myFleets.some((f) => (f.units as Record<string, number>)[u]);
-  const hasSpaceport = mine.some((r) => r.buildings?.some((b) => b.type === "spaceport"));
+  const hasSpaceport = mine.some((r) => r.buildings?.some((b) => b.type === "spaceport"))
+    || Object.values(x.you.queues).some((q) => q.some((i) => i.item === "spaceport"));
   const atWarWith = (n?: Id) => !!n && x.world.wars.some((v) => (v.a === x.id && v.b === n) || (v.b === x.id && v.a === n));
   switch (c.type) {
     case "research": return 1 + w.ladders[c.tech.split(".")[0] as Ladder];
@@ -71,7 +72,7 @@ function score(w: Weights, c: Command, x: Ctx): number {
       return hasSpaceport ? 0 : Math.max(w.colonise, w.military) - 1;
     }
     case "setMode": return c.mode === "fusion" ? 3 : c.mode === "fission" ? 2 : 0;
-    case "train": return armies < w.armyTarget ? 4 : 0;
+    case "train": return armies < w.armyTarget && stock("Mt") >= 20 ? 4 : 0; // keep a Colony Ship's Materiel
     case "march": {
       const to = x.world.regions.find((r) => r.id === c.to);
       if (!to?.owner) return w.expand;
@@ -98,7 +99,11 @@ function score(w: Weights, c: Command, x: Ctx): number {
     }
     case "offerPeace": case "acceptPeace": return w.attack ? 0 : 3;
     case "sendEnvoy": return w.envoy;
-    case "acceptTrade": return 1 + w.trade;
+    case "acceptTrade": { // only if what they ask for is plentiful here
+      const o = x.you.trades.find((t) => t.id === c.offer);
+      const ok = !!o && Object.entries(o.get).every(([r, v]) => stock(r as Resource) >= 3 * v!);
+      return ok ? 1 + w.trade : 0;
+    }
     case "exchange": {
       const cap = x.you.stocks[c.give].cap;
       return stock(c.give) > 0.7 * cap && stock(c.get) < 100 ? w.trade : 0;
@@ -118,6 +123,14 @@ function traderOffer(x: Ctx): Command | null {
   return { type: "offerTrade", to, give: { [give[0]]: 50 }, get: { [low[0]]: 40 } };
 }
 
+function costOf(c: Command): Goods {
+  const times = (g: Goods, n: number) => Object.fromEntries(Object.entries(g).map(([k, v]) => [k, v! * n]));
+  if (c.type === "build") return BUILDINGS[c.building].cost;
+  if (c.type === "buildShip") return times(UNITS[c.unit].cost, c.count);
+  if (c.type === "train") return times(UNITS.army.cost, c.count);
+  return {};
+}
+
 // Best command per type, then the top few: no one type crowds out the rest.
 export function decide(kind: Archetype, x: Ctx, max = 4): Command[] {
   if (kind === "random") {
@@ -129,7 +142,10 @@ export function decide(kind: Archetype, x: Ctx, max = 4): Command[] {
     const v = score(w, c, x) + x.rng() * 0.5;
     if (v > 0.5 && v > (best.get(c.type)?.v ?? 0)) best.set(c.type, { c, v });
   }
-  const saveFor = Math.max(0, ...x.wanted.filter((c) => SPENDS.has(c.type)).map((c) => score(w, c, x)));
+  // Save only for what income will reach: never for a cost in a stock that isn't growing.
+  const reachable = (c: Command) => Object.entries(costOf(c)).every(([r, v]) =>
+    x.you.stocks[r as Resource].v >= v || x.you.stocks[r as Resource].rate > 0);
+  const saveFor = Math.max(0, ...x.wanted.filter((c) => SPENDS.has(c.type) && reachable(c)).map((c) => score(w, c, x)));
   const ranked = [...best.values()]
     .filter((r) => !SPENDS.has(r.c.type) || r.v >= saveFor)
     .sort((a, b) => b.v - a.v).slice(0, max).map((r) => r.c);

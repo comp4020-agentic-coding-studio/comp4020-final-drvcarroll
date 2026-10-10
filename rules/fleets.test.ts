@@ -42,8 +42,8 @@ describe("ships, launches and colonies (game-design.md §4, §7, §11)", () => {
     expect(validate(s, "n_1", { type: "buildShip", region: "r_canada", unit: "colonyShip", count: 1 }))
       .toMatchObject({ reason: "Canada has no Spaceport" });
     s = ok(s, "n_1", { type: "build", region: "r_canada", building: "spaceport" });
-    s = ok(s, "n_1", { type: "buildShip", region: "r_canada", unit: "colonyShip", count: 1 }, T0 + 45 * S);
-    s = advanceTo(s, T0 + 90 * S);
+    s = ok(s, "n_1", { type: "buildShip", region: "r_canada", unit: "colonyShip", count: 1 }, T0 + 75 * S);
+    s = advanceTo(s, T0 + 120 * S);
     const fleet = Object.values(s.fleets)[0];
     expect(fleet).toMatchObject({ owner: "n_1", at: "earth", units: { colonyShip: 1 } });
 

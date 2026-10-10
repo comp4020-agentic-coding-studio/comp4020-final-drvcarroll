@@ -41,7 +41,7 @@ describe("trade (game-design.md §9)", () => {
     s = ok(s, "n_1", { type: "gift", to: "n_2", goods: { Mt: 20 } });
     expect(s.nations.n_1.stocks.Mt).toBe(30);
     s = ok(s, "n_1", { type: "exchange", give: "M", amount: 90, get: "A" });
-    expect(s.nations.n_1.stocks).toMatchObject({ M: 110, A: 60 });
+    expect(s.nations.n_1.stocks).toMatchObject({ M: 110, A: 90 });
   });
 });
 

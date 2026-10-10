@@ -65,6 +65,7 @@ export interface RunOptions {
   bots: Archetype[];
   minutes: number;
   lateJoin?: { kind: Archetype; atMin: number };
+  inspect?: (s: State, minute: number) => void; // balance debugging: each decision step
 }
 
 const COLOURS = ["#e6194b", "#3cb44b", "#4363d8", "#f58231", "#911eb4", "#46f0f0", "#f032e6", "#008080"];
@@ -114,6 +115,7 @@ export function run(o: RunOptions): RunResult {
     }
 
     record(s, m, now);
+    o.inspect?.(s, now);
     for (const x of respawns) {
       const held = owned(s, x.nation).length > 0;
       const protEnd = x.atMin + WAR.protectionS / 60;

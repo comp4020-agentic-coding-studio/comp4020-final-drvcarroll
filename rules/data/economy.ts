@@ -23,17 +23,17 @@ export interface BuildingData {
 
 export const BUILDINGS: Record<Building, BuildingData> = {
   powerPlant: { name: "Power Plant", cost: { M: 40 }, timeS: 20, output: { res: "E", base: 10 }, upkeep: {} },
-  mine: { name: "Mine", cost: { M: 30 }, timeS: 20, output: { res: "M", base: 6, yield: "m" }, upkeep: { E: 2 } },
+  mine: { name: "Mine", cost: { M: 30 }, timeS: 20, output: { res: "M", base: 10, yield: "m" }, upkeep: { E: 2 } },
   refinery: {
     name: "Refinery", cost: { M: 30 }, timeS: 20, output: { res: "V", base: 4, yield: "v" }, upkeep: { E: 3 },
   },
-  foundry: { name: "Foundry", cost: { M: 50 }, timeS: 30, output: { res: "A", base: 2 }, input: { M: 4 }, upkeep: { E: 4 } },
-  lab: { name: "Lab", cost: { M: 40, V: 10 }, timeS: 30, output: { res: "R", base: 5 }, upkeep: { E: 3, Mt: 0.5 } },
+  foundry: { name: "Foundry", cost: { M: 50 }, timeS: 30, output: { res: "A", base: 3 }, input: { M: 4 }, upkeep: { E: 4 } },
+  lab: { name: "Lab", cost: { M: 40, V: 10 }, timeS: 30, output: { res: "R", base: 5 }, upkeep: { E: 3 } },
   factory: {
     name: "Factory", cost: { M: 60, V: 10 }, timeS: 30, output: { res: "Mt", base: 3 }, input: { A: 2, V: 1 },
     upkeep: { E: 5 },
   },
-  spaceport: { name: "Spaceport", cost: { M: 60, A: 20 }, timeS: 45, upkeep: { E: 2 } },
+  spaceport: { name: "Spaceport", cost: { M: 60, A: 20 }, timeS: 75, upkeep: { E: 2 } },
 };
 
 // Power Plant output per mode, E/min. Solar is base × region S.
@@ -54,7 +54,7 @@ export const ECONOMY = {
   startKit: {
     buildings: ["powerPlant", "mine", "refinery", "lab"] as Building[],
     armies: 2,
-    stocks: { E: 500, M: 200, V: 100, A: 30, R: 30, Mt: 50 } as Record<Resource, number>,
+    stocks: { E: 500, M: 200, V: 100, A: 60, R: 30, Mt: 50 } as Record<Resource, number>,
   },
   exchangeRate: 3, // Earth Exchange: give 3, get 1
   exchangeLot: 30, // the amount legalActions offers

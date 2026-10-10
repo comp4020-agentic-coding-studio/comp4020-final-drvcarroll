@@ -27,7 +27,8 @@ export function suite(seeds: number, minutes = 60): RunResult[] {
 
 export function report(runs: RunResult[]): Row[] {
   const sensible = runs.flatMap((r) => r.nations.filter((n) => n.kind !== "random" && n.joinedAtMin === 0));
-  const tv = median(sensible.map((n) => n.thrustVectoringMin ?? Infinity));
+  // Pace for a player heading there: each run's first, like the colony targets.
+  const tv = median(runs.map((r) => Math.min(...r.nations.map((n) => n.thrustVectoringMin ?? Infinity))));
   const off = median(runs.map((r) => earliest(r, "offEarthMin")));
   const mars = median(runs.map((r) => earliest(r, "marsMin")));
   const all = runs.flatMap((r) => r.nations);

@@ -61,8 +61,9 @@ const join: Handler<"join"> = (s, n, c) => {
   if (!r) return no("INVALID", "Unknown region");
   if (r.owner) return no("TAKEN", `${regionName(r.id)} is taken`);
   const earthFull = Object.values(s.regions).every((x) => !REGIONS[x.id].start || x.owner);
-  const ok = REGIONS[r.id].start || (respawn && earthFull && REGIONS[r.id].body !== "antarctica");
-  if (!ok) return no("INVALID", "Pick a free Earth start region");
+  // Earth full (late in a season, or after a fall): one off-Earth colony instead.
+  const ok = REGIONS[r.id].start || (earthFull && REGIONS[r.id].body !== "antarctica");
+  if (!ok) return no("INVALID", earthFull ? "Earth is full: pick a free off-Earth region" : "Pick a free Earth start region");
   return () => {
     const kit = ECONOMY.startKit;
     r.owner = n.id;

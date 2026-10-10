@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { RESOURCES } from "./data/index.ts";
+import { ECONOMY, REGIONS, RESOURCES } from "./data/index.ts";
 import { capOf, economy } from "./economy.ts";
 import { advanceTo, apply, settled, validate, type Command } from "./index.ts";
 import { S, T0, ok, rng, world } from "./test-helpers.ts";
@@ -10,7 +10,7 @@ describe("join and the starting kit (game-design.md §6)", () => {
     const n = s.nations.n_1;
     expect(s.regions.r_canada.buildings.map((b) => b.type)).toEqual(["powerPlant", "mine", "refinery", "lab"]);
     expect(s.regions.r_canada.armies).toBe(2);
-    expect(n.stocks).toEqual({ E: 500, M: 200, V: 100, A: 30, R: 30, Mt: 50 });
+    expect(n.stocks).toEqual(ECONOMY.startKit.stocks);
     expect(n.capital).toBe("r_canada");
     expect(n.protectedUntil).toBe(T0 + 300 * S);
   });
@@ -28,17 +28,30 @@ describe("join and the starting kit (game-design.md §6)", () => {
   });
 });
 
+describe("late joining when Earth is full (game-design.md §11)", () => {
+  it("starts a newcomer on one free off-Earth region, only once no Earth start is free", () => {
+    let s = world("r_canada");
+    s = ok(s, "n_2", { type: "setEmpire", name: "Late", primary: "#123456", secondary: "#ffffff" });
+    expect(validate(s, "n_2", { type: "join", region: "r_mars_tharsis" }))
+      .toMatchObject({ code: "INVALID", reason: "Pick a free Earth start region" });
+    for (const r of Object.values(s.regions)) if (REGIONS[r.id].start) r.owner = "n_1";
+    expect(validate(s, "n_2", { type: "join", region: "r_antarctica" })).toMatchObject({ reason: "Earth is full: pick a free off-Earth region" });
+    s = ok(s, "n_2", { type: "join", region: "r_mars_tharsis" });
+    expect(s.regions.r_mars_tharsis.owner).toBe("n_2");
+  });
+});
+
 describe("rates and the analytic stock model (game-design.md §3)", () => {
   it("matches a hand calculation for Canada's kit", () => {
     const s = world("r_canada");
     const { rate } = economy(s, "n_1");
     expect(rate.E).toBeCloseTo(10 * 0.7 - (2 + 3 + 3) - 2 * 0.5); // solar - upkeep - armies
-    expect(rate.M).toBeCloseTo(6 * 1.3);
+    expect(rate.M).toBeCloseTo(10 * 1.3);
     expect(rate.V).toBeCloseTo(4 * 1.3);
     expect(rate.R).toBeCloseTo(5);
-    expect(rate.Mt).toBeCloseTo(-0.5);
+    expect(rate.Mt).toBeCloseTo(0);
     const later = settled(advanceTo(s, T0 + 60 * S));
-    expect(later.nations.n_1.stocks.M).toBeCloseTo(200 + 7.8);
+    expect(later.nations.n_1.stocks.M).toBeCloseTo(200 + 13);
   });
 
   it("breaks the rate into lines by region and source (game-design.md §12 HUD)", () => {
@@ -50,7 +63,7 @@ describe("rates and the analytic stock model (game-design.md §3)", () => {
     }
     const mine = economy(world("r_canada"), "n_1").lines.filter((l) => l.source === "mine");
     expect(mine).toEqual([
-      { region: "r_canada", source: "mine", res: "M", amt: expect.closeTo(7.8) },
+      { region: "r_canada", source: "mine", res: "M", amt: expect.closeTo(13) },
       { region: "r_canada", source: "mine", res: "E", amt: -2 },
     ]);
     expect(e.lines.find((l) => l.source === "armies")).toMatchObject({ region: "r_canada", res: "E" });
@@ -65,7 +78,7 @@ describe("rates and the analytic stock model (game-design.md §3)", () => {
     const e = economy(later, "n_1");
     expect(e.rate.E).toBeCloseTo(0);
     expect(e.efficiency).toBeCloseTo(7 / 9);
-    expect(e.rate.M).toBeCloseTo((7.8 * 7) / 9);
+    expect(e.rate.M).toBeCloseTo((13 * 7) / 9);
   });
 });
 
@@ -90,9 +103,9 @@ describe("build queues and research (game-design.md §6, §8)", () => {
     expect(s.regions.r_canada.buildings).toHaveLength(4);
     s.nations.n_1.stocks.M = 200;
     s = ok(s, "n_1", { type: "replace", region: "r_canada", slot: 3, building: "spaceport" });
-    expect(s.nations.n_1.stocks).toMatchObject({ M: 160, V: 105, A: 10 });
+    expect(s.nations.n_1.stocks).toMatchObject({ M: 160, V: 105, A: 40 });
     expect(s.regions.r_canada.buildings.map((b) => b.slot)).toEqual([0, 1, 2]);
-    s = advanceTo(s, T0 + 45 * S);
+    s = advanceTo(s, T0 + 75 * S);
     expect(s.regions.r_canada.buildings.find((b) => b.slot === 3)?.type).toBe("spaceport");
   });
 
