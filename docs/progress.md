@@ -1,8 +1,7 @@
 # Progress
 
-**Stage:** E2 (real worlds, command console) done; next the Crit 9
-keyboard pass (Stage D full). A, C, D, D2 done; E largely done; B harness
-running; G ongoing (build-process.md).
+**Stage:** F done (logging, `/admin`, load test, measured goals). Next G
+(balance), then D full (keyboard pass), then E's remaining exit items.
 **Last verified checkpoint:** E2 per game-design.md §4, §12:
 - `pnpm worlds` (`scripts/worlds.ts`) builds `client/public/worlds/`:
   region maps (Earth from Natural Earth countries and admin-1 per
@@ -17,9 +16,12 @@ running; G ongoing (build-process.md).
   self-hosted; designation strips; credits in the Guide and user menu.
 `pnpm test` (71, needs a server on a fresh `DATA_DIR`), `pnpm test:e2e`
 (9, incl. first render < 3 MB), `pnpm sim:test` green.
-**Next:** Crit 9 bar: Stage D full exit, keyboard-only core loop at both
-viewports (build-process.md D, crit calendar), then F (logging, `/admin`)
-for Crit 10. Balance: early game Alloy-starved (docs/balance-log.md).
+**Next:** Stage G: the early game is Alloy-starved (docs/balance-log.md);
+tune `rules/data/` one number at a time with `pnpm sim:test`, log each.
+Then the Crit 9 keyboard-only core loop (build-process.md D). F detail:
+`server/log.ts` lines and stats; `/admin` for `ADMIN_USERS` (set the Fly
+secret before Crit 10); `pnpm load` writes docs/measurements.md (all met);
+docs/checks.md holds judged checks.
 **Flagged assumptions** (E2: Psyche and Ceres stay procedural, no
 usable global albedo map; Titania, Oberon and Triton gaps are filled from
 mirrors and column blends and look smeared up close; Triton's map keeps
