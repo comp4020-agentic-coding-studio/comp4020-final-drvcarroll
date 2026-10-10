@@ -69,3 +69,32 @@ export function shellPage(username: string, assets: { js: string; css: string[] 
   <p class="narrow">${assets ? "Connecting…" : "The client isn't built: run <code>pnpm build</code>."}</p>
 </div>`, fonts + head);
 }
+
+// system-design.md §11: the live view. Plain HTML fed by one SSE stream.
+export function adminPage(): string {
+  return page("Grow · admin", `
+<main class="admin">
+  <h1>Live</h1>
+  <p id="head">Connecting…</p>
+  <div class="cols">
+    <section><h2>Online</h2><ul id="online"></ul></section>
+    <section><h2>Rejections by reason</h2><ul id="rejections"></ul></section>
+  </div>
+  <h2>Recent actions</h2>
+  <table><thead><tr><th>Time</th><th>User</th><th>Action</th><th>Target</th><th>Result</th><th>ms</th></tr></thead><tbody id="recent"></tbody></table>
+</main>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  new EventSource("/api/admin/stream").onmessage = (e) => {
+    const s = JSON.parse(e.data);
+    $("head").textContent = s.online.length + " online · " + s.sockets + " sockets · " + s.commandsPerMin + " commands/min · tick p50 "
+      + s.tickMs.p50 + " ms, p99 " + s.tickMs.p99 + " ms · " + s.rssMb + " MB RSS";
+    $("online").innerHTML = s.online.map((n) => "<li>" + esc(n) + "</li>").join("") || "<li>nobody</li>";
+    $("rejections").innerHTML = Object.entries(s.rejections).map(([k, v]) => "<li>" + esc(k) + ": " + v + "</li>").join("") || "<li>none</li>";
+    $("recent").innerHTML = s.recent.map((l) => "<tr><td>" + new Date(l.ts).toLocaleTimeString() + "</td><td>" + esc(l.user) + "</td><td>"
+      + esc(l.action) + "</td><td>" + esc(l.target) + "</td><td>" + esc(l.result) + (l.reason ? " (" + esc(l.reason) + ")" : "") + "</td><td>"
+      + (l.ms ?? "") + "</td></tr>").join("");
+  };
+</script>`);
+}

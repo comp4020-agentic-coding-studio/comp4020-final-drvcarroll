@@ -21,3 +21,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .error { color: var(--error); }
 .bar { display: flex; gap: 16px; align-items: center; padding: 8px 16px; background: var(--panel); }
 .bar form { margin: 0 0 0 auto; padding: 0; background: none; }
+.admin { max-width: 70rem; margin: 0 auto; }
+.admin .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.admin table { width: 100%; border-collapse: collapse; font: 14px/1.4 ui-monospace, monospace; }
+.admin th, .admin td { text-align: left; padding: 4px 8px; border-bottom: 1px solid #2a3443; }

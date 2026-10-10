@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { Client, api, type Msg } from "../spec/helpers.ts";
 import { start, type Running } from "./app.ts";
+import { Log } from "./log.ts";
 
 let running: Running | undefined;
 afterEach(async () => {
@@ -11,7 +12,9 @@ afterEach(async () => {
   running = undefined;
 });
 
-const boot = async (dataDir: string) => (running = await start({ port: 0, dataDir }));
+let lines: string[] = [];
+const boot = async (dataDir: string, admins: string[] = []) =>
+  (running = await start({ port: 0, dataDir, admins, log: new Log((l) => lines.push(l)) }));
 const base = () => `http://127.0.0.1:${running!.port}`;
 const url = (p: string) => base() + p;
 const account = (name: string, empire?: string) => api(base()).account(name, empire ? { name: empire } : undefined);
@@ -99,5 +102,36 @@ describe("server: accounts", () => {
     const anon = new Client(base(), "");
     await new Promise((r) => anon.ws.once("close", r));
     expect(anon.closed).toBe(4001);
+  });
+});
+
+describe("logging and the live view (system-design.md §11; goals.md S4, S7)", () => {
+  it("writes one JSON line per action, and streams live stats to admins only", async () => {
+    lines = [];
+    await boot(mkdtempSync(join(tmpdir(), "grow-")), ["alice"]);
+    const alice = await account("alice", "Aurora");
+    const bob = await account("bob", "Borealis");
+    const a = await open(alice);
+    a.send("c1", { type: "join", region: "r_canada" });
+    a.send("c2", { type: "build", region: "r_canada", building: "mine" });
+    await a.result("c2");
+    const parsed = lines.map((l) => JSON.parse(l));
+    const joined = parsed.find((l) => l.action === "join")!;
+    expect(joined).toMatchObject({ user: "alice", nation: expect.any(String), target: "r_canada", result: "ok", ms: expect.any(Number) });
+    expect(joined.ts).toEqual(expect.any(Number));
+    expect(parsed.find((l) => l.action === "build")).toMatchObject({ result: "NO_SLOT", reason: "No free slot in Canada" });
+    expect(parsed.filter((l) => l.action === "signup").map((l) => l.user)).toEqual(["alice", "bob"]);
+    expect(parsed.some((l) => l.action === "connect" && l.user === "alice")).toBe(true);
+
+    expect((await fetch(url("/admin"), { headers: { cookie: bob } })).status).toBe(404);
+    expect((await fetch(url("/admin"), { headers: { cookie: alice } })).status).toBe(200);
+    const res = await fetch(url("/api/admin/stream"), { headers: { cookie: alice } });
+    const reader = res.body!.getReader();
+    const chunk = new TextDecoder().decode((await reader.read()).value);
+    await reader.cancel();
+    const stats = JSON.parse(chunk.slice(chunk.indexOf("data:") + 5).split("\n")[0]);
+    expect(stats).toMatchObject({ online: ["Aurora"], sockets: 1, commandsPerMin: 2, rejections: { NO_SLOT: 1 } });
+    expect(stats.tickMs.p99).toBeGreaterThanOrEqual(0);
+    a.close();
   });
 });

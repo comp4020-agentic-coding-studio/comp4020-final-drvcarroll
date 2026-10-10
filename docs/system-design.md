@@ -310,12 +310,16 @@ game-design.md §11; the Guide is a client overlay, not a route.
 
 ## 11. Logging and the live view (crit 10)
 
-- One JSON line per user action to stdout:
-  `{ts, user, nation, action, target, result, ms}`. Also login, sign-up,
-  connect, disconnect, resync. `fly logs` tails them.
-- `/admin` (admin users only): a live stats page over the same socket.
-  Online players, commands per minute, recent actions, rejections by reason,
-  memory and socket count.
+- One JSON line per user action to stdout (`server/log.ts`):
+  `{ts, user, nation, action, target, result, reason?, ms}`, `result` "ok"
+  or the rejection code, `ms` the time to apply it. Also login, sign-up,
+  logout, connect and disconnect. `fly logs` tails them.
+- `/admin`, for the usernames in the `ADMIN_USERS` env var (comma
+  separated; a Fly secret) and a 404 for everyone else: a plain page fed by
+  one SSE stream (`/api/admin/stream`, once a second). Online players,
+  sockets, commands per minute, rejections by reason, recent actions, tick
+  p50/p99 and RSS. SSE rather than the game socket, so watching the server
+  never joins the season or counts as a player.
 - The `commands` table holds the same history durably.
 
 ## 12. Deploy

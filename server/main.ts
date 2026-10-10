@@ -6,6 +6,7 @@ const app = await start({
   dataDir: process.env.DATA_DIR ?? "./data",
   build: process.env.BUILD_ID ?? "dev",
   secureCookies: process.env.NODE_ENV === "production",
+  admins: (process.env.ADMIN_USERS ?? "").split(",").map((u) => u.trim().toLowerCase()).filter(Boolean),
 });
 console.log(JSON.stringify({ ts: Date.now(), action: "listen", port: app.port }));
 

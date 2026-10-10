@@ -6,6 +6,7 @@ import type { Duplex } from "node:stream";
 import { WebSocketServer, type WebSocket } from "ws";
 import { observe, type Command, type CommandResult, type Id, type PrivateState, type VisibleWorld } from "../rules/index.ts";
 import type { User } from "./auth.ts";
+import { Log, targetOf, type Stats } from "./log.ts";
 import { parseMessage } from "./schema.ts";
 import { nationOf, type World } from "./world.ts";
 
@@ -41,11 +42,18 @@ export class Hub {
   private world: World;
   private build: string;
   private now: () => number;
+  readonly log: Log;
 
-  constructor(world: World, build: string, now = () => Date.now()) {
+  constructor(world: World, build: string, now = () => Date.now(), log = new Log()) {
     this.world = world;
     this.build = build;
     this.now = now;
+    this.log = log;
+  }
+
+  stats(): Stats {
+    const names = this.online.map((id) => this.world.state?.nations[id]?.name ?? id);
+    return this.log.stats(this.now(), names, this.clients.size);
   }
 
   get online(): Id[] {
@@ -71,6 +79,7 @@ export class Hub {
     }
     const c: Client = { ws, user, nation, results: [], queued: 0, sent: blank() };
     this.clients.add(c);
+    this.log.write({ ts: now, user: user.username, nation, action: "connect", result: "ok" });
     const { world, you } = this.view(c);
     const season = this.world.state!.season;
     remember(c.sent, world, you, season);
@@ -78,6 +87,7 @@ export class Hub {
     ws.on("message", (raw) => this.receive(c, String(raw)));
     ws.on("close", () => {
       this.clients.delete(c);
+      this.log.write({ ts: this.now(), user: user.username, nation, action: "disconnect", result: "ok" });
       if (!this.clients.size) this.stopTicking();
     });
     this.startTicking();
@@ -95,7 +105,9 @@ export class Hub {
       return;
     }
     if (++c.queued > MAX_CMDS_PER_TICK) {
-      c.results.push({ id: m.id, ok: false, code: "RATE_LIMIT", reason: "Too many commands; wait a moment" });
+      const r = { id: m.id, ok: false as const, code: "RATE_LIMIT" as const, reason: "Too many commands; wait a moment" };
+      c.results.push(r);
+      this.logCommand(c, m.cmd, r, 0);
       return;
     }
     this.queue.push({ c, id: m.id, cmd: m.cmd });
@@ -112,16 +124,30 @@ export class Hub {
 
   // Advance, apply queued commands in arrival order, send each client one tick.
   tick(): void {
+    const t0 = performance.now();
     const now = this.now();
     this.n++;
     this.world.advance(now);
-    for (const { c, id, cmd } of this.queue.splice(0)) c.results.push(this.world.submit(c.nation, cmd, id, now));
+    for (const { c, id, cmd } of this.queue.splice(0)) {
+      const t0 = performance.now();
+      const r = this.world.submit(c.nation, cmd, id, now);
+      c.results.push(r);
+      this.logCommand(c, cmd, r, performance.now() - t0);
+    }
     for (const c of this.clients) {
       c.queued = 0;
       const msg = this.diff(c, now);
       c.results = [];
       if (c.ws.readyState === c.ws.OPEN) c.ws.send(json(msg));
     }
+    this.log.tick(performance.now() - t0);
+  }
+
+  private logCommand(c: Client, cmd: Command, r: CommandResult, ms: number): void {
+    this.log.write({
+      ts: this.now(), user: c.user.username, nation: c.nation, action: cmd.type, target: targetOf(cmd),
+      result: r.ok ? "ok" : r.code, ...(r.ok ? {} : { reason: r.reason }), ms: Number(ms.toFixed(2)),
+    });
   }
 
   private view(c: Client): { world: VisibleWorld; you: PrivateState | null } {

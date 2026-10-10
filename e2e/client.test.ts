@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { chromium, type Browser, type Page } from "playwright-core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { start, type Running } from "../server/app.ts";
+import { Log } from "../server/log.ts";
 
 let app: Running;
 let browser: Browser;
@@ -13,7 +14,7 @@ let base: string;
 
 beforeAll(async () => {
   if (!existsSync("client/dist/.vite/manifest.json")) throw new Error("run `pnpm build` first");
-  app = await start({ port: 0, dataDir: mkdtempSync(join(tmpdir(), "grow-e2e-")) });
+  app = await start({ port: 0, dataDir: mkdtempSync(join(tmpdir(), "grow-e2e-")), log: new Log(() => {}) });
   base = `http://127.0.0.1:${app.port}`;
   browser = await chromium.launch({ channel: "chrome", args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 });

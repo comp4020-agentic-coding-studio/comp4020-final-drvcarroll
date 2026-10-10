@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Hono, type Context } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
+import { streamSSE } from "hono/streaming";
 import { marked } from "marked";
 import {
   SESSION_MAX_AGE_S, checkSignup, createSession, createUser, endSession, rateLimited, sessionUser, verify, type User,
@@ -12,7 +13,8 @@ import {
 import { freeColour } from "../rules/commands.ts";
 import { openDb, type Db } from "./db.ts";
 import { Hub } from "./hub.ts";
-import { page, empirePage, loginPage, shellPage } from "./pages.ts";
+import { Log } from "./log.ts";
+import { adminPage, page, empirePage, loginPage, shellPage } from "./pages.ts";
 import { World, nationOf } from "./world.ts";
 
 const ROOT = join(import.meta.dirname, "..");
@@ -37,6 +39,8 @@ export interface ServerOptions {
   build?: string;
   secureCookies?: boolean;
   now?: () => number;
+  admins?: string[]; // usernames that may open /admin (ADMIN_USERS)
+  log?: Log;
 }
 
 export interface Running {
@@ -57,7 +61,7 @@ async function body(c: Context): Promise<Record<string, string>> {
 
 const ip = (c: Context) => c.req.header("fly-client-ip") ?? c.req.header("x-forwarded-for")?.split(",")[0] ?? "local";
 
-export function createApp(db: Db, world: World, opts: { secureCookies: boolean; now: () => number }) {
+export function createApp(db: Db, world: World, hub: Hub, opts: { secureCookies: boolean; now: () => number; admins: string[] }) {
   const app = new Hono();
   const readme = page("README", marked.parse(readFileSync(join(ROOT, "README.md"), "utf8")) as string);
   const user = (c: Context): User | null => sessionUser(db, getCookie(c, COOKIE));
@@ -65,6 +69,12 @@ export function createApp(db: Db, world: World, opts: { secureCookies: boolean; 
     setCookie(c, COOKIE, createSession(db, u.id), {
       httpOnly: true, secure: opts.secureCookies, sameSite: "Lax", path: "/", maxAge: SESSION_MAX_AGE_S,
     });
+  const log = (action: string, result: string, username?: string) =>
+    hub.log.write({ ts: opts.now(), ...(username ? { user: username.toLowerCase() } : {}), action, result });
+  const admin = (c: Context) => {
+    const u = user(c);
+    return u && opts.admins.includes(u.username) ? u : null;
+  };
   const empireOf = (u: User) => {
     const n = world.state?.nations[nationOf(u.id)];
     return n ? { name: n.name, primary: n.primary, secondary: n.secondary } : undefined;
@@ -94,8 +104,12 @@ export function createApp(db: Db, world: World, opts: { secureCookies: boolean; 
   app.post("/api/signup", async (c) => {
     const { username = "", password = "" } = await body(c);
     const bad = checkSignup(username, password);
-    if (bad) return isForm(c) ? c.html(loginPage(bad.reason), 400) : c.json(bad, 400);
+    if (bad) {
+      log("signup", "INVALID", username);
+      return isForm(c) ? c.html(loginPage(bad.reason), 400) : c.json(bad, 400);
+    }
     const u = await createUser(db, username, password);
+    log("signup", u ? "ok" : "TAKEN", username);
     if (!u) {
       const e = { field: "username", reason: "That username is taken" };
       return isForm(c) ? c.html(loginPage(e.reason), 409) : c.json(e, 409);
@@ -107,9 +121,11 @@ export function createApp(db: Db, world: World, opts: { secureCookies: boolean; 
   app.post("/api/login", async (c) => {
     const { username = "", password = "" } = await body(c);
     if (rateLimited(username, ip(c))) {
+      log("login", "RATE_LIMIT", username);
       return isForm(c) ? c.html(loginPage("Too many attempts; try again later"), 429) : c.json({ reason: "Too many attempts" }, 429);
     }
     const u = await verify(db, username, password, ip(c));
+    log("login", u ? "ok" : "UNAUTHORIZED", username);
     if (!u) {
       const reason = "Wrong username or password";
       return isForm(c) ? c.html(loginPage(reason), 401) : c.json({ reason }, 401);
@@ -119,6 +135,8 @@ export function createApp(db: Db, world: World, opts: { secureCookies: boolean; 
   });
 
   app.post("/api/logout", (c) => {
+    const u = user(c);
+    if (u) log("logout", "ok", u.username);
     endSession(db, getCookie(c, COOKIE));
     deleteCookie(c, COOKIE, { path: "/" });
     return isForm(c) ? c.redirect("/", 303) : c.json({ ok: true });
@@ -144,6 +162,18 @@ export function createApp(db: Db, world: World, opts: { secureCookies: boolean; 
     return isForm(c) ? c.redirect("/", 303) : c.json({ empire: empireOf(u) });
   });
 
+  // system-design.md §11: the live view, for ADMIN_USERS only; others see 404.
+  app.get("/admin", (c) => (admin(c) ? c.html(adminPage()) : c.notFound()));
+  app.get("/api/admin/stream", (c) => {
+    if (!admin(c)) return c.notFound();
+    return streamSSE(c, async (stream) => {
+      while (!stream.aborted) {
+        await stream.writeSSE({ data: JSON.stringify(hub.stats()) });
+        await stream.sleep(1000);
+      }
+    });
+  });
+
   app.get("/api/season", (c) => c.json({ season: world.state?.season ?? null, hallOfFame: world.hallOfFame() }));
 
   return app;
@@ -154,8 +184,8 @@ export function start(o: ServerOptions): Promise<Running> {
   const db = openDb(o.dataDir);
   const world = new World(db);
   world.boot(now());
-  const hub = new Hub(world, o.build ?? "dev", now);
-  const app = createApp(db, world, { secureCookies: o.secureCookies ?? false, now });
+  const hub = new Hub(world, o.build ?? "dev", now, o.log ?? new Log());
+  const app = createApp(db, world, hub, { secureCookies: o.secureCookies ?? false, now, admins: o.admins ?? [] });
   const snapshots = setInterval(() => world.snapshot(), 60_000);
   snapshots.unref();
 
