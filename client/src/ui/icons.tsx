@@ -47,7 +47,7 @@ export function SolarIcon({ size = 16 }: { size?: number }) {
 export function Amt({ res, v, short, sign }: { res: Resource; v: number; short?: boolean; sign?: boolean }) {
   const digits = Number.isInteger(v) ? 0 : Math.abs(v) < 1 ? 2 : 1;
   const text = `${sign ? (v >= 0 ? "+" : "−") : ""}${num(Math.abs(v), digits)}`;
-  return <span class={`amt ${short ? "short" : ""}`}>{text}<ResIcon res={res} size={14} /></span>;
+  return <span class={`amt ${short ? "short" : sign ? (v < 0 ? "neg" : "pos") : ""}`}>{text}<ResIcon res={res} size={14} /></span>;
 }
 
 export function Goodsline({ goods }: { goods: Goods }) {
@@ -134,6 +134,14 @@ const UNIT_ART: Record<Unit, ComponentChildren> = {
 
 export function UnitIcon({ unit, size = 16 }: { unit: Unit; size?: number }) {
   return <span class="u-ico"><Svg label={UNITS[unit].name} size={size}>{UNIT_ART[unit]}</Svg></span>;
+}
+
+export function Units({ units }: { units: Partial<Record<Unit, number>> }) {
+  return (
+    <span class="goods">
+      {(Object.entries(units) as [Unit, number][]).map(([u, n]) => <span key={u} class="amt">{n}<UnitIcon unit={u} /></span>)}
+    </span>
+  );
 }
 
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);

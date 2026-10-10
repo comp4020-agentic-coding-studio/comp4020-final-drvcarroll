@@ -14,8 +14,10 @@ export function num(x: number, digits = 0): string {
 export const signed = (x: number, digits = 1) => `${x >= 0 ? "+" : "−"}${num(Math.abs(x), digits)}`;
 
 // A per-minute rate as gain per game day (one day is MAP.dayMs of play).
+export const toDay = (perMin: number) => (perMin * MAP.dayMs) / 60_000;
+
 export function perDay(perMin: number): string {
-  const d = (perMin * MAP.dayMs) / 60_000;
+  const d = toDay(perMin);
   return signed(d, Math.abs(d) < 1 ? 2 : 1);
 }
 

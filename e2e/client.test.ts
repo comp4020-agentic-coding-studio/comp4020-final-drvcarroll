@@ -92,10 +92,14 @@ describe("the map is the screen (goals.md P10)", () => {
     expect(at).not.toBeNull();
     await p.mouse.click(at.x, at.y);
     await expect.poll(() => p.locator(".selection h2").innerText()).toBe("India");
-    await p.locator(".seg button", { hasText: "build" }).click();
-    const mine = p.locator(".selection li.item", { has: p.locator('b:text-is("Mine")') });
-    expect(await mine.locator("button").isDisabled()).toBe(true);
-    expect(await mine.locator(".why").innerText()).toBe("No free slot in India");
+    await expect.poll(() => p.locator(".selection button.tile").count()).toBe(4);
+    await p.locator(".selection .forces input[aria-label='Armies to train']").fill("6");
+    const train = p.locator(".selection .forces .action", { hasText: "Train" });
+    expect(await train.locator("button").isDisabled()).toBe(true);
+    expect(await train.locator(".why").innerText()).toMatch(/^Needs 1\d more Materiel$/);
+    await p.locator(".selection button.tile").nth(1).click();
+    expect(await p.locator(".tile-menu button", { hasText: "Upgrade" }).isDisabled()).toBe(true);
+    expect(await p.locator(".tile-menu .hint").innerText()).toMatch(/Automated Mining/);
     await p.close();
   });
 
@@ -113,10 +117,21 @@ describe("the map is the screen (goals.md P10)", () => {
     await p.close();
   });
 
-  it("settles a neighbour by march from the region's Military tab", async () => {
+  it("replaces a slot from its tile, with the refund counted", async () => {
+    const p = await player("hotel", "Japan & Korea");
+    await p.locator(".empire .list.sub button.row", { hasText: "Japan" }).click();
+    await p.locator(".selection button.tile").nth(3).click();
+    await p.locator(".tile-menu button", { hasText: "Replace" }).first().click();
+    await p.locator(".picker li.item", { has: p.locator('b:text-is("Spaceport")') }).locator("button", { hasText: "Replace" }).click();
+    await expect.poll(() => p.locator(".selection button.tile.busy").count()).toBe(1);
+    expect(await p.locator(".selection button.tile").nth(3).getAttribute("aria-label")).toMatch(/^Spaceport, building/);
+    await p.close();
+  });
+
+  it("settles a neighbour by march from Forces here", async () => {
     const p = await player("delta", "Arabia");
     await p.locator(".empire .list.sub button.row", { hasText: "Arabia" }).click();
-    await p.locator(".seg button", { hasText: "military" }).click();
+    await p.locator(".forces .march summary").click();
     await p.locator(".selection li.item", { hasText: "Iran" }).locator("button", { hasText: "Settle" }).click();
     await expect.poll(() => p.locator(".toast").allInnerTexts()).toContain("March to Iran & Central Asia: done");
     await p.close();

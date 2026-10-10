@@ -55,7 +55,7 @@ function fight(s: State, body: string, a: FleetState, b: FleetState): void {
   }
   const [na, nb] = [s.nations[a.owner].name, s.nations[b.owner].name];
   const result = ws === ls ? "both fleets are destroyed" : `${s.nations[w.owner].name} wins`;
-  news(s, "battle", `Battle at ${BODIES[body].name}: ${na} (${sa}) vs ${nb} (${sb}), ${result}`, [a.owner, b.owner]);
+  news(s, "battle", `Battle at ${BODIES[body].name}: ${na} (${sa}) vs ${nb} (${sb}), ${result}`, [a.owner, b.owner, body]);
 }
 
 export function resolveAll(s: State): void {

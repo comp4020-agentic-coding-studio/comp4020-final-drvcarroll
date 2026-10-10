@@ -2,20 +2,20 @@
 // and everything you can do with it.
 import { useState } from "preact/hooks";
 import {
-  ADJACENT, BODIES, BUILDINGS, MAP, MILITARY, POWER_MODES, REGIONS, RESOURCE_NAMES, RUNGS, UNITS, ZONE_LAUNCH_COST,
-  type Building, type BuildingData, type Unit,
+  ADJACENT, BODIES, BUILDINGS, MAP, MILITARY, POWER_MODES, REGIONS, RUNGS, UNITS, ZONE_LAUNCH_COST,
+  type Building, type BuildingData, type Mod, type PowerMode, type Resource, type Unit,
 } from "../../../rules/data/index.ts";
 import { mods, slotsOf } from "../../../rules/economy.ts";
-import type { Fleet, Region } from "../../../rules/index.ts";
+import type { Command, Fleet, QueueEntry, Region } from "../../../rules/index.ts";
 import { isLocal, launchEnergy, travelMs, windowPenalty } from "../../../rules/orbit.ts";
-import { bodyName, dur, num, regionName } from "../format.ts";
-import { mirror } from "../mirror.ts";
-import { clock, launchTo, me, season, selBody, selFleet, selRegion, world, you } from "../store.ts";
+import { bodyName, dur, num, regionName, toDay } from "../format.ts";
+import { eco, mirror } from "../mirror.ts";
+import { clock, launchTo, me, season, selBody, selFleet, selRegion, stockNow, world, you } from "../store.ts";
 import { Action, Chip, Cost, Count, Progress } from "./common.tsx";
+import { Amt, BuildingIcon, ResIcon, SolarIcon, UnitIcon, Units } from "./icons.tsx";
 import { focusOn, selectFleet } from "./SceneHost.tsx";
 
 const isEarth = (id: string) => BODIES[REGIONS[id].body].zone === "terrestrial";
-const units = (u: Fleet["units"]) => (Object.entries(u) as [Unit, number][]).map(([k, v]) => `${v} ${UNITS[k].name}`).join(" · ");
 
 export function Selection() {
   const f = world.value?.fleets.find((x) => x.id === selFleet.value);
@@ -54,7 +54,7 @@ function BodyView({ id }: { id: string }) {
             <button class="row" onClick={() => focusOn(r.body, r.id)}>
               <span>{REGIONS[r.id].name}</span>
               <Chip id={r.owner} />
-              {r.armies !== undefined && r.owner && <small>⚔ {r.armies}</small>}
+              {r.armies !== undefined && r.owner && <span class="amt"><UnitIcon unit="army" /> {r.armies}</span>}
             </button>
           </li>
         ))}
@@ -64,7 +64,7 @@ function BodyView({ id }: { id: string }) {
           <h3>Fleets in orbit</h3>
           <ul class="list">
             {fleets.map((x) => (
-              <li key={x.id}><button class="row" onClick={() => selectFleet(x.id)}><Chip id={x.owner} /><small>{units(x.units)}</small></button></li>
+              <li key={x.id}><button class="row" onClick={() => selectFleet(x.id)}><Chip id={x.owner} /><Units units={x.units} /></button></li>
             ))}
           </ul>
         </>
@@ -77,153 +77,282 @@ function RegionView({ id }: { id: string }) {
   const r = world.value!.regions.find((x) => x.id === id)!;
   const rd = REGIONS[id];
   const mine = r.owner === me.value;
-  const [tab, setTab] = useState<"overview" | "build" | "military">("overview");
+  const sensed = r.buildings !== undefined;
   return (
     <>
       <Header title={rd.name} sub={bodyName(rd.body)} onClose={() => (selRegion.value = null)} />
-      <dl class="facts">
-        <dt>Owner</dt><dd>{r.buildings !== undefined || r.owner ? <Chip id={r.owner} /> : <span class="muted">Unknown: no sensor here</span>}</dd>
-        <dt>Yields</dt><dd>M ×{rd.m.toFixed(1)} · V ×{rd.v.toFixed(1)} · S ×{rd.s.toFixed(2)}</dd>
-        {mine && <><dt>Slots</dt><dd>{r.buildings!.length + queuedBuildings(id)} / {slotsOf(mirror.value!, id)}</dd></>}
-        {r.armies !== undefined && <><dt>Armies</dt><dd>{r.armies}</dd></>}
-      </dl>
-      {mine ? (
-        <>
-          <div class="seg" role="tablist">
-            {(["overview", "build", "military"] as const).map((t) => (
-              <button key={t} role="tab" aria-selected={tab === t} class={tab === t ? "on" : ""} onClick={() => setTab(t)}>{t}</button>
-            ))}
-          </div>
-          {tab === "overview" && <Overview r={r} />}
-          {tab === "build" && <BuildList r={r} />}
-          {tab === "military" && <Military r={r} />}
-        </>
-      ) : <Foreign r={r} />}
+      <p class="yields">
+        {sensed || r.owner ? <Chip id={r.owner} /> : <span class="muted">No sensor here</span>}
+        <span class="goods">
+          <span class="amt"><ResIcon res="M" />×{rd.m.toFixed(1)}</span>
+          <span class="amt"><ResIcon res="V" />×{rd.v.toFixed(1)}</span>
+          <span class="amt"><SolarIcon />×{rd.s.toFixed(2)}</span>
+        </span>
+      </p>
+      {sensed && <SlotGrid key={id} r={r} mine={mine} />}
+      <Forces r={r} mine={mine} />
+      {!mine && <Foreign r={r} />}
     </>
   );
 }
 
-const queuedBuildings = (id: string) => (you.value?.queues[id] ?? []).filter((q) => q.item in BUILDINGS).length;
+interface Tile { slot: number; built?: NonNullable<Region["buildings"]>[number]; queued?: QueueEntry & { index: number } }
 
-function effect(b: Building, d: BuildingData, regionId: string): string {
-  const r = REGIONS[regionId];
-  const up = Object.entries(d.upkeep).map(([k, v]) => `${v} ${k}`).join(", ");
-  const upkeep = up ? ` · upkeep ${up}/min` : "";
-  if (b === "powerPlant") return `Solar ${num(MAP.solarBase * r.s, 1)} E/min here · Fission 15 · Fusion 25`;
-  if (b === "spaceport") return `Builds ships; they launch from ${bodyName(r.body)}${upkeep}`;
-  const o = d.output!;
-  const amt = o.base * (o.yield ? r[o.yield] : 1);
-  const input = d.input ? `${Object.entries(d.input).map(([k, v]) => `${v} ${k}`).join(" + ")} → ` : "";
-  return `${input}${num(amt, 1)} ${RESOURCE_NAMES[o.res]}/min${upkeep}`;
+// Built slots, then queued buildings into their pinned slot or the next free.
+function tiles(r: Region, total: number, queue: QueueEntry[]): Tile[] {
+  const ts: Tile[] = Array.from({ length: total }, (_, slot) => ({ slot }));
+  for (const b of r.buildings ?? []) if (ts[b.slot]) ts[b.slot].built = b;
+  const pinned = new Set(queue.flatMap((q) => q.slot ?? []));
+  queue.forEach((q, index) => {
+    if (!(q.item in BUILDINGS)) return;
+    const t = q.slot !== undefined ? ts[q.slot] : ts.find((x) => !x.built && !x.queued && !pinned.has(x.slot));
+    if (t) t.queued = { ...q, index };
+  });
+  return ts;
 }
 
-function Overview({ r }: { r: Region }) {
-  const q = you.value?.queues[r.id] ?? [];
+// Per-day flows of one built slot: the region's lines for its type, shared.
+function slotFlows(r: Region, type: Building): [Resource, number][] {
+  const n = r.buildings!.filter((b) => b.type === type).length;
+  const by = new Map<Resource, number>();
+  for (const l of eco.value?.lines ?? []) {
+    if (l.region === r.id && l.source === type) by.set(l.res, (by.get(l.res) ?? 0) + toDay(l.amt) / n);
+  }
+  return [...by].filter(([, v]) => Math.abs(v) > 1e-9).sort((a, b) => b[1] - a[1]);
+}
+
+// What a new building would make and use here per day, before tech.
+function nominal(b: Building, regionId: string): [Resource, number][] {
+  const r = REGIONS[regionId], d = BUILDINGS[b];
+  const out: [Resource, number][] = [];
+  if (d.output) out.push([d.output.res, b === "powerPlant" ? MAP.solarBase * r.s : d.output.base * (d.output.yield ? r[d.output.yield] : 1)]);
+  for (const [k, v] of Object.entries({ ...d.input }) as [Resource, number][]) out.push([k, -v]);
+  for (const [k, v] of Object.entries(d.upkeep) as [Resource, number][]) out.push([k, -v]);
+  return out.map(([k, v]) => [k, toDay(v)]);
+}
+
+function Flows({ items }: { items: [Resource, number][] }) {
+  return <span class="tile-flows">{items.map(([res, v]) => <Amt key={res} res={res} v={Number(v.toFixed(2))} sign />)}</span>;
+}
+
+// The tech rung that boosts each building: its "upgrade" (game-design.md §12).
+const BOOST: Partial<Record<Building, Mod>> = {
+  mine: "mineOutput", refinery: "refineryOutput", foundry: "foundryOutput", factory: "factoryOutput", lab: "labOutput", powerPlant: "solarOutput",
+};
+const boostRung = (b: Building) => Object.values(RUNGS).find((x) => BOOST[b] && x.mods[BOOST[b]!]);
+
+function boosted(b: Building, mode?: string): boolean {
+  const n = mirror.value?.nations[me.value!];
+  if (!n || b === "spaceport" || (b === "powerPlant" && (mode ?? "solar") !== "solar")) return false;
+  const m = mods(n);
+  return m[BOOST[b]!] > 0 || m.allProduction > 0;
+}
+
+function SlotGrid({ r, mine }: { r: Region; mine: boolean }) {
+  const [open, setOpen] = useState<number | null>(null);
+  const total = mine ? slotsOf(mirror.value!, r.id) : r.slots;
+  const ts = tiles(r, total, mine ? you.value?.queues[r.id] ?? [] : []);
+  const sel = open === null ? undefined : ts[open];
   return (
-    <>
-      <h3>Buildings</h3>
-      {r.buildings!.length === 0 && <p class="hint">Empty: open Build.</p>}
-      <ul class="list">
-        {[...r.buildings!].sort((a, b) => a.slot - b.slot).map((b) => (
-          <li key={b.slot} class="item">
-            <div><b>{BUILDINGS[b.type].name}</b><small>{effect(b.type, BUILDINGS[b.type], r.id)}</small></div>
-            {b.type === "powerPlant" && (
-              <div class="modes">
-                {Object.keys(POWER_MODES).map((m) => (m === (b.mode ?? "solar")
-                  ? <span key={m} class="pill on">{m}</span>
-                  : <Action key={m} kind="quiet" cmd={{ type: "setMode", region: r.id, slot: b.slot, mode: m }}>{m}</Action>))}
-              </div>
-            )}
-            <Action kind="danger" confirm={`Demolish this ${BUILDINGS[b.type].name}? You get half its cost back.`} cmd={{ type: "demolish", region: r.id, slot: b.slot }}>Demolish</Action>
-          </li>
-        ))}
+    <section aria-label="Building slots">
+      <ul class="tiles">
+        {ts.map((t) => {
+          const b = t.built, q = t.queued;
+          const label = b ? BUILDINGS[b.type].name : q ? `${BUILDINGS[q.item as Building].name}, building` : "Empty slot";
+          return (
+            <li key={t.slot}>
+              <button class={`tile ${b ? "built" : q ? "busy" : "empty"} ${open === t.slot ? "on" : ""}`} disabled={!mine}
+                aria-label={mine ? `${label}: ${b ? "replace, upgrade or demolish" : q ? "cancel" : "build"}` : label}
+                aria-expanded={open === t.slot} onClick={() => setOpen(open === t.slot ? null : t.slot)}>
+                {b ? <BuildingIcon type={b.type} mode={b.mode} boosted={boosted(b.type, b.mode)} />
+                  : q ? <><BuildingIcon type={q.item as Building} /><Ring q={q} /></>
+                  : <span class="plus" aria-hidden="true">+</span>}
+              </button>
+              {b && <Flows items={slotFlows(r, b.type)} />}
+              {q && <small class="tile-flows">{clock.value < q.startAt ? "queued" : dur(q.finishAt - clock.value)}</small>}
+            </li>
+          );
+        })}
       </ul>
-      <h3>Queue</h3>
-      {q.length === 0 && <p class="hint">Nothing queued.</p>}
-      <ul class="list">
-        {q.map((item, i) => (
-          <li key={`${item.item}${item.startAt}`} class="item">
-            <div>
-              <b>{BUILDINGS[item.item as Building]?.name ?? UNITS[item.item as Unit]?.name ?? item.item}</b>
-              <small>{clock.value < item.startAt ? `starts in ${dur(item.startAt - clock.value)}` : `${dur(item.finishAt - clock.value)} left`}</small>
-              {clock.value >= item.startAt && <Progress start={item.startAt} end={item.finishAt} />}
-            </div>
-            <Action kind="quiet" cmd={{ type: "cancelBuild", region: r.id, index: i }}>Cancel</Action>
-          </li>
-        ))}
-      </ul>
-    </>
+      {mine && sel && <TileMenu key={sel.slot} r={r} t={sel} onDone={() => setOpen(null)} />}
+    </section>
   );
 }
 
-function BuildList({ r }: { r: Region }) {
+function Ring({ q }: { q: QueueEntry }) {
+  const f = Math.min(1, Math.max(0, (clock.value - q.startAt) / Math.max(1, q.finishAt - q.startAt)));
   return (
-    <ul class="list">
-      {(Object.entries(BUILDINGS) as [Building, BuildingData][]).map(([b, d]) => (
+    <svg class="ring" viewBox="0 0 36 36" aria-hidden="true">
+      <circle cx="18" cy="18" r="16" pathLength="100" stroke-dasharray={`${f * 100} 100`} />
+    </svg>
+  );
+}
+
+function TileMenu({ r, t, onDone }: { r: Region; t: Tile; onDone: () => void }) {
+  const [replacing, setReplacing] = useState(false);
+  if (t.queued) {
+    const name = BUILDINGS[t.queued.item as Building].name;
+    return (
+      <div class="tile-menu">
+        <h3>{name} <small>{clock.value < t.queued.startAt ? `starts in ${dur(t.queued.startAt - clock.value)}` : `${dur(t.queued.finishAt - clock.value)} left`}</small></h3>
+        <Action kind="quiet" cmd={{ type: "cancelBuild", region: r.id, index: t.queued.index }}>Cancel (full refund)</Action>
+      </div>
+    );
+  }
+  const b = t.built;
+  if (!b) {
+    return <div class="tile-menu"><h3>Build in this slot</h3><Picker r={r} cmd={(building) => ({ type: "build", region: r.id, building })} /></div>;
+  }
+  const d = BUILDINGS[b.type];
+  const rung = boostRung(b.type);
+  const held = rung && you.value?.techs.includes(rung.id);
+  const upgrade = b.type === "spaceport" ? "Spaceports don't upgrade: Voidcraft tech unlocks better ships."
+    : held ? `Upgraded: ${rung!.name} boosts every ${d.name}.` : `Upgrade by researching ${rung!.name}: it boosts every ${d.name}.`;
+  return (
+    <div class="tile-menu">
+      <h3>{b.type === "powerPlant" ? `${cap(b.mode ?? "solar")} Power Plant` : d.name}</h3>
+      <div class="menu-actions">
+        <span class="action">
+          <button class={`quiet ${replacing ? "on" : ""}`} aria-expanded={replacing} onClick={() => setReplacing(!replacing)}>Replace</button>
+        </span>
+        {b.type !== "powerPlant" && <span class="action"><button class="quiet" disabled title={upgrade}>Upgrade</button></span>}
+        <Action kind="danger" confirm={`Demolish this ${d.name}? You get half its cost back.`} cmd={{ type: "demolish", region: r.id, slot: b.slot }}>Demolish</Action>
+      </div>
+      {b.type !== "powerPlant" && <p class="hint">{upgrade}</p>}
+      {b.type === "powerPlant" && (
+        <div class="modes" aria-label="Upgrade">
+          {(Object.keys(POWER_MODES) as PowerMode[]).map((m) => (m === (b.mode ?? "solar")
+            ? <span key={m} class="pill on"><BuildingIcon type="powerPlant" mode={m} size={22} /> {cap(m)}</span>
+            : <Action key={m} kind="quiet" cmd={{ type: "setMode", region: r.id, slot: b.slot, mode: m }}><BuildingIcon type="powerPlant" mode={m} size={22} /> {cap(m)}</Action>))}
+        </div>
+      )}
+      {replacing && <Picker r={r} skip={b.type} cmd={(building) => ({ type: "replace", region: r.id, slot: b.slot, building })} after={onDone} />}
+      {b.type === "spaceport" && <Shipyard r={r} />}
+    </div>
+  );
+}
+
+// Every building with what it costs and would make and use here.
+function Picker({ r, cmd, skip, after }: { r: Region; cmd: (b: Building) => Command; skip?: Building; after?: () => void }) {
+  return (
+    <ul class="list picker">
+      {(Object.entries(BUILDINGS) as [Building, BuildingData][]).filter(([b]) => b !== skip).map(([b, d]) => (
         <li key={b} class="item">
-          <div><b>{d.name}</b> <Cost cost={d.cost} /> <small class="inline-small">· {d.timeS}s</small><small>{effect(b, d, r.id)}</small></div>
-          <Action cmd={{ type: "build", region: r.id, building: b }}>Build</Action>
+          <BuildingIcon type={b} size={32} />
+          <div><b>{d.name}</b> <small class="inline-small">{d.timeS}s</small>
+            <small>{b === "spaceport" ? <>Builds ships and Armies <Flows items={nominal(b, r.id)} /></> : <Flows items={nominal(b, r.id)} />}<span class="muted"> /day</span></small>
+            <Cost cost={d.cost} /></div>
+          <span onClick={after}><Action cmd={cmd(b)}>{skip ? "Replace" : "Build"}</Action></span>
         </li>
       ))}
     </ul>
   );
 }
 
-function Military({ r }: { r: Region }) {
-  const [armies, setArmies] = useState(1);
-  const [march, setMarch] = useState(1);
+function Shipyard({ r }: { r: Region }) {
   const [counts, setCounts] = useState<Partial<Record<Unit, number>>>({});
-  const w = world.value!;
-  const port = r.buildings!.some((b) => b.type === "spaceport");
-  const n = Math.min(march, r.armies ?? 0);
   return (
     <>
-      <h3>Armies <small>garrison {r.armies}</small></h3>
-      <div class="inline">
-        <Count value={armies} max={MILITARY.maxTrainCount} onInput={setArmies} label="Armies to train" />
-        <Cost cost={{ Mt: UNITS.army.cost.Mt! * armies }} />
-        <Action cmd={{ type: "train", region: r.id, count: armies }}>Train</Action>
-      </div>
-      {isEarth(r.id) && (r.armies ?? 0) > 0 && (
-        <>
-          <h3>March <small>30s to a neighbour</small></h3>
+      <h3>Shipyard</h3>
+      <ul class="list picker">
+        {(Object.keys(UNITS) as Unit[]).map((u) => {
+          const d = UNITS[u];
+          const c = counts[u] ?? 1;
+          const role = !d.atSpaceport ? "ground forces, any region" : d.strength ? `strength ${d.strength}` : u === "colonyShip" ? "claims an off-Earth region" : u === "freighter" ? "carries trade" : `carries ${MILITARY.transportCapacity} Armies`;
+          const cmd: Command = d.atSpaceport ? { type: "buildShip", region: r.id, unit: u, count: c } : { type: "train", region: r.id, count: c };
+          return (
+            <li key={u} class="item">
+              <UnitIcon unit={u} size={26} />
+              <div><b>{d.name}</b> <small class="inline-small">{d.timeS}s</small>
+                <small>{role}{d.unlock ? ` · needs ${RUNGS[d.unlock].name}` : ""}</small>
+                <Cost cost={Object.fromEntries(Object.entries(d.cost).map(([k, v]) => [k, v! * c]))} /></div>
+              <Count value={c} max={d.atSpaceport ? MILITARY.maxBuildCount : MILITARY.maxTrainCount} onInput={(x) => setCounts({ ...counts, [u]: x })} label={`${d.name} count`} />
+              <Action cmd={cmd}>{d.atSpaceport ? "Build" : "Train"}</Action>
+            </li>
+          );
+        })}
+      </ul>
+    </>
+  );
+}
+
+const atWar = (id: string) => {
+  const t = clock.value;
+  return world.value!.wars.some((x) => ((x.a === id && x.b === me.value) || (x.b === id && x.a === me.value)) && x.activeAt <= t);
+};
+
+// game-design.md §12: who is here, who is coming, and the last fight.
+function Forces({ r, mine }: { r: Region; mine: boolean }) {
+  const w = world.value!, t = clock.value;
+  const body = REGIONS[r.id].body;
+  const [train, setTrain] = useState(1);
+  const [march, setMarch] = useState(1);
+  const orbit = w.fleets.filter((f) => f.at === body);
+  const inbound = w.fleets.filter((f) => f.transit?.to === body && f.owner !== me.value);
+  const hostile = [...orbit, ...inbound].some((f) => atWar(f.owner));
+  const training = mine ? (you.value?.queues[r.id] ?? []).map((q, index) => ({ ...q, index })).filter((q) => q.item in UNITS) : [];
+  const battle = [...w.news].reverse().find((n) => (n.kind === "battle" || n.kind === "conquest") && (n.refs.includes(r.id) || n.refs.includes(body)));
+  const n = Math.min(march, r.armies ?? 0);
+  return (
+    <section class={`forces ${hostile ? "alert" : ""}`} aria-label="Forces here">
+      <h3>Forces here {hostile && <small class="neg">hostile forces</small>}</h3>
+      <ul class="list">
+        {inbound.map((f) => (
+          <li key={f.id} class={`item ${atWar(f.owner) ? "hostile" : ""}`}>
+            <div><Chip id={f.owner} /> <Units units={f.units} /><small>inbound, arrives in {dur(f.transit!.arriveAt - t)}</small></div>
+          </li>
+        ))}
+        {orbit.map((f) => (
+          <li key={f.id} class={`item ${atWar(f.owner) ? "hostile" : ""}`}>
+            <button class="row" onClick={() => selectFleet(f.id)}><Chip id={f.owner} /><Units units={f.units} /><small>in orbit</small></button>
+          </li>
+        ))}
+        {r.armies !== undefined && (
+          <li class="item">
+            <div><span class="amt"><UnitIcon unit="army" size={18} /> {r.armies}</span> <small class="inline-small">{r.armies === 1 ? "Army" : "Armies"} garrisoned{mine ? `, +${MILITARY.garrisonBonus * 100}% holding` : ""}</small></div>
+            {mine && (
+              <div class="inline">
+                <Count value={train} max={MILITARY.maxTrainCount} onInput={setTrain} label="Armies to train" />
+                <Cost cost={{ Mt: UNITS.army.cost.Mt! * train }} />
+                <Action cmd={{ type: "train", region: r.id, count: train }}>Train</Action>
+              </div>
+            )}
+          </li>
+        )}
+        {training.map((q) => (
+          <li key={`${q.item}${q.startAt}`} class="item">
+            <UnitIcon unit={q.item as Unit} size={18} />
+            <div><b>{UNITS[q.item as Unit].name}</b><small>{t < q.startAt ? `starts in ${dur(q.startAt - t)}` : `${dur(q.finishAt - t)} left`}</small>
+              {t >= q.startAt && <Progress start={q.startAt} end={q.finishAt} />}</div>
+            <Action kind="quiet" cmd={{ type: "cancelBuild", region: r.id, index: q.index }}>Cancel</Action>
+          </li>
+        ))}
+        {battle && <li class="item battle"><div><small>{dur(t - battle.at)} ago</small> {battle.text}</div></li>}
+      </ul>
+      {mine && isEarth(r.id) && (r.armies ?? 0) > 0 && (
+        <details class="march">
+          <summary>March Armies to a neighbour <small>30s</small></summary>
           <div class="inline"><Count value={n} max={r.armies!} onInput={setMarch} label="Armies to march" /> <small>of {r.armies}</small></div>
           <ul class="list">
             {(ADJACENT[r.id] ?? []).map((to) => {
-              const t = w.regions.find((x) => x.id === to)!;
+              const x = w.regions.find((y) => y.id === to)!;
               return (
                 <li key={to} class="item">
-                  <div><b>{regionName(to)}</b> <Chip id={t.owner} /></div>
-                  <Action kind={t.owner && t.owner !== me.value ? "danger" : "primary"} cmd={{ type: "march", from: r.id, to, count: n }}>
-                    {!t.owner ? "Settle" : t.owner === me.value ? "Reinforce" : "Attack"}
+                  <div><b>{regionName(to)}</b> <Chip id={x.owner} /></div>
+                  <Action kind={x.owner && x.owner !== me.value ? "danger" : "primary"} cmd={{ type: "march", from: r.id, to, count: n }}>
+                    {!x.owner ? "Settle" : x.owner === me.value ? "Reinforce" : "Attack"}
                   </Action>
                 </li>
               );
             })}
           </ul>
-        </>
+        </details>
       )}
-      <h3>Shipyard</h3>
-      {!port ? <p class="hint">Build a Spaceport here to build ships.</p> : (
-        <ul class="list">
-          {(Object.keys(UNITS) as Unit[]).filter((u) => UNITS[u].atSpaceport).map((u) => {
-            const d = UNITS[u];
-            const c = counts[u] ?? 1;
-            const role = d.strength ? `strength ${d.strength}` : u === "colonyShip" ? "claims an off-Earth region" : u === "freighter" ? "carries trade" : `carries ${MILITARY.transportCapacity} Armies`;
-            return (
-              <li key={u} class="item">
-                <div><b>{d.name}</b> <Cost cost={Object.fromEntries(Object.entries(d.cost).map(([k, v]) => [k, v! * c]))} />
-                  <small>{role} · {d.timeS}s{d.unlock ? ` · needs ${RUNGS[d.unlock].name}` : ""}</small></div>
-                <Count value={c} max={MILITARY.maxBuildCount} onInput={(x) => setCounts({ ...counts, [u]: x })} label={`${d.name} count`} />
-                <Action cmd={{ type: "buildShip", region: r.id, unit: u, count: c }}>Build</Action>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </>
+    </section>
   );
 }
+
+const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 
 function Foreign({ r }: { r: Region }) {
   const w = world.value!;
@@ -274,7 +403,7 @@ function FleetView({ f }: { f: Fleet }) {
     <>
       <Header title={mineFleet ? "Your fleet" : "Fleet"} sub={f.transit ? `${bodyName(f.transit.from)} → ${bodyName(f.transit.to)}` : `In orbit at ${bodyName(f.at!)}`} onClose={() => (selFleet.value = null)} />
       {!mineFleet && <p><Chip id={f.owner} /></p>}
-      <p>{units(f.units)}</p>
+      <p><Units units={f.units} /></p>
       {f.transit && (
         <>
           <Progress start={f.transit.departAt} end={f.transit.arriveAt} label="Transit" />
@@ -349,7 +478,7 @@ function Planner({ f }: { f: Fleet }) {
             </>
           )}
         </dd>
-        <dt>Energy</dt><dd>{num(energy)} E <small>({ZONE_LAUNCH_COST[BODIES[to].zone]}/mass)</small></dd>
+        <dt>Energy</dt><dd><Amt res="E" v={Math.round(energy)} short={energy > stockNow("E")} /> <small>({ZONE_LAUNCH_COST[BODIES[to].zone]} per mass)</small></dd>
         <dt>Travel</dt><dd>{any ? dur(travel) : "pick ships"}</dd>
       </dl>
       <Action cmd={{ type: "launch", from, to, units: cargo }}>Launch</Action>
