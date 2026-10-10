@@ -61,6 +61,9 @@ canvas.scene { position: fixed; inset: 0; width: 100vw; height: 100vh; display: 
     linear-gradient(var(--c), var(--c)) bottom left / 7px 1px no-repeat, linear-gradient(var(--c), var(--c)) bottom left / 1px 7px no-repeat,
     linear-gradient(var(--c), var(--c)) bottom right / 7px 1px no-repeat, linear-gradient(var(--c), var(--c)) bottom right / 1px 7px no-repeat,
     rgba(92, 200, 255, 0.1); }
+.label.envoy::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; vertical-align: 1px; transform: rotate(45deg);
+  background: var(--warn); box-shadow: 0 0 8px var(--warn); animation: beacon 1.6s ease-in-out infinite; }
+@keyframes beacon { 50% { opacity: 0.35; } }
 .label.decor { pointer-events: none; opacity: 0.5; font-weight: 500; }
 
 /* plates */

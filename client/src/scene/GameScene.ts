@@ -9,7 +9,7 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { BODIES, MAP, REGIONS } from "../../../rules/data/index.ts";
-import { me, nations, offset, season, selBody, selRegion, world } from "../store.ts";
+import { beacons, me, nations, offset, season, selBody, selRegion, world } from "../store.ts";
 import { Decor } from "./decor.ts";
 import { anchor, BANDS, MINOR, TILT, moonDistance, orbitRadius, parentOf, position, regionsOn, SIZE, sphereOf, SPHERES, SUN_SIZE, type V3 } from "./layout.ts";
 import { loadRegionMap, loadTexture, regionAt, TEXTURED, type Tier } from "./worlds.ts";
@@ -553,6 +553,7 @@ export class GameScene {
       place(v.label, p, near && !scenery && px < h * 0.18, Math.max(6, px * 0.5 + 4));
       v.label.classList.toggle("sel", !!selBody.value && sphereOf(selBody.value) === v.id);
       v.label.classList.toggle("mine", !!me.value && (world.value?.regions ?? []).some((r) => r.owner === me.value && sphereOf(r.body) === v.id));
+      v.label.classList.toggle("envoy", [...beacons.value].some((c) => sphereOf(REGIONS[c].body) === v.id));
     }
     const f = this.focus;
     const showRegions = !!f && camPos.distanceTo(this.bodyPos(f)) < SIZE[f] * 9;
@@ -576,6 +577,7 @@ export class GameScene {
       const owner = world.value?.regions.find((r) => r.id === s.region)?.owner;
       el.classList.toggle("mine", owner === me.value);
       el.classList.toggle("sel", selRegion.value === s.region);
+      el.classList.toggle("envoy", beacons.value.has(s.region));
     }
   }
 

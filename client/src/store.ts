@@ -25,6 +25,8 @@ export const guidePage = signal("resources");
 
 export const me = computed(() => you.value?.nation ?? null);
 export const nations = computed(() => Object.fromEntries((world.value?.nations ?? []).map((n) => [n.id, n])) as Record<Id, NationPublic>);
+// Capitals of nations you hold an Envoy on: their beacons (game-design.md §12).
+export const beacons = computed(() => new Set((you.value?.envoys ?? []).map((e) => nations.value[e.nation]?.capital).filter((c): c is Id => !!c)));
 export const myNation = computed(() => (me.value ? nations.value[me.value] : undefined));
 export const joined = computed(() => !!myNation.value && !myNation.value.eliminated);
 

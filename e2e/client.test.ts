@@ -238,6 +238,27 @@ describe("the map is the screen (goals.md P10)", () => {
     await a.close();
     await b.close();
   }, 60_000);
+
+  it("pins an Envoy beacon on the host's capital, for the sender only", async () => {
+    const a = await player("november", "North China");
+    const b = await player("mike", "West Africa");
+    await a.locator(".drawers button", { hasText: "Empires" }).click();
+    const ex = a.locator(".exchange");
+    await ex.locator("input[aria-label='Amount to exchange']").fill("270");
+    await ex.locator("[aria-label='Resource to get'] button:has(svg[aria-label=Research])").click();
+    await ex.locator("button", { hasText: "Exchange" }).click();
+    await a.locator(".empire .sec-head", { hasText: "Tech tree" }).click();
+    for (const tech of ["Computing", "Signals Intelligence"]) {
+      await a.locator(".rungs li", { hasText: tech }).locator("button", { hasText: "Research" }).click();
+      await expect.poll(() => a.locator(".rungs li.held", { hasText: tech }).count(), { timeout: 45_000 }).toBe(1);
+    }
+    await a.locator(".drawers button", { hasText: "Empires" }).click();
+    await a.locator("li.nation", { hasText: "mike" }).locator("button", { hasText: "Send Envoy" }).click();
+    await expect.poll(() => a.locator(".label.region.envoy").allTextContents()).toEqual(["West Africa"]);
+    expect(await b.locator(".label.envoy").count()).toBe(0);
+    await a.close();
+    await b.close();
+  }, 120_000);
 });
 
 describe("the core loop by keyboard alone (goals.md P7; build-process.md D)", () => {
