@@ -11,6 +11,7 @@ import { eco, mirror } from "../mirror.ts";
 import { clock, drawer, me, selFleet, selRegion, world, you } from "../store.ts";
 import { Progress } from "./common.tsx";
 import { BuildingIcon, ResIcon, UnitIcon, Units } from "./icons.tsx";
+import { GuideLink } from "./Guide.tsx";
 import { focusOn, picked, selectFleet } from "./SceneHost.tsx";
 import { Tutorial } from "./Side.tsx";
 
@@ -41,7 +42,7 @@ export function EmpireBar() {
             </ul>
           </Sec>
           <Sec label="Armies" count={armies}>
-            {armies === 0 && <p class="hint">None. Train them in any region you hold.</p>}
+            {armies === 0 && <p class="hint">None. Train them in any region you hold. <GuideLink page="armies" /></p>}
             <ul class="list tight">
               {garrisons.map((r) => (
                 <li key={r.id}>
@@ -60,7 +61,7 @@ export function EmpireBar() {
             </ul>
           </Sec>
           <Sec label="Fleets" count={fleets.length}>
-            {fleets.length === 0 && <p class="hint">None yet: build one at a Spaceport.</p>}
+            {fleets.length === 0 && <p class="hint">None yet: build one at a Spaceport. <GuideLink page="colonising" /></p>}
             <ul class="list tight">
               {fleets.map((f) => (
                 <li key={f.id}>

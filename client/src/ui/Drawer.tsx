@@ -1,10 +1,11 @@
 // Overlays over the map (game-design.md §12): the tech tree beside the empire
-// menu, Empires on the right. Esc or ✕ closes; the map stays live behind.
+// menu, Empires and the Guide on the right. Esc or ✕ closes; the map stays live behind.
 import { drawer, type Drawer as D } from "../store.ts";
 import { EmpiresPanel } from "./EmpiresPanel.tsx";
+import { Guide } from "./Guide.tsx";
 import { TechPanel } from "./TechPanel.tsx";
 
-const TITLES: Record<D, string> = { tech: "Tech tree", empires: "Empires" };
+const TITLES: Record<D, string> = { tech: "Tech tree", empires: "Empires", guide: "Guide" };
 
 export function Drawer() {
   const d = drawer.value;
@@ -18,6 +19,7 @@ export function Drawer() {
       <div class="scroll">
         {d === "tech" && <TechPanel />}
         {d === "empires" && <EmpiresPanel />}
+        {d === "guide" && <Guide />}
       </div>
     </aside>
   );

@@ -248,6 +248,23 @@ ul.rows, ol.rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 
 .ter { background: #5cc8ff; } .eco { background: #7be3a1; } .tec { background: #c792ea; }
 .legend { font-size: 0.78rem; color: var(--muted); } .legend i { width: 9px; height: 9px; margin: 0 4px 0 8px; border-radius: 2px; }
 
+button.link { min-height: 0; padding: 0; background: none; border: 0; color: var(--accent); font: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.drawer.guide { width: min(720px, 100vw); }
+.guide { display: grid; grid-template-columns: 170px 1fr; gap: 18px; padding-top: 10px; }
+.guide nav { display: grid; align-content: start; gap: 2px; position: sticky; top: 0; }
+.guide nav button { text-align: left; min-height: 34px; padding: 4px 10px; border-radius: 8px; background: none; border: 1px solid transparent; color: var(--muted); }
+.guide nav button:hover { color: var(--text); }
+.guide nav button.on { color: var(--text); background: rgba(92, 200, 255, 0.12); border-color: var(--line); }
+.guide article { font-size: 0.92rem; line-height: 1.6; }
+.guide article h3 { margin-top: 4px; font-size: 0.9rem; }
+.guide article ol { padding-left: 1.2em; display: grid; gap: 8px; }
+.guide article .res-ico, .guide article .u-ico, .guide article .b-ico { vertical-align: -4px; }
+.guide-res, .guide-b { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 6px; }
+.guide-res li { display: grid; grid-template-columns: 28px 7rem 1fr; align-items: center; gap: 8px; }
+.guide-res small { line-height: 1.35; }
+.guide-b { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.guide-b li { display: grid; grid-template-columns: 34px 1fr; align-items: center; gap: 0 8px; padding: 6px 8px; border-radius: 8px; background: rgba(255, 255, 255, 0.03); }
+.guide-b .cost { grid-column: 2; font-size: 0.8rem; }
 .tutorial li { padding: 2px 0; font-size: 0.9rem; } .tutorial li.done { color: var(--good); } .tutorial li.next { font-weight: 600; }
 
 /* news ticker (bottom) */
@@ -272,8 +289,10 @@ button.small { min-height: 26px; padding: 2px 8px; font-size: 0.78rem; }
   .empire { top: auto; bottom: calc(52vh + 8px); left: 8px; width: 260px; max-height: calc(48vh - 140px); }
   .ticker { display: none; }
   .breakdown { position: fixed; left: 8px; right: 8px; top: 96px; }
-  .drawer, .drawer.tech { top: 0; left: 0; right: 0; bottom: 0; width: auto; z-index: 8; border-radius: 0; }
-  .ladders { grid-template-columns: 1fr; }
+  .drawer, .drawer.tech, .drawer.guide { top: 0; left: 0; right: 0; bottom: 0; width: auto; z-index: 8; border-radius: 0; background: rgb(8, 12, 19); }
+  .ladders, .drawer.tech .ladders { grid-template-columns: 1fr; }
+  .guide { grid-template-columns: 1fr; }
+  .guide nav { position: static; display: flex; flex-wrap: wrap; }
   button, select, input, button.row, .drawers button { min-height: 44px; }
   .tiles { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
 }

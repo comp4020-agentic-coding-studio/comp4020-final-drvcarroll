@@ -138,6 +138,24 @@ describe("the map is the screen (goals.md P10)", () => {
     await p.close();
   });
 
+  it("opens the Guide from the top bar, and names resources by icon, never letter", async () => {
+    const p = await player("india", "Southeast Asia");
+    await p.locator(".empire .list.sub button.row", { hasText: "Southeast Asia" }).click();
+    await p.locator(".selection button.tile").nth(1).click();
+    const text = await p.locator(".topbar, .empire, .selection").allInnerTexts();
+    expect(text.join("\n")).not.toMatch(/\d\s?(E|M|V|A|R|Mt)\b|\b(E|M|V|A|R|Mt)\s?[×+−]\d/);
+    const names = await p.locator(".stocks svg").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
+    expect(names).toEqual(["Energy", "Metals", "Volatiles", "Alloys", "Research", "Materiel"]);
+    await p.locator(".drawers button", { hasText: "Guide" }).click();
+    const pages = await p.locator(".guide nav button").allInnerTexts();
+    for (const t of ["Building", "Armies", "Research", "Colonising", "Sending ships"]) expect(pages).toContain(t);
+    await p.locator(".guide nav button", { hasText: "Sending ships" }).click();
+    await expect.poll(() => p.locator(".guide article").innerText()).toMatch(/Launch/);
+    await p.keyboard.press("Escape");
+    await expect.poll(() => p.locator(".guide").count()).toBe(0);
+    await p.close();
+  });
+
   it("shows another player's arrival live and fits a phone", async () => {
     const a = await player("echo", "Western Europe", { width: 390, height: 844 });
     expect(await a.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);

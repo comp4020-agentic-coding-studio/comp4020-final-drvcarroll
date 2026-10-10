@@ -13,6 +13,7 @@ import { eco, mirror } from "../mirror.ts";
 import { clock, launchTo, me, season, selBody, selFleet, selRegion, stockNow, world, you } from "../store.ts";
 import { Action, Chip, Cost, Count, Progress } from "./common.tsx";
 import { Amt, BuildingIcon, ResIcon, SolarIcon, UnitIcon, Units } from "./icons.tsx";
+import { GuideLink } from "./Guide.tsx";
 import { focusOn, selectFleet } from "./SceneHost.tsx";
 
 const isEarth = (id: string) => BODIES[REGIONS[id].body].zone === "terrestrial";
@@ -369,6 +370,7 @@ function Foreign({ r }: { r: Region }) {
           {isEarth(r.id) ? "March Armies in from a region you hold next door."
             : r.owner ? "Win the orbit, then land Armies from Troop Transports (needs an active war)."
             : "Send a Colony Ship here: select it, then click this body on the map."}
+          {" "}<GuideLink page={isEarth(r.id) ? "armies" : r.owner ? "war" : "colonising"} />
         </p>
       )}
       <ul class="list">

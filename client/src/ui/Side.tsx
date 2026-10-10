@@ -2,9 +2,10 @@
 import { useState } from "preact/hooks";
 import { dur } from "../format.ts";
 import { clock, drawer, me, world, you } from "../store.ts";
+import { GuideLink, type Page } from "./Guide.tsx";
 import { focusOn, selectFleet } from "./SceneHost.tsx";
 
-interface Goal { title: string; how: string; done: boolean; go: () => void }
+interface Goal { title: string; how: string; done: boolean; go: () => void; page: Page }
 
 function goals(): Goal[] {
   const w = world.value!, y = you.value!;
@@ -16,11 +17,11 @@ function goals(): Goal[] {
   const toEarth = () => focusOn("earth");
   const colony = w.fleets.find((f) => f.owner === me.value && f.units.colonyShip);
   return [
-    { title: "Build a Mine", how: "Your capital is full: open it, march an Army to a free neighbour under Forces here, then build a Mine in the new region's empty slot.", done: built.filter((b) => b === "mine").length > 1 || queued.includes("mine"), go: toEarth },
-    { title: "Research Thrust Vectoring", how: "Open Tech tree in the Empire menu and research Voidcraft 1 once you have 40 Research.", done: y.techs.includes("voidcraft.1") || y.research?.tech === "voidcraft.1", go: () => (drawer.value = "tech") },
-    { title: "Build a Spaceport", how: "Click an empty slot (or replace a building) and pick Spaceport.", done: built.includes("spaceport") || queued.includes("spaceport"), go: toEarth },
-    { title: "Launch a Colony Ship to Luna", how: "Click your Spaceport's tile and build a Colony Ship, select it, then click Luna.", done: lunaFleet || luna, go: () => (colony ? selectFleet(colony.id) : toEarth()) },
-    { title: "Claim a Luna region", how: "Click a free region on Luna and colonise it (or claim it while your ship is on the way).", done: luna, go: () => focusOn("luna") },
+    { title: "Build a Mine", how: "Your capital is full: open it, march an Army to a free neighbour under Forces here, then build a Mine in the new region's empty slot.", done: built.filter((b) => b === "mine").length > 1 || queued.includes("mine"), go: toEarth, page: "armies" },
+    { title: "Research Thrust Vectoring", how: "Open Tech tree in the Empire menu and research Voidcraft 1 once you have 40 Research.", done: y.techs.includes("voidcraft.1") || y.research?.tech === "voidcraft.1", go: () => (drawer.value = "tech"), page: "research" },
+    { title: "Build a Spaceport", how: "Click an empty slot (or replace a building) and pick Spaceport.", done: built.includes("spaceport") || queued.includes("spaceport"), go: toEarth, page: "building" },
+    { title: "Launch a Colony Ship to Luna", how: "Click your Spaceport's tile and build a Colony Ship, select it, then click Luna.", done: lunaFleet || luna, go: () => (colony ? selectFleet(colony.id) : toEarth()), page: "ships" },
+    { title: "Claim a Luna region", how: "Click a free region on Luna and colonise it (or claim it while your ship is on the way).", done: luna, go: () => focusOn("luna"), page: "colonising" },
   ];
 }
 
@@ -41,7 +42,7 @@ export function Tutorial() {
       <ol class="plain">
         {gs.map((g) => <li key={g.title} class={g.done ? "done" : g === next ? "next" : ""}>{g.done ? "✓ " : ""}{g.title}</li>)}
       </ol>
-      <p class="hint"><b>Next:</b> {next.how} <button class="quiet small" onClick={next.go}>Show me</button></p>
+      <p class="hint"><b>Next:</b> {next.how} <button class="quiet small" onClick={next.go}>Show me</button> <GuideLink page={next.page}>Guide</GuideLink></p>
     </section>
   );
 }

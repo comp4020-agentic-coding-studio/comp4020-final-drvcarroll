@@ -1,5 +1,5 @@
 // The HUD's top strip: empire totals with per-day gains and their
-// breakdowns, date, timers, Empires (game-design.md §12).
+// breakdowns, date, timers, Empires and the Guide (game-design.md §12).
 import { useEffect, useState } from "preact/hooks";
 import { RESOURCES, RESOURCE_NAMES, type Resource } from "../../../rules/data/index.ts";
 import { dur, gameDate, num, perDay, signed, sourceName } from "../format.ts";
@@ -9,11 +9,19 @@ import { ResIcon } from "./icons.tsx";
 import { scene } from "./SceneHost.tsx";
 
 const STATUS = { connecting: "Connecting…", open: "Live", reconnecting: "Reconnecting…", "signed-out": "Signed out" };
-const DRAWERS: [Drawer, string][] = [["empires", "Empires"]];
+const DRAWERS: [Drawer, string][] = [["empires", "Empires"], ["guide", "Guide"]];
 
 export function TopBar({ user }: { user: string }) {
   const y = you.value, sz = season.value, n = myNation.value, t = clock.value;
   const [open, setOpen] = useState<Resource | null>(null);
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if (e.key !== "?" || (e.target as HTMLElement).closest("input, select, textarea")) return;
+      drawer.value = drawer.value === "guide" ? null : "guide";
+    };
+    addEventListener("keydown", key);
+    return () => removeEventListener("keydown", key);
+  }, []);
   useEffect(() => {
     if (!open) return;
     const away = (e: Event) => !(e.target as HTMLElement).closest(".stocks") && setOpen(null);
@@ -56,7 +64,7 @@ export function TopBar({ user }: { user: string }) {
         <nav class="drawers" aria-label="Panels">
           {DRAWERS.map(([d, label]) => (
             <button key={d} class={drawer.value === d ? "on" : ""} aria-pressed={drawer.value === d}
-              onClick={() => (drawer.value = drawer.value === d ? null : d)}>{label}</button>
+              title={d === "guide" ? "How to play (?)" : undefined} onClick={() => (drawer.value = drawer.value === d ? null : d)}>{label}</button>
           ))}
         </nav>
       )}
