@@ -1,36 +1,31 @@
 # Progress
 
-**Stage:** D2 (playtest HUD revision) done. A, C, D done; E largely done;
-B harness running; G ongoing (build-process.md).
-**Last verified checkpoint:** D2 per game-design.md §11–12:
-- SVG icons for resources (aria-label + tooltip), buildings, Power Plant
-  modes, ships and Armies (`client/src/ui/icons.tsx`); no resource letters
-  left in the HUD (e2e scans for them).
-- Selection panel with no tabs: slot grid, tile menu (replace, upgrade,
-  demolish; Spaceport builds ships and Armies), Forces here (garrison,
-  train, march, orbit, inbound, last battle). Atomic `replace` command with
-  a pinned slot (rules). Space battle news refs carry the body.
-- Empire menu: Territory, Armies (incl. marches, new `PrivateState.marches`),
-  Fleets, Tech tree (four-column overlay, only the next rung researchable).
-- Empires overlay: rank, war status, Envoy, trade deals per nation, Earth
-  Exchange. Tech/Trade drawers removed.
-- The Guide (`ui/Guide.tsx`): nine pages, numbers from `rules/data/`, top
-  bar button or `?`; goals and empty states link to it.
-`pnpm test` (66, needs a server on a fresh `DATA_DIR`), `pnpm test:e2e` (8),
-`pnpm sim:test` (2) green.
-**Next:** Stage E2 (build-process.md E2; read game-design.md §4 Earth and
-Off-Earth, §12 "The command console look", "Rendering", "Regions on the
-surface"; system-design.md §2, §3, §8). Start with the real-worlds half:
-`scripts/worlds.ts`, country/province membership and gazetteer
-coordinates in `rules/data/map.ts`, then the region-map shader and
-picking. Crit 9's keyboard-only pass (Stage D full) must still land before
-week 10. Balance: early game Alloy-starved (docs/balance-log.md).
-**Flagged assumptions** (E2: Psyche keeps a procedural look, no global
-map exists; greyscale USGS mosaics are colourised and gaps filled; the
-US, Russia and China splits follow the lines in game-design.md §4; borderline
-countries (Turkey, the Caucasus, Greenland, Mongolia, Pakistan) are
-assigned in `map.ts` by the existing region names and adjacency; gas-giant
-orbital regions become bands. D2: the user's "garrison" building = the Spaceport;
+**Stage:** E2 (real worlds, command console) done; next the Crit 9
+keyboard pass (Stage D full). A, C, D, D2 done; E largely done; B harness
+running; G ongoing (build-process.md).
+**Last verified checkpoint:** E2 per game-design.md §4, §12:
+- `pnpm worlds` (`scripts/worlds.ts`) builds `client/public/worlds/`:
+  region maps (Earth from Natural Earth countries and admin-1 per
+  `EARTH_MEMBERS`; others a weighted Voronoi on gazetteer features in
+  `map.ts`) and WebP tiers (512 / 2K, Earth 4K day) from Solar System
+  Scope, USGS and Commons; tinted and gap-filled. Sources cache in
+  `.cache/worlds/` (~2 GB, gitignored).
+- Client draws, borders and picks regions from the maps
+  (`scene/worlds.ts`); textures stream after 2 s, focused body at top tier;
+  gas-giant regions are orbital bands (`layout.ts` BANDS).
+- Gunmetal command console in `app.css`; Rajdhani and Share Tech Mono
+  self-hosted; designation strips; credits in the Guide and user menu.
+`pnpm test` (71, needs a server on a fresh `DATA_DIR`), `pnpm test:e2e`
+(9, incl. first render < 3 MB), `pnpm sim:test` green.
+**Next:** Crit 9 bar: Stage D full exit, keyboard-only core loop at both
+viewports (build-process.md D, crit calendar), then F (logging, `/admin`)
+for Crit 10. Balance: early game Alloy-starved (docs/balance-log.md).
+**Flagged assumptions** (E2: Psyche and Ceres stay procedural, no
+usable global albedo map; Titania, Oberon and Triton gaps are filled from
+mirrors and column blends and look smeared up close; Triton's map keeps
+USGS's own fill; GPU memory with Earth focused is ~175 MB by arithmetic,
+not measured; borderline countries assigned in `EARTH_MEMBERS`; Triton
+feature coordinates approximate. D2: the user's "garrison" building = the Spaceport;
 "upgrade" = Power Plant modes, other buildings upgrade via Industry rungs;
 single-slot produce/consume = the region's flows for that type ÷ its count.
 Numbers missing from `game-design.md`, all in
