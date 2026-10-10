@@ -1,5 +1,6 @@
 // system-design.md §4, §5: the in-memory world, its command log, snapshots
-// and seasons. Durable write before the new state is swapped in.
+// and seasons. A command not in the log is never kept in the state.
+import type { StatementSync } from "node:sqlite";
 import {
   RULES_VERSION, advance, applyInPlace, newSeason, type Command, type CommandResult, type Id, type Ms, type State,
 } from "../rules/index.ts";
@@ -11,6 +12,9 @@ export interface HallEntry { season: Id; endedAt: Ms; winner: string | null }
 
 export class World {
   appends: number[] = []; // recent command-log insert times, ms (S4)
+  private pending: number[] = []; // this batch's insert times, before the commit's share
+  private seenStmt?: StatementSync;
+  private insertStmt?: StatementSync;
   state: State | null = null;
   private lastSeq = 0;
   private dirty = false;
@@ -43,6 +47,7 @@ export class World {
 
   // A new season starts when someone arrives after the last one ended.
   ensureSeason(now: Ms): State {
+    this.advance(now); // an idle server hasn't ticked: the season may have run out
     if (this.state?.season.status === "running") return this.state;
     const id = `s_${now}`;
     this.db.prepare("INSERT INTO seasons (id, started_at, rules_version) VALUES (?, ?, ?)").run(id, now, RULES_VERSION);
@@ -69,23 +74,52 @@ export class World {
     const s = this.state;
     if (!s) return { id, ok: false, code: "SEASON_OVER", reason: "No season is running" };
     if (clientId) {
-      const seen = this.db.prepare(
-        "SELECT result FROM commands WHERE season_id = ? AND nation_id = ? AND client_cmd_id = ?",
-      ).get(s.season.id, nation, clientId) as { result: string } | undefined;
+      this.seenStmt ??= this.db.prepare("SELECT result FROM commands WHERE season_id = ? AND nation_id = ? AND client_cmd_id = ?");
+      const seen = this.seenStmt.get(s.season.id, nation, clientId) as { result: string } | undefined;
       if (seen) return { id, ...JSON.parse(seen.result) };
     }
     const bad = applyInPlace(s, nation, cmd, at);
     if (bad) return { id, ok: false, code: bad.code, reason: bad.reason };
     const t0 = performance.now();
-    const ins = this.db.prepare(
+    this.insertStmt ??= this.db.prepare(
       "INSERT INTO commands (season_id, nation_id, at, type, payload, result, client_cmd_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
-    ).run(s.season.id, nation, at, cmd.type, JSON.stringify(cmd), JSON.stringify({ ok: true }), clientId);
-    this.appends.push(performance.now() - t0);
-    if (this.appends.length > 500) this.appends.shift();
+    );
+    let ins;
+    try {
+      ins = this.insertStmt.run(s.season.id, nation, at, cmd.type, JSON.stringify(cmd), JSON.stringify({ ok: true }), clientId);
+    } catch (e) {
+      if (this.db.isTransaction) throw e; // batch() rolls back and rebuilds
+      this.boot(at); // the state already holds it but the log doesn't: rebuild from the log
+      return { id, ok: false, code: "INVALID", reason: `The server couldn't save that (${(e as Error).message}); try again` };
+    }
+    this.pending.push(performance.now() - t0);
     this.lastSeq = Number(ins.lastInsertRowid);
     this.dirty = true;
     if (cmd.type === "setEmpire") this.recordEmpire(nation, cmd);
     return { id, ok: true };
+  }
+
+  // One tick's commands in one transaction: one fsync, and nobody is told
+  // before it lands (S4). If the commit fails, rebuild from the log; the
+  // tick's accepted commands then report a failure.
+  batch(at: Ms, f: () => CommandResult[]): CommandResult[] {
+    this.pending = [];
+    this.db.exec("BEGIN");
+    let results: CommandResult[];
+    try {
+      results = f();
+      const t0 = performance.now();
+      this.db.exec("COMMIT");
+      const share = (performance.now() - t0) / Math.max(1, this.pending.length);
+      this.appends.push(...this.pending.map((ms) => ms + share));
+      this.appends.splice(0, Math.max(0, this.appends.length - 500));
+      return results;
+    } catch (e) {
+      if (this.db.isTransaction) this.db.exec("ROLLBACK");
+      this.boot(at);
+      const reason = `The server couldn't save that (${(e as Error).message}); try again`;
+      return (results! ?? []).map((r) => (r.ok ? { id: r.id, ok: false, code: "INVALID", reason } : r));
+    }
   }
 
   private recordEmpire(nation: Id, c: Extract<Command, { type: "setEmpire" }>): void {

@@ -28,29 +28,42 @@ export function vision(s: State, nation: Id | null) {
   return { sensors, envoys };
 }
 
-// `sc` lets a caller showing many nations the same state score it once.
-export function observe(state: State, nation: Id | null, sc?: Record<Id, Score>): { world: VisibleWorld; you: PrivateState | null } {
+// A caller showing many nations one unchanging state passes one cache: the
+// scores and each distinct view of a region or fleet are then built once,
+// and the same objects come back for every nation that sees them alike.
+export interface ViewCache { scores?: Record<Id, Score>; parts: Map<string, unknown> }
+export const viewCache = (): ViewCache => ({ parts: new Map() });
+
+export function observe(state: State, nation: Id | null, cache?: ViewCache): { world: VisibleWorld; you: PrivateState | null } {
   const s = settled(state);
+  const part = <T>(key: string, make: () => T): T => {
+    if (!cache) return make();
+    let v = cache.parts.get(key) as T | undefined;
+    if (v === undefined) cache.parts.set(key, (v = make()));
+    return v;
+  };
   const { sensors, envoys } = vision(s, nation);
   const me = nation ? s.nations[nation] : undefined;
   const choosing = !me?.joined || me.eliminated; // picking a start region needs Earth's owners
   const regions: Region[] = Object.values(s.regions).map((r) => {
     const body = REGIONS[r.id].body;
-    const base: Region = { id: r.id, body, slots: BODIES[body].slots };
-    if (sensors.has(body)) return { ...base, owner: r.owner ?? undefined, rev: r.rev, buildings: r.buildings.map((b) => ({ ...b })), armies: r.armies };
-    if (r.owner && envoys.has(r.owner)) return { ...base, owner: r.owner, rev: r.rev, armies: r.armies };
-    if (r.owner && choosing && REGIONS[r.id].start) return { ...base, owner: r.owner };
-    return base;
+    const base = (): Region => ({ id: r.id, body, slots: BODIES[body].slots });
+    if (sensors.has(body)) {
+      return part(`r:${r.id}:sensor`, () => ({ ...base(), owner: r.owner ?? undefined, rev: r.rev, buildings: r.buildings.map((b) => ({ ...b })), armies: r.armies }));
+    }
+    if (r.owner && envoys.has(r.owner)) return part(`r:${r.id}:envoy`, () => ({ ...base(), owner: r.owner!, rev: r.rev, armies: r.armies }));
+    if (r.owner && choosing && REGIONS[r.id].start) return part(`r:${r.id}:start`, () => ({ ...base(), owner: r.owner! }));
+    return part(`r:${r.id}`, base);
   });
   const fleets = Object.values(s.fleets)
     .filter((f) => f.owner === nation || (f.at && sensors.has(f.at)) || envoys.has(f.owner))
-    .map(publicFleet);
+    .map((f) => part(`f:${f.id}`, () => publicFleet(f)));
   const world: VisibleWorld = {
-    nations: Object.values(s.nations).filter((n) => n.joined).map(publicNation),
+    nations: Object.values(s.nations).filter((n) => n.joined).map((n) => part(`n:${n.id}`, () => publicNation(n))),
     regions,
     fleets,
-    wars: Object.values(s.wars).map((w) => ({ ...w })),
-    scores: sc ?? scores(s),
+    wars: Object.values(s.wars).map((w) => part(`w:${w.id}`, () => ({ ...w }))),
+    scores: cache ? (cache.scores ??= scores(s)) : scores(s),
     presence: [],
     news: [...s.news],
   };

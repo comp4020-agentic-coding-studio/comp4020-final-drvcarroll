@@ -4,7 +4,8 @@
 import type { IncomingMessage } from "node:http";
 import type { Duplex } from "node:stream";
 import { WebSocketServer, type WebSocket } from "ws";
-import { observe, settled, type Command, type CommandResult, type Id, type PrivateState, type Score, type State, type VisibleWorld } from "../rules/index.ts";
+import { observe, settled, viewCache, type ViewCache, type Command, type CommandResult, type Id, type PrivateState, type State, type VisibleWorld } from "../rules/index.ts";
+import { frozen } from "../rules/economy.ts";
 import { scores } from "../rules/score.ts";
 import type { User } from "./auth.ts";
 import { Log, targetOf, type Stats } from "./log.ts";
@@ -132,20 +133,31 @@ export class Hub {
     const now = this.now();
     this.n++;
     this.world.advance(now);
-    for (const { c, id, cmd } of this.queue.splice(0)) {
-      const t0 = performance.now();
+    const queued = this.queue.splice(0);
+    const times: number[] = [];
+    const results = queued.length ? this.world.batch(now, () => queued.map(({ c, id, cmd }) => {
+      const t1 = performance.now();
       const r = this.world.submit(c.nation, cmd, id, now);
-      c.results.push(r);
-      this.logCommand(c, cmd, r, performance.now() - t0);
-    }
-    const view = this.world.state && settled(this.world.state); // one copy and one scoring per tick, not per client
-    const sc = view ? scores(view) : undefined;
-    for (const c of this.clients) {
-      c.queued = 0;
-      const msg = this.diff(c, now, view, sc);
-      c.results = [];
-      if (c.ws.readyState === c.ws.OPEN) c.ws.send(json(msg));
-    }
+      times.push(performance.now() - t1);
+      return r;
+    })) : [];
+    queued.forEach(({ c, cmd }, i) => {
+      c.results.push(results[i]);
+      this.logCommand(c, cmd, results[i], times[i] ?? 0);
+    });
+    // The view is fixed for the rest of the tick: score and send from it.
+    frozen(() => {
+      const view = this.world.state && settled(this.world.state); // one copy and one scoring per tick, not per client
+      const cache = viewCache();
+      const sc = view ? (cache.scores = scores(view)) : undefined;
+      const shared = view ? sharedOf({ scores: sc!, presence: this.online, news: view.news }, view.season, cache) : undefined;
+      for (const c of this.clients) {
+        c.queued = 0;
+        const msg = this.diff(c, now, view, shared);
+        c.results = [];
+        if (c.ws.readyState === c.ws.OPEN) c.ws.send(json(msg));
+      }
+    });
     this.log.tick(performance.now() - t0);
   }
 
@@ -156,46 +168,53 @@ export class Hub {
     });
   }
 
-  private view(c: Client, s = this.world.state!, sc?: Record<Id, Score>): { world: VisibleWorld; you: PrivateState | null } {
-    const v = observe(s, s.nations[c.nation] ? c.nation : null, sc);
+  private view(c: Client, s = this.world.state!, cache?: ViewCache): { world: VisibleWorld; you: PrivateState | null } {
+    const v = observe(s, s.nations[c.nation] ? c.nation : null, cache);
     v.world.presence = this.online;
     return v;
   }
 
-  private diff(c: Client, at: number, s?: State | null, sc?: Record<Id, Score>): Record<string, unknown> {
-    const { world, you } = this.view(c, s ?? undefined, sc);
+  // Each entity serialised once per client per tick; what every client
+  // shares (scores, presence, news, season) once per tick (system-design.md §7).
+  private diff(c: Client, at: number, s?: State | null, shared?: Shared): Record<string, unknown> {
+    const { world, you } = this.view(c, s ?? undefined, shared?.cache);
+    const sh = shared ?? sharedOf(world, this.world.state!.season);
     const msg: Record<string, unknown> = { t: "tick", n: this.n, at };
     if (c.results.length) msg.results = c.results;
     const changes: Record<string, unknown[]> = {};
-    const seen = new Set<string>();
+    const ents = new Map<string, string>();
     for (const kind of ["nations", "regions", "fleets", "wars"] as const) {
       for (const e of world[kind] as { id: string }[]) {
         const key = `${kind}:${e.id}`;
-        seen.add(key);
-        const j = json(e);
+        const j = sh.json(e);
+        ents.set(key, j);
         if (c.sent.ents.get(key) !== j) (changes[kind] ??= []).push(e);
       }
     }
     const removed: Record<string, string[]> = {};
     for (const key of c.sent.ents.keys()) {
-      if (seen.has(key)) continue;
+      if (ents.has(key)) continue;
       const [kind, id] = key.split(":");
       (removed[kind] ??= []).push(id);
     }
     if (Object.keys(removed).length) changes.removed = removed as never;
     if (Object.keys(changes).length) msg.changes = changes;
-    if (json(world.scores) !== c.sent.scores) msg.scores = world.scores;
-    if (json(world.presence) !== c.sent.presence) msg.presence = world.presence;
-    const fresh = world.news.filter((x) => !c.sent.news.has(json(x)));
+    if (sh.scores !== c.sent.scores) msg.scores = world.scores;
+    if (sh.presence !== c.sent.presence) msg.presence = world.presence;
+    const fresh = world.news.filter((_, i) => !c.sent.news.has(sh.news[i]));
     if (fresh.length) msg.news = fresh;
-    const season = this.world.state!.season;
-    if (json(season) !== c.sent.season) msg.season = season;
+    if (sh.season !== c.sent.season) msg.season = this.world.state!.season;
+    const mine = new Map<string, string>();
     if (you) {
       const y: Record<string, unknown> = { stocks: you.stocks };
-      for (const [k, v] of Object.entries(you)) if (k !== "stocks" && c.sent.you.get(k) !== json(v)) y[k] = v;
+      for (const [k, v] of Object.entries(you)) {
+        const j = json(v);
+        mine.set(k, j);
+        if (k !== "stocks" && c.sent.you.get(k) !== j) y[k] = v;
+      }
       msg.you = y;
     }
-    remember(c.sent, world, you, season);
+    c.sent = { ents, scores: sh.scores, presence: sh.presence, news: new Set(sh.news), season: sh.season, you: mine };
     return msg;
   }
 
@@ -203,6 +222,20 @@ export class Hub {
     this.stopTicking();
     for (const c of this.clients) c.ws.close(code, reason);
   }
+}
+
+interface Shared { scores: string; presence: string; news: string[]; season: string; cache?: ViewCache; json: (e: object) => string }
+
+// observe() hands every nation that sees an entity alike the same object
+// (ViewCache), so its JSON is computed once per tick, keyed on identity.
+function sharedOf(w: Pick<VisibleWorld, "scores" | "presence" | "news">, season: unknown, cache?: ViewCache): Shared {
+  const memo = new WeakMap<object, string>();
+  const once = (e: object) => {
+    let j = memo.get(e);
+    if (j === undefined) memo.set(e, (j = json(e)));
+    return j;
+  };
+  return { scores: json(w.scores), presence: json(w.presence), news: w.news.map(json), season: json(season), cache, json: once };
 }
 
 function blank(): Sent {

@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { WebSocket } from "ws";
+import { EMPIRE } from "../rules/data/index.ts";
 
 const CLIENTS = 30;
 const SECONDS = 60;
@@ -27,9 +28,8 @@ async function account(name: string, i: number): Promise<string> {
     fetch(BASE + path, { method: "POST", headers: { "content-type": "application/json", cookie }, body: JSON.stringify(body) });
   const res = await post("/api/signup", { username: name, password: "correct horse" });
   const cookie = res.headers.get("set-cookie")!.split(";")[0];
-  const hue = Math.round((i * 360) / CLIENTS);
-  for (let k = 0; k < 30; k++) {
-    const colour = `#${[0, 8, 4].map((o) => Math.round(127 + 127 * Math.sin(((hue + k * 37) / 57) + o)).toString(16).padStart(2, "0")).join("")}`;
+  for (let k = 0; k < 40; k++) {
+    const colour = k === 0 && EMPIRE.presets[i] ? EMPIRE.presets[i] : `#${Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, "0")}`;
     if ((await post("/api/empire", { name: `Load ${i}`, primary: colour, secondary: "#ffffff" }, cookie)).ok) break;
   }
   return cookie;
@@ -87,8 +87,9 @@ async function main(): Promise<void> {
   });
   for (let i = 0; i < 100 && !logs.some((l) => l.action === "listen"); i++) await new Promise((r) => setTimeout(r, 100));
 
-  const adminCookie = await account(ADMIN, 0);
-  const cookies = await Promise.all(Array.from({ length: CLIENTS }, (_, i) => account(`load${String(i + 1).padStart(2, "0")}`, i + 1)));
+  const adminCookie = await account(ADMIN, CLIENTS);
+  const cookies: string[] = [];
+  for (let i = 0; i < CLIENTS; i++) cookies.push(await account(`load${String(i + 1).padStart(2, "0")}`, i));
   const bots = cookies.map((c, i) => new Bot(c, `b${i}`));
   await Promise.all(bots.map((b) => b.ready()));
   const welcome = bots.map((b) => JSON.stringify(b.welcome).length);
@@ -116,8 +117,11 @@ async function main(): Promise<void> {
   ][k % 5];
   const bytes0 = bots.reduce((a, b) => a + b.bytes, 0);
   const t0 = Date.now();
-  let k = 0;
-  const play = setInterval(() => { for (const b of bots) b.send(menu(b, k + bots.indexOf(b))); k++; }, 2000);
+  // Each bot on its own 2 s beat, offset at random: players don't act in step.
+  const timers = bots.map((b, i) => {
+    let k = i;
+    return setTimeout(() => (timers[i] = setInterval(() => b.send(menu(b, k++)), 2000) as never), Math.random() * 2000);
+  });
   const statsRes = await fetch(`${BASE}/api/admin/stream`, { headers: { cookie: adminCookie } });
   const reader = statsRes.body!.getReader();
   let stats: Msg = {};
@@ -128,7 +132,7 @@ async function main(): Promise<void> {
     const line = dec.decode(value).split("\n").find((l) => l.startsWith("data:"));
     if (line) { stats = JSON.parse(line.slice(5)); rss.push(stats.rssMb); }
   }
-  clearInterval(play);
+  for (const t of timers) { clearTimeout(t); clearInterval(t); }
   const egress = (bots.reduce((a, b) => a + b.bytes, 0) - bytes0) / ((Date.now() - t0) / 1000);
   await reader.cancel();
   for (const b of bots) b.ws.close();
@@ -136,6 +140,15 @@ async function main(): Promise<void> {
   const idle = logs.some((l) => l.action === "idle");
   server.kill("SIGTERM");
   await new Promise((r) => server.once("exit", r));
+
+  // S5: boot again on the season just played (snapshot + replay).
+  const again = spawn(process.execPath, cmd.slice(1), { env: { ...process.env, PORT: String(PORT), DATA_DIR: dir } });
+  let replayBoot: number | undefined;
+  await new Promise<void>((done) => again.stdout.on("data", (d) => {
+    for (const l of String(d).split("\n")) { try { const j = JSON.parse(l); if (j.action === "boot") replayBoot = j.ms; if (j.action === "listen") done(); } catch { /* */ } }
+  }));
+  again.kill("SIGTERM");
+  await new Promise((r) => again.once("exit", r));
 
   const db = new DatabaseSync(join(dir, "game.db"));
   const cmds = db.prepare("SELECT COUNT(*) AS n, SUM(LENGTH(payload) + LENGTH(result) + LENGTH(type) + 40) AS b FROM commands").get() as { n: number; b: number };
@@ -160,13 +173,13 @@ async function main(): Promise<void> {
     ["S3", "Egress at 30 clients", "≤ 200 KB/s", `${r1(egress / 1024)} KB/s`, egress <= 204_800],
     ["S4", "Command-log append", "≤ 1 ms p99", `p99 ${stats.appendMs?.p99} ms (whole apply p99 ${q(applyMs, 0.99)} ms)`, stats.appendMs?.p99 <= 1],
     ["S4", "Bytes per stored command", "≤ 200 B", `${r1(cmds.b / cmds.n)} B (${cmds.n} commands; db ${r1(dbBytes / 1024)} KB)`, cmds.b / cmds.n <= 200],
-    ["S5", "Boot (snapshot + replay)", "≤ 1 s", `${boot} ms (fresh)`, (boot ?? 0) <= 1000],
+    ["S5", "Boot (snapshot + replay)", "≤ 1 s", `${replayBoot} ms after this run (${cmds.n} commands); ${boot} ms fresh`, (replayBoot ?? Infinity) <= 1000],
   ];
   const md = `# Measurements
 
 Measured goals (goals.md, kind **Measured**). Written by \`pnpm load\`
 (\`sim/load.ts\`): ${CLIENTS} bots over real WebSockets for ${SECONDS} s against
-the server in its own process, each acting every 2 s. Last run
+the server in its own process, each acting every 2 s on its own beat. Last run
 ${new Date().toISOString().slice(0, 16).replace("T", " ")} UTC on ${process.platform} ${process.arch}, Node ${process.version}.
 
 | Goal | What | Target | Measured | Met |
@@ -177,6 +190,7 @@ Notes: a laptop, not the 256 MB shared-CPU Fly machine, so CPU and RSS read
 lower than production would; rerun against the deploy before each crit.
 `;
   writeFileSync(OUT, md);
+  writeFileSync(".cache/load-log.jsonl", logs.map((l) => JSON.stringify(l)).join("\n")); // for the S7 judged check
   console.log(md);
 }
 

@@ -6,7 +6,7 @@ import type { Command, Id, Ms, Rejection } from "./protocol.ts";
 import type { State } from "./state.ts";
 
 export { settled } from "./advance.ts";
-export { legalActions, observe } from "./observe.ts";
+export { legalActions, observe, viewCache, type ViewCache } from "./observe.ts";
 export { newSeason, type State } from "./state.ts";
 export type * from "./protocol.ts";
 

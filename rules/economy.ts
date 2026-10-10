@@ -115,9 +115,31 @@ export interface Economy {
 
 const zeros = () => Object.fromEntries(RESOURCES.map((r) => [r, 0])) as Record<Resource, number>;
 
+// Inside frozen(), the caller promises no state changes: each nation's
+// economy is computed once per state object (the server's per-tick view).
+let memo: Map<State, Map<Id, Economy>> | null = null;
+export function frozen<T>(f: () => T): T {
+  const prev = memo;
+  memo = new Map();
+  try {
+    return f();
+  } finally {
+    memo = prev;
+  }
+}
+
+export function economy(s: State, nation: Id): Economy {
+  if (!memo) return compute(s, nation);
+  let m = memo.get(s);
+  if (!m) memo.set(s, (m = new Map()));
+  let e = m.get(nation);
+  if (!e) m.set(nation, (e = compute(s, nation)));
+  return e;
+}
+
 // Shortfall: an empty stock's consumers run at supply ÷ demand. Iterated to a
 // fixed point, since a throttled consumer also produces less.
-export function economy(s: State, nation: Id): Economy {
+function compute(s: State, nation: Id): Economy {
   const n = s.nations[nation];
   const fs = flows(s, n);
   const rho = Object.fromEntries(RESOURCES.map((r) => [r, 1])) as Record<Resource, number>;

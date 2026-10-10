@@ -135,3 +135,20 @@ describe("logging and the live view (system-design.md §11; goals.md S4, S7)", (
     a.close();
   });
 });
+
+describe("seasons (game-design.md §10)", () => {
+  it("starts a new season for the first arrival after one ran out while nobody was connected", async () => {
+    let t = Date.now();
+    running = await start({ port: 0, dataDir: mkdtempSync(join(tmpdir(), "grow-")), now: () => t, log: new Log(() => {}) });
+    const a = await open(await account("alice", "Aurora"));
+    a.send("j", { type: "join", region: "r_canada" });
+    expect(await a.result("j")).toMatchObject({ ok: true });
+    const first = running.world.state!.season.id;
+    a.close();
+    await new Promise((r) => setTimeout(r, 100));
+    t += 61 * 60_000;
+    await account("bob", "Borealis");
+    expect(running.world.state!.season.id).not.toBe(first);
+    expect(running.world.state!.season.status).toBe("running");
+  });
+});
