@@ -3,7 +3,9 @@
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 import { SPHERES } from "../client/src/scene/layout.ts";
-import { hasGround, regionsOf, STEP } from "./worlds.ts";
+import { TEXTURED } from "../client/src/scene/worlds.ts";
+import { existsSync } from "node:fs";
+import { hasGround, regionsOf, SOURCES, STEP } from "./worlds.ts";
 
 const maps = new Map<string, { px: Buffer; w: number; h: number; ch: number }>();
 async function at(sphere: string, lat: number, lon: number): Promise<string | null> {
@@ -34,5 +36,14 @@ describe("region maps (game-design.md §12)", () => {
     for (const s of SPHERES.filter(hasGround)) {
       for (const r of regionsOf(s)) expect(await at(s, r.lat, r.lon), r.name).toBe(r.id);
     }
+  });
+
+  it("gives the client exactly the bodies with a real map, in every tier", () => {
+    const bodies = Object.keys(SOURCES).filter((k) => !k.includes("."));
+    expect([...TEXTURED].sort()).toEqual(bodies.sort());
+    for (const id of Object.keys(SOURCES)) {
+      for (const tier of ["512", "2k"]) expect(existsSync(`client/public/worlds/${id}.${tier}.webp`), `${id}.${tier}`).toBe(true);
+    }
+    expect(existsSync("client/public/worlds/earth.top.webp")).toBe(true);
   });
 });

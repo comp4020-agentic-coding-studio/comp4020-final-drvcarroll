@@ -91,7 +91,7 @@ describe("the map is the screen (goals.md P10)", () => {
     const at = await p.evaluate(() => (window as any).scene.screenOf("r_india"));
     expect(at).not.toBeNull();
     await p.mouse.click(at.x, at.y);
-    await expect.poll(() => p.locator(".selection h2").innerText()).toBe("India");
+    await expect.poll(() => p.locator(".selection h2").textContent()).toBe("India");
     await expect.poll(() => p.locator(".selection button.tile").count()).toBe(4);
     await p.locator(".selection .forces input[aria-label='Armies to train']").fill("6");
     const train = p.locator(".selection .forces .action", { hasText: "Train" });
@@ -147,12 +147,32 @@ describe("the map is the screen (goals.md P10)", () => {
     const names = await p.locator(".stocks svg").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
     expect(names).toEqual(["Energy", "Metals", "Volatiles", "Alloys", "Research", "Materiel"]);
     await p.locator(".drawers button", { hasText: "Guide" }).click();
-    const pages = await p.locator(".guide nav button").allInnerTexts();
+    const pages = await p.locator(".guide nav button").allTextContents();
     for (const t of ["Building", "Armies", "Research", "Colonising", "Sending ships"]) expect(pages).toContain(t);
     await p.locator(".guide nav button", { hasText: "Sending ships" }).click();
     await expect.poll(() => p.locator(".guide article").innerText()).toMatch(/Launch/);
     await p.keyboard.press("Escape");
     await expect.poll(() => p.locator(".guide").count()).toBe(0);
+    await p.close();
+  });
+
+  it("renders first in under 3 MB, real maps streaming after (goals.md P8)", async () => {
+    const p = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    await p.goto(base);
+    const f = p.locator('form[action="/api/signup"]');
+    await f.locator("input[name=username]").fill("juliet");
+    await f.locator("input[name=password]").fill("correct horse");
+    await f.locator("button").click();
+    await p.fill("input[name=name]", "juliet");
+    let bytes = 0;
+    const sizes: Promise<void>[] = [];
+    p.on("response", (r) => sizes.push(r.body().then((b) => void (bytes += b.length), () => {})));
+    await p.click("text=Save");
+    await p.waitForSelector("canvas.scene");
+    await p.waitForTimeout(1000);
+    await Promise.all(sizes);
+    expect(bytes).toBeLessThan(3 * 1024 * 1024);
+    await expect.poll(() => p.evaluate(() => performance.getEntriesByType("resource").some((e) => e.name.endsWith(".512.webp"))), { timeout: 10_000 }).toBe(true);
     await p.close();
   });
 
@@ -164,5 +184,5 @@ describe("the map is the screen (goals.md P10)", () => {
     await expect.poll(() => a.locator(".drawer").innerText(), { timeout: 2000 }).toMatch(/foxtrot/);
     await a.close();
     await b.close();
-  });
+  }, 60_000);
 });

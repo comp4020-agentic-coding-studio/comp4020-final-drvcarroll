@@ -98,5 +98,24 @@ export function latLon(lat: number, lon: number): V3 {
 // Regions on a sphere in map order: index i + 1 on its region map.
 export const regionsOn = (sphere: string) => Object.values(REGIONS).filter((r) => sphereOf(r.body) === sphere);
 
-// Where a region's label and fly-to point sit: its anchor in map.ts.
-export const anchor = (region: string): V3 => latLon(REGIONS[region].lat, REGIONS[region].lon);
+// Gas-giant regions are orbits (game-design.md §4): bands at these radii,
+// in body radii, clear of the rings except Saturn's ring station.
+export const BANDS: Record<string, number> = {
+  r_jupiter_jupiter_low_orbit: 1.45, r_jupiter_jupiter_high_orbit: 2.0,
+  r_saturn_saturn_ring_station: 1.75, r_saturn_saturn_high_orbit: 2.7,
+  r_uranus: 2.2, r_neptune: 1.6,
+};
+
+// Where a region's label and fly-to point sit, in body radii from the
+// centre: its map.ts anchor on the surface, or a point on its band.
+export const TILT: Record<string, number> = { saturn: 0.47, uranus: 1.4 }; // ring plane, radians
+
+export function anchor(region: string): V3 {
+  const band = BANDS[region];
+  if (band) {
+    const t = TILT[REGIONS[region].body] ?? 0, z = band * Math.SQRT1_2;
+    return [z, -z * Math.sin(t), z * Math.cos(t)];
+  }
+  const d = latLon(REGIONS[region].lat, REGIONS[region].lon);
+  return [d[0] * 1.01, d[1] * 1.01, d[2] * 1.01];
+}

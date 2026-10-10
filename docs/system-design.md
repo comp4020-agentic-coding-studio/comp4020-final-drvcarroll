@@ -31,7 +31,7 @@ live in [game-design.md](game-design.md).
 | UI | Preact + signals | 4 KB React-compatible API; signals update only the numbers that change, which matters with six ticking stock counters |
 | Passwords | `node:crypto` scrypt | Built in, memory-hard, no native dependency |
 | Markdown | `marked` on the server | `/readme/` must be in the HTML the server sends |
-| World assets (build time only) | `world-atlas` (Natural Earth 1:50m, ISC) + Natural Earth 1:10m admin-1, `topojson-client`, `d3-geo`; `toktx` for KTX2 | Real borders rasterised once into region maps; nothing geographic ships to the browser but images. A runtime vector globe library (three-globe, Cesium) would bring its own renderer and blow the 3 MB budget |
+| World assets (build time only) | `world-atlas` (Natural Earth 1:50m, ISC) + Natural Earth 1:10m admin-1, `topojson-client`; `sharp` for resizing, tinting and WebP | Real borders rasterised once into region maps; nothing geographic ships to the browser but images. A runtime vector globe library (three-globe, Cesium) would bring its own renderer and blow the 3 MB budget |
 | Planet imagery | Solar System Scope (CC BY 4.0), USGS Astrogeology mosaics (public domain) | The closest-to-real free global maps: NASA-derived for the planets, mission mosaics for the moons |
 | Fonts | Rajdhani, Share Tech Mono (OFL), self-hosted woff2 subsets | The command console look (game-design.md §12) without a Google Fonts round trip |
 
@@ -44,7 +44,7 @@ server/       HTTP, WebSocket, auth, persistence, logging
 client/       Vite app: scene/ (Three.js), ui/ (Preact), net/ (socket)
 sim/          headless runner, bots, LLM playtest driver, balance tests
 scripts/      worlds.ts: downloads the sources, writes textures and region maps
-client/public/worlds/  generated: <body>.<tier>.ktx2, <body>.regions.png (committed)
+client/public/worlds/  generated: <body>.<tier>.webp, <body>.regions.png (committed)
 spec/         black-box checks against the running app
 docs/         design, ADRs, balance log
 ```
@@ -259,12 +259,11 @@ The target is a consumer laptop with integrated graphics, not a gaming GPU.
 
 | Technique | Effect |
 |---|---|
-| KTX2/Basis textures | GPU-native compression, ~4× less GPU memory, decoded in a worker |
 | Texture tiers 512 / 2K / 8K by distance | Only the focused body holds 8K; others are disposed down |
 | ~40 draw calls total | Orbits in one `LineSegments`; fleets and icons instanced; region borders merged per body |
 | Region maps | One 8-bit equirectangular index image per body (2048×1024 Earth, 1024×512 others, lossless PNG): Earth from real Natural Earth borders, others a weighted Voronoi on real feature centres (game-design.md §12). Owner tints are per-region uniform arrays indexed by the map's value, so a claim updates one uniform, not the mesh; borders are drawn in the shader where the index changes |
 | Picking by region map | Raycast the body sphere once, convert the hit to lat/lon, read the index from a CPU copy of the region map: no per-region meshes to test. Index 0 (ocean) selects the body |
-| Real textures streamed | Procedural surfaces draw first; KTX2 tiers load after interactive, top tier only for the focused body (Earth 4K, others 2K), 512 for the rest. Total under 60 MB on disk, committed |
+| Real textures streamed | Procedural surfaces draw first; WebP tiers load from 2 s after the scene starts, top tier only for the focused body (Earth 4K day, 2K night and clouds; others 2K), 512 for the rest. WebP over KTX2: the browser decodes it natively, no transcoder in the bundle and no native encoder in the toolchain; tiering keeps GPU memory near 175 MB with Earth focused. Seams: gradients from whichever of u, u + ½ is continuous |
 | Bloom at half resolution | Glow without full-resolution post-processing cost; off on phones |
 | Decorative bodies on the GPU | Asteroid belt, Trojans and Kuiper belt are one `Points` cloud each (`scene/decor.ts`); each rock's orbit (a, phase, rate, eccentricity, tilt) is a vertex attribute and the shader moves and sun-shades it, so ~34k rocks (a third on phones) cost three draw calls and no CPU per frame. The six comets and fourteen named minor bodies are few enough to move on the CPU; minor bodies reuse the region material with zero regions |
 | Shaders write the log depth buffer | Custom materials include Three's logdepth chunks, so depth sorting is right and bodies are opaque |

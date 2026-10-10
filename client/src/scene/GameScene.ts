@@ -11,8 +11,8 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { BODIES, MAP, REGIONS } from "../../../rules/data/index.ts";
 import { me, nations, offset, season, selBody, selRegion, world } from "../store.ts";
 import { Decor } from "./decor.ts";
-import { anchor, MINOR, moonDistance, orbitRadius, parentOf, position, regionsOn, SIZE, sphereOf, SPHERES, SUN_SIZE, type V3 } from "./layout.ts";
-import { loadRegionMap, regionAt } from "./worlds.ts";
+import { anchor, BANDS, MINOR, TILT, moonDistance, orbitRadius, parentOf, position, regionsOn, SIZE, sphereOf, SPHERES, SUN_SIZE, type V3 } from "./layout.ts";
+import { loadRegionMap, loadTexture, regionAt, TEXTURED, type Tier } from "./worlds.ts";
 import { FleetLayer } from "./fleets.ts";
 import { atmosphereMaterial, LOOK, regionMaterial, ringMaterial, sunMaterial } from "./regionMaterial.ts";
 
@@ -28,6 +28,7 @@ interface BodyView {
   regions: string[];
   label: HTMLElement;
   moonOrbit?: THREE.LineLoop;
+  bands: Map<string, THREE.LineLoop>;
   decor: boolean; // scenery: not clickable, no rules
 }
 
@@ -60,6 +61,9 @@ export class GameScene {
   private overlay: HTMLElement;
   private composer: EffectComposer | null = null;
   private sun!: THREE.ShaderMaterial;
+  private low = new Map<string, THREE.Texture>();
+  private high: { id: string; tex: THREE.Texture[] } | null = null;
+  private disposed = false;
 
   constructor(canvas: HTMLCanvasElement, overlay: HTMLElement) {
     this.overlay = overlay;
@@ -90,6 +94,7 @@ export class GameScene {
     this.stop.push(effect(() => this.paintSelection()));
     this.resize();
     this.loop();
+    setTimeout(() => this.streamTextures(), 2000); // after interactive: P8's first render
   }
 
   private now(): number {
@@ -162,7 +167,7 @@ export class GameScene {
     if (rings[id]) {
       const [a, b, colour, opacity] = rings[id];
       const r = new THREE.Mesh(new THREE.RingGeometry(SIZE[id] * a, SIZE[id] * b, 160, 1), ringMaterial(SIZE[id] * a, SIZE[id] * b, colour, opacity));
-      r.rotation.x = -Math.PI / 2 + (id === "uranus" ? 1.4 : 0.47);
+      r.rotation.x = -Math.PI / 2 + TILT[id];
       mesh.add(r);
     }
     const decor = !!MINOR[id];
@@ -172,12 +177,59 @@ export class GameScene {
     label.tabIndex = -1;
     if (!decor) label.addEventListener("click", () => this.select(id, null));
     this.overlay.append(label);
-    const view: BodyView = { id, mesh, mat, regions, label, decor };
+    const bands = new Map(regions.filter((r) => BANDS[r]).map((r) => {
+      const b = ring(SIZE[id] * BANDS[r], 0x8fa3b8, 0.35);
+      b.rotation.x = TILT[id] ?? 0;
+      mesh.add(b);
+      return [r, b] as const;
+    }));
+    const view: BodyView = { id, mesh, mat, regions, label, decor, bands };
     if (parentOf(id)) {
       view.moonOrbit = ring(moonDistance(id), 0x24324a, 0.7);
       this.scene.add(view.moonOrbit);
     }
     this.views.set(id, view);
+  }
+
+  // --- real maps (system-design.md §8) --------------------------------------------
+
+  // Every body's 512 map, one at a time, then the focused body's top tier.
+  private async streamTextures(): Promise<void> {
+    for (const id of TEXTURED) {
+      const t = await loadTexture(id, "512").catch(() => null);
+      if (this.disposed) return t?.dispose();
+      if (!t) continue;
+      this.low.set(id, t);
+      if (this.high?.id !== id) this.setMaps(id, t);
+    }
+    if (this.focus) void this.raise(this.focus);
+  }
+
+  private setMaps(id: string, day: THREE.Texture, night?: THREE.Texture, clouds?: THREE.Texture): void {
+    const u = this.views.get(id)!.mat.uniforms;
+    u.dayMap.value = day;
+    u.hasDay.value = 1;
+    u.nightMap.value = night ?? null;
+    u.hasNight.value = night ? 1 : 0;
+    u.cloudMap.value = clouds ?? null;
+    u.hasCloud.value = clouds ? 1 : 0;
+  }
+
+  // Only the focused body holds its top tier; the last one drops back to 512.
+  private async raise(id: string): Promise<void> {
+    if (!TEXTURED.has(id) || this.high?.id === id) return;
+    const prev = this.high;
+    this.high = { id, tex: [] };
+    const want: [string, Tier][] = id === "earth" ? [["earth", "top"], ["earth.night", "2k"], ["earth.clouds", "2k"]] : [[id, "2k"]];
+    const tex = await Promise.all(want.map(([n, t]) => loadTexture(n, t))).catch(() => null);
+    if (!tex || this.disposed || this.high?.id !== id) return tex?.forEach((t) => t.dispose());
+    this.high.tex = tex;
+    this.setMaps(id, tex[0], tex[1], tex[2]);
+    if (prev) {
+      prev.tex.forEach((t) => t.dispose());
+      const lo = this.low.get(prev.id);
+      if (lo) this.setMaps(prev.id, lo);
+    }
   }
 
   // --- what the store says ---------------------------------------------------
@@ -194,13 +246,21 @@ export class GameScene {
         u.owned.value[i] = n ? (owner === me.value ? 1 : 0.85) : 0;
         if (n) u.tints.value[i].set(n.primary);
         u.lights.value[i] = Math.min(1, (byId.get(id)?.buildings?.length ?? 0) / 4);
+        const band = v.bands.get(id)?.material as THREE.LineBasicMaterial | undefined;
+        if (band) {
+          band.color.set(n ? n.primary : "#8fa3b8");
+          band.opacity = n ? 0.9 : 0.35;
+        }
       });
     }
   }
 
   private paintSelection(): void {
     const sel = selRegion.value;
-    for (const v of this.views.values()) v.mat.uniforms.selected.value = sel ? v.regions.indexOf(sel) : -1;
+    for (const v of this.views.values()) {
+      v.mat.uniforms.selected.value = sel ? v.regions.indexOf(sel) : -1;
+      for (const [r, b] of v.bands) b.scale.setScalar(r === sel ? 1.02 : 1);
+    }
   }
 
   // --- camera -------------------------------------------------------------------
@@ -234,16 +294,17 @@ export class GameScene {
     }
     this.flight = { t0: performance.now(), fromTarget: this.controls.target.clone(), fromOffset: cur, body: sphere, toOffset };
     this.focus = sphere;
+    if (sphere) void this.raise(sphere);
     if (sphere) this.lastFocusPos.copy(this.bodyPos(sphere));
   }
 
   // Where a region's centre is on screen, if it's facing you.
   screenOf(region: string): { x: number; y: number } | null {
     const sphere = sphereOf(REGIONS[region].body);
-    const dir = v3(anchor(region));
+    const at = v3(anchor(region));
     const c = this.bodyPos(sphere);
-    const p = dir.clone().multiplyScalar(SIZE[sphere]).add(c);
-    if (dir.dot(this.camera.position.clone().sub(c).normalize()) < 0.2) return null;
+    const p = at.clone().multiplyScalar(SIZE[sphere]).add(c);
+    if (!BANDS[region] && at.clone().normalize().dot(this.camera.position.clone().sub(c).normalize()) < 0.2) return null;
     const s = p.project(this.camera);
     const r = this.renderer.domElement.getBoundingClientRect();
     return { x: r.left + ((s.x + 1) / 2) * r.width, y: r.top + ((1 - s.y) / 2) * r.height };
@@ -509,8 +570,8 @@ export class GameScene {
         this.overlay.append(el);
         this.regionLabels.set(s.region, el);
       }
-      const p = v3(s.dir).multiplyScalar(SIZE[f!] * 1.01).add(c);
-      const facing = v3(s.dir).dot(camPos.clone().sub(c).normalize()) > 0.25;
+      const p = v3(s.dir).multiplyScalar(SIZE[f!]).add(c);
+      const facing = !!BANDS[s.region] || v3(s.dir).normalize().dot(camPos.clone().sub(c).normalize()) > 0.25;
       place(el, p, facing, -8);
       const owner = world.value?.regions.find((r) => r.id === s.region)?.owner;
       el.classList.toggle("mine", owner === me.value);
@@ -519,6 +580,7 @@ export class GameScene {
   }
 
   dispose(): void {
+    this.disposed = true;
     cancelAnimationFrame(this.raf);
     for (const s of this.stop) s();
     this.controls.dispose();

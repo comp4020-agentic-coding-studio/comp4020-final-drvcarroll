@@ -71,6 +71,12 @@ const fragment = /* glsl */ `
   uniform sampler2D regionMap;
   uniform vec2 mapSize;
   uniform float hasMap;
+  uniform sampler2D dayMap;
+  uniform float hasDay;
+  uniform sampler2D nightMap;
+  uniform float hasNight;
+  uniform sampler2D cloudMap;
+  uniform float hasCloud;
   uniform vec3 tints[${MAX_REGIONS}];
   uniform float owned[${MAX_REGIONS}];
   uniform float lights[${MAX_REGIONS}];
@@ -90,6 +96,14 @@ const fragment = /* glsl */ `
   // Equirectangular, row 0 at the north pole (scripts/worlds.ts).
   vec2 lonLat(vec3 d) {
     return vec2(atan(-d.z, d.x) / 6.2831853 + 0.5, 0.5 - asin(clamp(d.y, -1.0, 1.0)) / 3.1415927);
+  }
+  // Gradients from whichever of u, u + ½ is continuous here: no seam line.
+  vec4 sampleMap(sampler2D t, vec2 uv) {
+    vec2 dx = dFdx(uv), dy = dFdy(uv);
+    vec2 w = vec2(fract(uv.x + 0.5), uv.y);
+    vec2 dx2 = dFdx(w), dy2 = dFdy(w);
+    if (dot(dx2, dx2) < dot(dx, dx)) { dx = dx2; dy = dy2; }
+    return textureGrad(t, uv, dx, dy);
   }
   int regionOf(vec2 uv) {
     return hasMap > 0.5 ? int(texture2D(regionMap, vec2(fract(uv.x), clamp(uv.y, 0.0, 1.0))).r * 255.0 + 0.5) - 1 : -1;
@@ -192,8 +206,15 @@ const fragment = /* glsl */ `
         if (regionOf(uv + o * px * 4.0) != i1) glow = 1.0;
       }
     }
-    float land, spec;
-    vec3 col = surface(vLocal, land, spec);
+    float land = 1.0, spec = 0.0;
+    vec3 col;
+    if (hasDay > 0.5) { // real imagery (game-design.md §12)
+      col = sampleMap(dayMap, uv).rgb;
+      if (style == 0) { land = i1 >= 0 ? 1.0 : 0.0; spec = 1.0 - land; }
+      if (hasCloud > 0.5) col = mix(col, vec3(1.0), sampleMap(cloudMap, uv).r * 0.85);
+    } else {
+      col = surface(vLocal, land, spec);
+    }
 
     float own = i1 >= 0 ? owned[i1] : 0.0;
     vec3 tint = i1 >= 0 ? tints[i1] : vec3(0.0);
@@ -216,8 +237,13 @@ const fragment = /* glsl */ `
     lit += vec3(0.9, 0.95, 1.0) * spec * pow(max(dot(n, normalize(toSun + v)), 0.0), 60.0) * 0.6 * day;
 
     // City lights on the night side, denser with buildings in sensed regions.
-    float city = (i1 >= 0 ? lights[i1] : 0.0) * land * smoothstep(0.35, 0.8, snoise(vLocal * 38.0) * 0.5 + 0.5 + 0.3 * snoise(vLocal * 9.0));
-    lit += vec3(1.0, 0.78, 0.45) * city * (1.0 - day) * 1.4;
+    float here = i1 >= 0 ? lights[i1] : 0.0;
+    if (hasNight > 0.5) {
+      lit += sampleMap(nightMap, uv).rgb * (0.3 + 1.8 * here) * (1.0 - day);
+    } else {
+      float city = here * land * smoothstep(0.35, 0.8, snoise(vLocal * 38.0) * 0.5 + 0.5 + 0.3 * snoise(vLocal * 9.0));
+      lit += vec3(1.0, 0.78, 0.45) * city * (1.0 - day) * 1.4;
+    }
     lit += line * edge * own * 0.4 * (1.0 - day);
     gl_FragColor = vec4(lit, 1.0);
   }
@@ -233,6 +259,9 @@ export function regionMaterial(id: string): THREE.ShaderMaterial {
       regionMap: { value: null },
       mapSize: { value: new THREE.Vector2(1, 1) },
       hasMap: { value: 0 },
+      dayMap: { value: null }, hasDay: { value: 0 },
+      nightMap: { value: null }, hasNight: { value: 0 },
+      cloudMap: { value: null }, hasCloud: { value: 0 },
       tints: { value: fill(() => new THREE.Color()) },
       owned: { value: fill(() => 0) },
       lights: { value: fill(() => 0) },

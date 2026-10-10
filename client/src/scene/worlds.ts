@@ -37,3 +37,20 @@ export function regionAt(sphere: string, d: V3): string | null {
   const k = m.px[y * m.w + x];
   return k ? regionsOn(sphere)[k - 1].id : null;
 }
+
+// Bodies with a real map (scripts/worlds.ts SOURCES); the rest stay procedural.
+export const TEXTURED = new Set([
+  "mercury", "venus", "earth", "luna", "mars", "jupiter", "saturn", "uranus", "neptune", "io", "europa", "ganymede",
+  "callisto", "titan", "enceladus", "vesta", "phobos", "deimos", "titania", "oberon", "triton", "pluto",
+]);
+export type Tier = "512" | "2k" | "top";
+
+const loader = new THREE.TextureLoader();
+export async function loadTexture(name: string, tier: Tier): Promise<THREE.Texture> {
+  const t = await loader.loadAsync(`/static/worlds/${name}.${tier}.webp`);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.flipY = false;
+  t.wrapS = THREE.RepeatWrapping;
+  t.anisotropy = 4;
+  return t;
+}

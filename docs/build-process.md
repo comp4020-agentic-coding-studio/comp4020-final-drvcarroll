@@ -170,7 +170,7 @@ by keyboard; screenshots judged as a player would before calling it done.
 
 ### E. Visual fidelity and budgets (`game-design.md` §12, system-design.md §8)
 
-Polish on top of the map client, not a separate client: textures (KTX2),
+Polish on top of the map client, not a separate client: textures,
 the Earth day/night shader and city lights, atmospheres, bloom, rings,
 texture tiers, adaptive quality, and meeting the rendering budgets.
 
@@ -186,7 +186,7 @@ commanding an empire, not another web app. Two halves, each its own run
 of units:
 
 - **Real worlds:** `scripts/worlds.ts` fetches Solar System Scope and USGS
-  maps and writes KTX2 tiers; it rasterises Earth's region map from Natural
+  maps and writes WebP tiers; it rasterises Earth's region map from Natural
   Earth (countries, plus admin-1 for the US, Russia and China, membership
   in `rules/data/map.ts`) and every other body's from a weighted Voronoi on
   real feature centres and diameters (USGS Gazetteer, also in `map.ts`).
@@ -198,7 +198,7 @@ of units:
   self-hosted, reticle selection, mechanical motion with a reduced-motion
   off switch. Layout and behaviour stay exactly as D2 left them.
 
-**Exit criteria:** every playable body but Psyche renders its real map
+**Exit criteria:** every playable body but Psyche and Ceres renders its real map
 when focused; a unit test reads Earth's region map at the cities named in
 goals.md P10 and gets their regions, and open ocean gets none; every
 off-Earth region's anchor is within 5° of its gazetteer centre; clicking a
