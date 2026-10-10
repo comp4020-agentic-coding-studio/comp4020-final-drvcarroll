@@ -142,9 +142,9 @@ export function decide(kind: Archetype, x: Ctx, max = 4): Command[] {
     const v = score(w, c, x) + x.rng() * 0.5;
     if (v > 0.5 && v > (best.get(c.type)?.v ?? 0)) best.set(c.type, { c, v });
   }
-  // Save only for what income will reach: never for a cost in a stock that isn't growing.
+  // Save only for what income reaches within 2 min; otherwise keep building.
   const reachable = (c: Command) => Object.entries(costOf(c)).every(([r, v]) =>
-    x.you.stocks[r as Resource].v >= v || x.you.stocks[r as Resource].rate > 0);
+    x.you.stocks[r as Resource].v + 2 * x.you.stocks[r as Resource].rate >= v!);
   const saveFor = Math.max(0, ...x.wanted.filter((c) => SPENDS.has(c.type) && reachable(c)).map((c) => score(w, c, x)));
   const ranked = [...best.values()]
     .filter((r) => !SPENDS.has(r.c.type) || r.v >= saveFor)

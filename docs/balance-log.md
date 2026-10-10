@@ -57,3 +57,17 @@ builder and trader (~50% each). Diagnosis: Earth is carved up in the first
 3 minutes; after that most bots stall with full slots and no free
 neighbour, so win rates measure geography and bot skill more than the
 rules. Next: bots that colonise beyond Luna and march to war, then retune.
+
+## Loop 2, 2026-10-10: who wins, and why
+
+| Change | Why | Effect |
+|---|---|---|
+| Earth Exchange 3:1 → 4:1, reverted | Suspected trader runaway via the Exchange | none |
+| Bot: save only for costs reachable within 2 min at current income | Expanders sat saving for ships fed by a trickle, blocking the Foundries that would feed them | Mars 34 → 32 min; expander mean score 85 → 100 |
+
+**Read:** per-run scores are bimodal. In each season one builder or
+trader with an open neighbourhood reaches ~250 while the rest sit near 100;
+which one depends on the start draw, not the strategy. The rules are not
+the bottleneck any more; bot play is (one colony ship at a time, Luna
+first, wars almost never declared). Targets met: 9 of 12. Open, carried to
+the next loop: first Mars ~32 min, Voidcraft 2 at 93%, win rates.
