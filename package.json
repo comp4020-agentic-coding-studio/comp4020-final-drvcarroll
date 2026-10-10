@@ -14,7 +14,8 @@
     "start": "node server/main.ts",
     "build": "vite build --config client/vite.config.ts",
     "dev": "vite build --watch --config client/vite.config.ts & node --watch --disable-warning=ExperimentalWarning server/main.ts",
-    "test:e2e": "vite build --config client/vite.config.ts && vitest run --project e2e"
+    "test:e2e": "vite build --config client/vite.config.ts && vitest run --project e2e",
+    "worlds": "node --disable-warning=ExperimentalWarning scripts/worlds.ts"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.6",
@@ -22,14 +23,18 @@
     "@types/jsdom": "^30.0.0",
     "@types/node": "^24.0.0",
     "@types/three": "^0.186.0",
+    "@types/topojson-client": "^3.1.5",
     "@types/ws": "^8.18.2",
     "jsdom": "^30.1.0",
     "playwright-core": "^1.63.0",
     "preact": "^11.0.0",
+    "sharp": "^0.35.5",
     "three": "^0.186.1",
+    "topojson-client": "^3.1.0",
     "typescript": "^6.0.3",
     "vite": "^8.3.1",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.1",
+    "world-atlas": "^2.0.2"
   },
   "engines": {
     "pnpm": ">=11"

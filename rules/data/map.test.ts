@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ADJACENT, BODIES, REGIONS } from "./map.ts";
+import { ADJACENT, BODIES, EARTH_MEMBERS, REGIONS } from "./map.ts";
 
 const regions = Object.values(REGIONS);
 
@@ -27,6 +27,21 @@ describe("map data (game-design.md §4)", () => {
       expect(Math.abs(r.lon!), r.name).toBeLessThanOrEqual(180);
     }
     expect(REGIONS.r_antarctica.lat).toBeLessThan(-60);
+  });
+
+  it("centres every off-Earth region on its real feature", () => {
+    for (const r of regions.filter((x) => x.km !== undefined)) {
+      expect(Math.abs(r.lat), r.name).toBeLessThanOrEqual(90);
+      expect(Math.abs(r.lon), r.name).toBeLessThanOrEqual(180);
+    }
+    expect(regions.filter((r) => r.km === undefined).map((r) => r.body)).toEqual(expect.arrayContaining(["earth", "antarctica"]));
+  });
+
+  it("assigns every Earth region its real countries, none twice", () => {
+    const earth = regions.filter((r) => r.body === "earth" || r.body === "antarctica").map((r) => r.id).sort();
+    expect(Object.keys(EARTH_MEMBERS).sort()).toEqual(earth);
+    const all = Object.values(EARTH_MEMBERS).flat();
+    expect(new Set(all).size).toBe(all.length);
   });
 
   it("derives off-Earth Solar as 1/d² (Mercury ≈ ×6.6)", () => {

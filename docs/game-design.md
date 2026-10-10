@@ -93,7 +93,7 @@ for Metals (M), Volatiles (V) and Solar (S). Solar output off Earth is
 Every off-Earth region is a **real named feature** (IAU names), centred and
 sized from the USGS Gazetteer of Planetary Nomenclature, so Hellas is the
 Hellas basin and Olympus sits on Olympus Mons (§12). Luna's "Far Side" region
-is the South Pole–Aitken basin. A gas giant's "orbital" regions are orbits,
+sits on the South Pole–Aitken basin. A gas giant's "orbital" regions are orbits,
 not ground: they are claimed and drawn as orbital bands around the planet,
 never as patches on its clouds.
 
@@ -710,8 +710,10 @@ none), built once by `scripts/worlds.ts`:
 
 The shader samples the region map to tint owned regions and draws borders
 as glowing holographic lines where the index changes, over the real
-texture. Labels and fly-to use each region's anchor (the centroid of its
-largest piece), generated alongside the map.
+texture. Labels and fly-to use each region's anchor: its lat/lon in
+`rules/data/map.ts` (the feature centre off Earth), tested to lie inside the
+region on its map. Overseas pieces of a country more than 25° from its
+mainland (French Guiana, Réunion) join the nearest region instead.
 
 ### The mechanics on screen
 
