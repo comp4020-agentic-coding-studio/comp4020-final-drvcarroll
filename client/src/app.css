@@ -88,6 +88,9 @@ button.on, .drawers button.on, button[aria-pressed="true"] { color: #fff; backgr
   box-shadow: inset 0 0 14px rgba(92, 200, 255, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.3); text-shadow: 0 0 6px rgba(92, 200, 255, 0.8); }
 button.danger { background: linear-gradient(180deg, #e2704f, #a33a2c); color: #fff4ee; border: 0; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.3); }
 button:disabled { opacity: 1; background: #202429 !important; color: #8b96a1 !important; border: 1px solid #343a41 !important; box-shadow: none !important; text-shadow: none !important; cursor: not-allowed; }
+/* clip-path hides outlines: an inset ring shows keyboard focus instead (P7) */
+button:focus-visible, .tile:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--accent), 0 0 12px rgba(92, 200, 255, 0.5) !important; }
+.label:focus-visible, button.row:focus-visible, button.sec-head:focus-visible, button.link:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; box-shadow: none !important; }
 button.icon { min-height: 32px; min-width: 32px; padding: 0; background: transparent; color: var(--muted); border: 0; font-size: 1rem; clip-path: none; }
 button.icon:hover { color: var(--accent); }
 .action { display: inline-flex; flex-direction: column; gap: 2px; align-items: flex-end; }

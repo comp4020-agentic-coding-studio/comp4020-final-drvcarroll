@@ -48,6 +48,58 @@ const camDistance = (p: Page) => p.evaluate(() => {
   return s.camera.position.distanceTo(s.controls.target) as number;
 });
 
+// Keyboard only (goals.md P7): focus plus Enter or typing, never a click.
+const key = (l: import("playwright-core").Locator, k = "Enter") => l.press(k);
+
+async function keyboardPlayer(name: string, region: string, viewport: { width: number; height: number }): Promise<Page> {
+  const p = await browser.newPage({ viewport });
+  p.on("pageerror", (e) => errors.push(e.message));
+  await p.goto(base);
+  const f = p.locator('form[action="/api/signup"]');
+  await f.locator("input[name=username]").fill(name);
+  await f.locator("input[name=password]").fill("correct horse");
+  await key(f.locator("input[name=password]"));
+  await p.locator("input[name=name]").fill(name);
+  await key(p.locator("input[name=name]"));
+  await key(p.locator(".start details summary"));
+  await key(p.locator(".start details button.row", { hasText: region }));
+  await key(p.locator(".start button", { hasText: "Start here" }));
+  await p.waitForSelector(".empire");
+  return p;
+}
+
+// claim, build, launch, colonise: the core loop, end to end (build-process.md D).
+async function coreLoopByKeyboard(p: Page, home: string, neighbour: string, moon: string): Promise<void> {
+  const empire = p.locator(".empire");
+  if (!(await empire.locator(".sec").count())) await key(empire.locator(".hud-title").first()); // phone: menu starts closed
+  await key(empire.locator(".list.sub button.row", { hasText: home }));
+  await key(p.locator(".forces .march summary"));
+  await key(p.locator(".forces li.item", { hasText: neighbour }).locator("button", { hasText: "Settle" }));
+  await expect.poll(() => p.locator(".toast").allInnerTexts()).toContain(`March to ${neighbour}: done`);
+  // Build a Spaceport over the Lab, from its tile.
+  await key(p.locator(".selection button.tile").nth(3));
+  await key(p.locator(".tile-menu button", { hasText: "Replace" }).first());
+  await key(p.locator(".picker li.item", { has: p.locator('b:text-is("Spaceport")') }).locator("button", { hasText: "Replace" }));
+  await expect.poll(() => p.locator(".selection button.tile").nth(3).getAttribute("aria-label"), { timeout: 90_000 }).toMatch(/^Spaceport:/);
+  await key(p.locator(".selection button.tile").nth(3));
+  await key(p.locator(".tile-menu .picker li.item", { has: p.locator('b:text-is("Colony Ship")') }).locator("button", { hasText: "Build" }));
+  // Launch it to Luna from the Fleets list and the destination picker.
+  await expect.poll(() => empire.locator(".sec-head", { hasText: "Fleets" }).innerText(), { timeout: 60_000 }).toMatch(/1/);
+  await key(empire.locator(".sec-head", { hasText: "Fleets" }));
+  await key(empire.locator(".sec button.row", { hasText: "@" }).first());
+  const dest = p.locator("select[aria-label=Destination]");
+  await dest.focus();
+  await p.keyboard.type("Luna");
+  await key(p.locator(".planner button", { hasText: "Launch" }));
+  // Claim a Luna region while it flies (once it has left, so a pick selects).
+  await expect.poll(() => p.locator(".toast").allInnerTexts(), { timeout: 30_000 }).toContain("Launch to Luna: done");
+  await key(empire.locator(".hud-title", { hasText: "All bodies" }));
+  await key(empire.locator("button.row", { hasText: "cislunar" }));
+  await key(p.locator(".selection button.row", { hasText: moon }));
+  await key(p.locator(".selection button", { hasText: /Claim on arrival|Colonise/ }));
+  await expect.poll(async () => (await p.locator(".empire .list.sub button.row").allInnerTexts()).join(" "), { timeout: 60_000 }).toContain(moon);
+}
+
 describe("the map is the screen (goals.md P10)", () => {
   it("onboards on the globe and fills the viewport with the map", async () => {
     const p = await player("alpha", "Siberia");
@@ -109,11 +161,11 @@ describe("the map is the screen (goals.md P10)", () => {
     await p.locator(".empire .list.sub button.row", { hasText: "Canada" }).click();
     const slots = await p.locator(".drop .slot svg").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
     expect(slots).toEqual(["Solar Power Plant", "Mine", "Refinery", "Lab"]);
-    expect(await p.locator(".drop .flows").first().innerText()).toMatch(/\+0\.13/); // 7.8 Metals/min
+    expect(await p.locator(".drop .flows").first().innerText()).toMatch(/\+0\.22/); // 13 Metals/min
     expect(await p.locator(".drop .flows svg[aria-label=Metals]").count()).toBe(1);
     await p.locator(".stocks button.gain").nth(1).click();
     const rows = await p.locator(".breakdown tbody tr").allInnerTexts();
-    expect(rows).toEqual([expect.stringMatching(/Mine\s+\+0\.13\s+\+7\.8/)]);
+    expect(rows).toEqual([expect.stringMatching(/Mine\s+\+0\.22\s+\+13\b/)]);
     await p.keyboard.press("Escape");
     await expect.poll(() => p.locator(".breakdown").count()).toBe(0);
     await p.close();
@@ -186,4 +238,19 @@ describe("the map is the screen (goals.md P10)", () => {
     await a.close();
     await b.close();
   }, 60_000);
+});
+
+describe("the core loop by keyboard alone (goals.md P7; build-process.md D)", () => {
+  it("claims, builds, launches and colonises at 1920×1080", async () => {
+    const p = await keyboardPlayer("kilo", "US West", { width: 1920, height: 1080 });
+    await coreLoopByKeyboard(p, "US West", "Mexico & Central America", "Mare Imbrium");
+    expect(errors).toEqual([]);
+    await p.close();
+  }, 240_000);
+
+  it("claims, builds, launches and colonises at 390×844", async () => {
+    const p = await keyboardPlayer("lima", "Eastern Europe", { width: 390, height: 844 });
+    await coreLoopByKeyboard(p, "Eastern Europe", "Western Russia", "Mare Tranquillitatis");
+    await p.close();
+  }, 240_000);
 });
