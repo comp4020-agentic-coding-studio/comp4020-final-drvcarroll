@@ -18,6 +18,12 @@ describe("observe: sensors, Envoys and fog (game-design.md §11)", () => {
     expect(w.fleets).toEqual([]);
   });
 
+  it("lists your own marches, never a rival's", () => {
+    const s = ok(setup(), "n_1", { type: "march", from: "r_canada", to: "r_us_east", count: 1 });
+    expect(observe(s, "n_1").you!.marches).toEqual([{ from: "r_canada", to: "r_us_east", count: 1, arriveAt: s.t + 30_000 }]);
+    expect(observe(s, "n_2").you!.marches).toEqual([]);
+  });
+
   it("gives an Envoy territory and fleets, never buildings", () => {
     let s = setup();
     s.nations.n_1.techs = ["science.1", "science.2"];

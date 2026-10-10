@@ -519,6 +519,7 @@ interface PrivateState {
   queues: Record<Id, { item: string; startAt: Ms; finishAt: Ms; slot?: number }[]>; // slot: pinned by replace
   trades: TradeOffer[];    // offers you sent or received
   envoys: { nation: Id; since: Ms }[]; // Envoy relationships you maintain (private: targets are never public)
+  marches: { from: Id; to: Id; count: number; arriveAt: Ms }[]; // your Armies on the move (empire menu)
 }
 
 interface TradeOffer { id: Id; from: Id; to: Id; give: Goods; get: Goods; expiresAt: Ms }

@@ -70,6 +70,7 @@ function privateState(s: State, n: NationState): PrivateState {
       .map((r) => [r.id, r.queue.map(({ item, startAt, finishAt, slot }) => ({ item, startAt, finishAt, ...(slot === undefined ? {} : { slot }) }))])),
     trades: Object.values(s.offers).filter((o) => o.from === n.id || o.to === n.id).map((o) => ({ ...o })),
     envoys: n.envoys.map((x) => ({ ...x })),
+    marches: s.events.flatMap((e) => (e.kind === "march" && e.nation === n.id ? [{ from: e.from, to: e.to, count: e.count, arriveAt: e.at }] : [])),
   };
 }
 

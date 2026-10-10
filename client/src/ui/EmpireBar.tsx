@@ -1,53 +1,82 @@
-// game-design.md §12 empire bar: every region you hold, grouped by body. The
-// selected one drops down to its slots and output; a second click flies
-// there. Doubles as the keyboard route into the map (goals.md P7).
+// game-design.md §12 empire menu: Territory, Armies, Fleets, Tech tree. A
+// region drops down to its slots and output; a second click flies there.
+// Doubles as the keyboard route into the map (goals.md P7).
+import type { ComponentChildren } from "preact";
 import { useState } from "preact/hooks";
-import { BODIES, BUILDINGS, REGIONS, RESOURCES, UNITS, type Building, type Resource, type Unit } from "../../../rules/data/index.ts";
+import { BODIES, BUILDINGS, REGIONS, RESOURCES, RUNGS, type Building, type Resource } from "../../../rules/data/index.ts";
 import { slotsOf } from "../../../rules/economy.ts";
 import type { Region } from "../../../rules/index.ts";
-import { bodyName, dur, perDay } from "../format.ts";
+import { bodyName, dur, perDay, regionName } from "../format.ts";
 import { eco, mirror } from "../mirror.ts";
-import { clock, me, selFleet, selRegion, world, you } from "../store.ts";
+import { clock, drawer, me, selFleet, selRegion, world, you } from "../store.ts";
+import { Progress } from "./common.tsx";
+import { BuildingIcon, ResIcon, UnitIcon, Units } from "./icons.tsx";
 import { focusOn, picked, selectFleet } from "./SceneHost.tsx";
-import { ResIcon } from "./icons.tsx";
 import { Tutorial } from "./Side.tsx";
 
 export function EmpireBar() {
-  const w = world.value!;
+  const w = world.value!, y = you.value!, t = clock.value;
   const [open, setOpen] = useState(innerWidth > 720);
   const [all, setAll] = useState(false);
   const mine = w.regions.filter((r) => r.owner === me.value);
   const byBody: Record<string, Region[]> = {};
   for (const r of mine) (byBody[r.body] ??= []).push(r);
   const fleets = w.fleets.filter((f) => f.owner === me.value);
+  const garrisons = mine.filter((r) => r.armies);
+  const armies = garrisons.reduce((a, r) => a + r.armies!, 0) + y.marches.reduce((a, m) => a + m.count, 0);
+  const tech = drawer.value === "tech";
   return (
     <nav class={`hud empire ${open ? "" : "closed"}`} aria-label="Your empire">
       <button class="hud-title" aria-expanded={open} onClick={() => setOpen(!open)}>Empire {open ? "▾" : "▸"}</button>
       {open && (
         <div class="scroll">
-          <h4>Territory <small>{mine.length}</small></h4>
-          <ul class="list tight">
-            {Object.entries(byBody).map(([body, rs]) => (
-              <li key={body}>
-                <button class="row body" onClick={() => focusOn(body)}><b>{bodyName(body)}</b><small>{rs.length}</small></button>
-                <ul class="list tight sub">
-                  {rs.map((r) => <RegionRow key={r.id} r={r} />)}
-                </ul>
-              </li>
-            ))}
-          </ul>
-          <h4>Fleets <small>{fleets.length || ""}</small></h4>
-          {fleets.length === 0 && <p class="hint">None yet.</p>}
-          <ul class="list tight">
-            {fleets.map((f) => (
-              <li key={f.id}>
-                <button class={`row ${selFleet.value === f.id ? "on" : ""}`} onClick={() => selectFleet(f.id)}>
-                  <span>{(Object.entries(f.units) as [Unit, number][]).map(([u, n]) => `${n} ${UNITS[u].name}`).join(", ")}</span>
-                  <small>{f.transit ? `→ ${bodyName(f.transit.to)} ${dur(f.transit.arriveAt - clock.value)}` : `@ ${bodyName(f.at!)}`}</small>
-                </button>
-              </li>
-            ))}
-          </ul>
+          <Sec label="Territory" count={mine.length} start>
+            <ul class="list tight">
+              {Object.entries(byBody).map(([body, rs]) => (
+                <li key={body}>
+                  <button class="row body" onClick={() => focusOn(body)}><b>{bodyName(body)}</b><small>{rs.length}</small></button>
+                  <ul class="list tight sub">{rs.map((r) => <RegionRow key={r.id} r={r} />)}</ul>
+                </li>
+              ))}
+            </ul>
+          </Sec>
+          <Sec label="Armies" count={armies}>
+            {armies === 0 && <p class="hint">None. Train them in any region you hold.</p>}
+            <ul class="list tight">
+              {garrisons.map((r) => (
+                <li key={r.id}>
+                  <button class={`row ${selRegion.value === r.id ? "on" : ""}`} onClick={() => focusOn(r.body, r.id)}>
+                    {regionName(r.id)}<span class="amt">{r.armies}<UnitIcon unit="army" /></span>
+                  </button>
+                </li>
+              ))}
+              {y.marches.map((m) => (
+                <li key={`${m.from}${m.to}${m.arriveAt}`}>
+                  <button class="row" onClick={() => focusOn(REGIONS[m.to].body, m.to)}>
+                    <span>→ {regionName(m.to)}</span><small>{m.count}<UnitIcon unit="army" /> {dur(m.arriveAt - t)}</small>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </Sec>
+          <Sec label="Fleets" count={fleets.length}>
+            {fleets.length === 0 && <p class="hint">None yet: build one at a Spaceport.</p>}
+            <ul class="list tight">
+              {fleets.map((f) => (
+                <li key={f.id}>
+                  <button class={`row ${selFleet.value === f.id ? "on" : ""}`} onClick={() => selectFleet(f.id)}>
+                    <Units units={f.units} />
+                    <small>{f.transit ? `→ ${bodyName(f.transit.to)} ${dur(f.transit.arriveAt - t)}` : `@ ${bodyName(f.at!)}`}</small>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </Sec>
+          <button class={`sec-head ${tech ? "on" : ""}`} aria-pressed={tech} onClick={() => (drawer.value = tech ? null : "tech")}>
+            <span>Tech tree</span>
+            <small>{y.research ? `${RUNGS[y.research.tech].name} ${dur(y.research.finishAt - t)}` : `${y.techs.length} of ${Object.keys(RUNGS).length}`}</small>
+          </button>
+          {y.research && <Progress start={y.research.startAt} end={y.research.finishAt} label="Research progress" />}
           <Tutorial />
           <button class="hud-title small" aria-expanded={all} onClick={() => setAll(!all)}>All bodies {all ? "▾" : "▸"}</button>
           {all && (
@@ -63,6 +92,18 @@ export function EmpireBar() {
   );
 }
 
+function Sec({ label, count, start, children }: { label: string; count: number; start?: boolean; children: ComponentChildren }) {
+  const [open, setOpen] = useState(!!start);
+  return (
+    <section class="sec">
+      <button class="sec-head" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <span>{label}</span><small>{count || ""} {open ? "▾" : "▸"}</small>
+      </button>
+      {open && children}
+    </section>
+  );
+}
+
 function RegionRow({ r }: { r: Region }) {
   const on = selRegion.value === r.id;
   const total = mirror.value ? slotsOf(mirror.value, r.id) : 0;
@@ -70,14 +111,14 @@ function RegionRow({ r }: { r: Region }) {
     <li>
       <button class={`row ${on ? "on" : ""}`} aria-expanded={on} title={on ? "Fly there" : "Show slots and output"}
         onClick={() => (on ? focusOn(r.body, r.id) : picked(r.body, r.id))}>
-        {REGIONS[r.id].name}<small>{r.buildings?.length ?? 0}/{total} ▣ ⚔{r.armies ?? 0}</small>
+        {REGIONS[r.id].name}<small>{r.buildings?.length ?? 0}/{total}</small>
       </button>
       {on && <Drop r={r} total={total} />}
     </li>
   );
 }
 
-// Slots (built, under construction, empty) and the region's flows per day.
+// Slots as small icons (built, under construction, empty), and flows per day.
 function Drop({ r, total }: { r: Region; total: number }) {
   const built = r.buildings ?? [];
   const building = (you.value?.queues[r.id] ?? []).filter((q) => q.item in BUILDINGS);
@@ -89,21 +130,15 @@ function Drop({ r, total }: { r: Region; total: number }) {
   return (
     <div class="drop">
       <ul class="slots" aria-label="Building slots">
-        {built.map((b, i) => (
-          <li key={i} class="slot">{b.type === "powerPlant" ? `${cap(b.mode ?? "solar")} plant` : BUILDINGS[b.type].name}</li>
-        ))}
-        {building.map((q) => (
-          <li key={q.startAt} class="slot busy">{BUILDINGS[q.item as Building].name}<small> {dur(q.finishAt - clock.value)}</small></li>
-        ))}
-        {Array.from({ length: free }, (_, i) => <li key={`e${i}`} class="slot empty">Empty slot</li>)}
+        {[...built].sort((a, b) => a.slot - b.slot).map((b) => <li key={b.slot} class="slot"><BuildingIcon type={b.type} mode={b.mode} size={24} /></li>)}
+        {building.map((q) => <li key={q.startAt} class="slot busy"><BuildingIcon type={q.item as Building} size={24} /></li>)}
+        {Array.from({ length: free }, (_, i) => <li key={`e${i}`} class="slot empty"><span class="sr">Empty slot</span></li>)}
       </ul>
       <Flows label="Output" items={sum(1)} />
       <Flows label="Upkeep" items={sum(-1)} />
     </div>
   );
 }
-
-const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 
 function Flows({ label, items }: { label: string; items: [Resource, number][] }) {
   if (!items.length) return null;

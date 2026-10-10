@@ -37,13 +37,16 @@ export function TechPanel() {
               {rungs.map((rung, i) => {
                 const held = y.techs.includes(rung.id);
                 const active = r?.tech === rung.id;
+                const next = i === rungs.findIndex((x) => !y.techs.includes(x.id));
+                const cost = <Amt res="R" v={n ? techCost(n, rung.id) : TECH.costs[i]} />;
                 return (
-                  <li key={rung.id} class={held ? "held" : active ? "active" : ""}>
+                  <li key={rung.id} class={held ? "held" : active ? "active" : next ? "next" : "locked"}>
                     <b>{i + 1}. {rung.name}</b>
                     <small>{rung.desc}</small>
                     {held ? <span class="tag">Researched</span>
                       : active ? <span class="tag">In progress</span>
-                      : <Action kind="quiet" cmd={{ type: "research", tech: rung.id }}>Research · <Amt res="R" v={n ? techCost(n, rung.id) : TECH.costs[i]} /></Action>}
+                      : next ? <Action kind="quiet" cmd={{ type: "research", tech: rung.id }}>Research · {cost}</Action>
+                      : <small class="muted">{cost}</small>}
                   </li>
                 );
               })}

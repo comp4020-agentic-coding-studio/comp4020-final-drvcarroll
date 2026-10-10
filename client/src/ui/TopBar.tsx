@@ -1,5 +1,5 @@
 // The HUD's top strip: empire totals with per-day gains and their
-// breakdowns, date, timers, and the drawers (game-design.md §12).
+// breakdowns, date, timers, Empires (game-design.md §12).
 import { useEffect, useState } from "preact/hooks";
 import { RESOURCES, RESOURCE_NAMES, type Resource } from "../../../rules/data/index.ts";
 import { dur, gameDate, num, perDay, signed, sourceName } from "../format.ts";
@@ -9,7 +9,7 @@ import { ResIcon } from "./icons.tsx";
 import { scene } from "./SceneHost.tsx";
 
 const STATUS = { connecting: "Connecting…", open: "Live", reconnecting: "Reconnecting…", "signed-out": "Signed out" };
-const DRAWERS: [Drawer, string][] = [["tech", "Tech"], ["empires", "Empires"], ["trade", "Trade"]];
+const DRAWERS: [Drawer, string][] = [["empires", "Empires"]];
 
 export function TopBar({ user }: { user: string }) {
   const y = you.value, sz = season.value, n = myNation.value, t = clock.value;

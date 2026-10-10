@@ -95,6 +95,7 @@ export interface PrivateState {
   queues: Record<Id, QueueEntry[]>;
   trades: TradeOffer[];
   envoys: { nation: Id; since: Ms }[];
+  marches: { from: Id; to: Id; count: number; arriveAt: Ms }[]; // your Armies on the move
 }
 
 export interface VisibleWorld {

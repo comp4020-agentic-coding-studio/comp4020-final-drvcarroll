@@ -4,7 +4,7 @@ import type { Command, Id, NationPublic, PrivateState, Season, VisibleWorld } fr
 
 export type Conn = "connecting" | "open" | "reconnecting" | "signed-out";
 export interface Toast { id: number; text: string; kind: "error" | "info" }
-export type Drawer = "tech" | "empires" | "trade";
+export type Drawer = "tech" | "empires";
 
 export const world = signal<VisibleWorld | null>(null);
 export const you = signal<PrivateState | null>(null);

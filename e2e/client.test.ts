@@ -106,7 +106,8 @@ describe("the map is the screen (goals.md P10)", () => {
   it("drops a region down to its slots and output, and breaks a gain down per day", async () => {
     const p = await player("golf", "Canada");
     await p.locator(".empire .list.sub button.row", { hasText: "Canada" }).click();
-    expect(await p.locator(".drop .slot").allInnerTexts()).toEqual(["Solar plant", "Mine", "Refinery", "Lab"]);
+    const slots = await p.locator(".drop .slot svg").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
+    expect(slots).toEqual(["Solar Power Plant", "Mine", "Refinery", "Lab"]);
     expect(await p.locator(".drop .flows").first().innerText()).toMatch(/\+0\.13/); // 7.8 Metals/min
     expect(await p.locator(".drop .flows svg[aria-label=Metals]").count()).toBe(1);
     await p.locator(".stocks button.gain").nth(1).click();
