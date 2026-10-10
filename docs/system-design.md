@@ -83,10 +83,15 @@ snapshots  (season_id, seq, at, rules_version, state BLOB)
 
 ### Write path
 
-1. Command arrives; `rules.apply(state, nation, cmd, now)` validates it.
-2. Rejected: reply with the reason. Nothing is stored.
-3. Accepted: `INSERT` into `commands` (WAL, synchronous, sub-millisecond),
-   then swap in the new state, broadcast, acknowledge.
+1. Commands queue as they arrive; each tick applies them in arrival order
+   with `applyInPlace` (the server owns its state), inside one transaction.
+2. Rejected: the state is left as an advance alone would leave it, and the
+   reason goes back. Nothing is stored.
+3. Accepted: `INSERT` into `commands`. The tick's transaction commits
+   (WAL, `synchronous = FULL`: one fsync per tick, not per command) before
+   anyone hears of any of it; then results and changes broadcast. If the
+   commit fails, the world rebuilds from the log and the tick's accepted
+   commands report a failure, so state and log never disagree.
 
 ### Boot path
 
@@ -255,7 +260,10 @@ showcase would otherwise need ~500 MB.
   is exactly what replay builds. Rules callers that share state keep the
   copying `apply`.
 - One settled view and one scoring per tick, shared by every client's
-  `observe`, not one each.
+  `observe` through a `ViewCache`: every nation that sees a region, fleet
+  or nation alike gets the same object, so the hub serialises it once
+  (identity-keyed). Economies are memoised while the view is frozen
+  (`frozen()` in `rules/economy.ts`).
 - `advance` and `settle` return at once when time hasn't moved and nothing
   is due, so a burst of commands in one tick doesn't rerun every economy.
 
