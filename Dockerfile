@@ -20,4 +20,4 @@ COPY server server
 COPY --from=build /app/client/dist client/dist
 COPY README.md ./
 ENV NODE_ENV=production DATA_DIR=/data
-CMD ["node", "--max-old-space-size=160", "--disable-warning=ExperimentalWarning", "server/main.ts"]
+CMD ["node", "--max-old-space-size=160", "--max-semi-space-size=4", "--disable-warning=ExperimentalWarning", "server/main.ts"]

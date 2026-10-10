@@ -15,7 +15,8 @@
     "build": "vite build --config client/vite.config.ts",
     "dev": "vite build --watch --config client/vite.config.ts & node --watch --disable-warning=ExperimentalWarning server/main.ts",
     "test:e2e": "vite build --config client/vite.config.ts && vitest run --project e2e",
-    "worlds": "node --disable-warning=ExperimentalWarning scripts/worlds.ts"
+    "worlds": "node --disable-warning=ExperimentalWarning scripts/worlds.ts",
+    "load": "node --disable-warning=ExperimentalWarning sim/load.ts"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.6",

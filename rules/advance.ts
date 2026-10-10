@@ -15,6 +15,8 @@ const earliest = (es: GameEvent[]) =>
 // Stocks integrate only between events, never to a bare time, so replay
 // (command to command) and live play (every tick) give identical floats.
 export function advance(s: State, t: Ms): void {
+  // Already there with nothing due: the loop below would find nothing.
+  if (t <= s.t && !s.events.some((e) => e.at <= t)) return;
   for (;;) {
     if (s.season.status === "ended") {
       s.t = Math.max(s.t, t);
@@ -58,7 +60,7 @@ export function advance(s: State, t: Ms): void {
 // Brings stocks up to s.t: done at each command, identically live and on replay.
 // After the season ends, stocks stay frozen.
 export function settle(s: State): void {
-  if (s.season.status === "ended") return;
+  if (s.season.status === "ended" || s.stocksAt === s.t) return;
   const ecos: Record<Id, Economy> = {};
   for (const n of Object.values(s.nations)) if (n.joined) ecos[n.id] = economy(s, n.id);
   integrate(s, ecos, s.t - s.stocksAt);

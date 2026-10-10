@@ -1,7 +1,7 @@
 // system-design.md §4, §5: the in-memory world, its command log, snapshots
 // and seasons. Durable write before the new state is swapped in.
 import {
-  RULES_VERSION, advanceTo, apply, newSeason, type Command, type CommandResult, type Id, type Ms, type State,
+  RULES_VERSION, advance, applyInPlace, newSeason, type Command, type CommandResult, type Id, type Ms, type State,
 } from "../rules/index.ts";
 import type { Db } from "./db.ts";
 
@@ -10,6 +10,7 @@ export const nationOf = (userId: number): Id => `n_${userId}`;
 export interface HallEntry { season: Id; endedAt: Ms; winner: string | null }
 
 export class World {
+  appends: number[] = []; // recent command-log insert times, ms (S4)
   state: State | null = null;
   private lastSeq = 0;
   private dirty = false;
@@ -26,15 +27,14 @@ export class World {
     const snap = this.db.prepare(
       "SELECT seq, rules_version, state FROM snapshots WHERE season_id = ? ORDER BY seq DESC LIMIT 1",
     ).get(season.id) as { seq: number; rules_version: string; state: string } | undefined;
-    let s = snap ? (JSON.parse(snap.state) as State) : newSeason(season.id, season.started_at);
+    const s = snap ? (JSON.parse(snap.state) as State) : newSeason(season.id, season.started_at);
     this.lastSeq = snap?.seq ?? 0;
     const rows = this.db.prepare(
       "SELECT seq, nation_id, at, payload FROM commands WHERE season_id = ? AND seq > ? ORDER BY seq",
     ).all(season.id, this.lastSeq) as { seq: number; nation_id: string; at: number; payload: string }[];
     for (const r of rows) {
-      const res = apply(s, r.nation_id, JSON.parse(r.payload), r.at);
-      if (!res.ok) throw new Error(`replay diverged at command ${r.seq}: ${res.reason}`);
-      s = res.state;
+      const bad = applyInPlace(s, r.nation_id, JSON.parse(r.payload), r.at);
+      if (bad) throw new Error(`replay diverged at command ${r.seq}: ${bad.reason}`);
       this.lastSeq = r.seq;
     }
     this.state = s;
@@ -55,7 +55,7 @@ export class World {
   advance(now: Ms): void {
     if (!this.state) return;
     const wasRunning = this.state.season.status === "running";
-    this.state = advanceTo(this.state, now);
+    advance(this.state, now); // the server owns its state: no copy (S2)
     const s = this.state.season;
     if (wasRunning && s.status === "ended") {
       this.db.prepare("UPDATE seasons SET ended_at = ?, winner_nation_id = ? WHERE id = ?")
@@ -74,13 +74,15 @@ export class World {
       ).get(s.season.id, nation, clientId) as { result: string } | undefined;
       if (seen) return { id, ...JSON.parse(seen.result) };
     }
-    const r = apply(s, nation, cmd, at);
-    if (!r.ok) return { id, ok: false, code: r.code, reason: r.reason };
+    const bad = applyInPlace(s, nation, cmd, at);
+    if (bad) return { id, ok: false, code: bad.code, reason: bad.reason };
+    const t0 = performance.now();
     const ins = this.db.prepare(
       "INSERT INTO commands (season_id, nation_id, at, type, payload, result, client_cmd_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
     ).run(s.season.id, nation, at, cmd.type, JSON.stringify(cmd), JSON.stringify({ ok: true }), clientId);
+    this.appends.push(performance.now() - t0);
+    if (this.appends.length > 500) this.appends.shift();
     this.lastSeq = Number(ins.lastInsertRowid);
-    this.state = r.state;
     this.dirty = true;
     if (cmd.type === "setEmpire") this.recordEmpire(nation, cmd);
     return { id, ok: true };

@@ -8,7 +8,7 @@ import { isRejection } from "./check.ts";
 import { settled } from "./advance.ts";
 import { check } from "./commands.ts";
 import { capOf, economy, owned } from "./economy.ts";
-import type { Command, Fleet, Id, NationPublic, PrivateState, Region, VisibleWorld } from "./protocol.ts";
+import type { Command, Fleet, Id, NationPublic, PrivateState, Region, Score, VisibleWorld } from "./protocol.ts";
 import { scores } from "./score.ts";
 import type { FleetState, NationState, State } from "./state.ts";
 
@@ -28,7 +28,8 @@ export function vision(s: State, nation: Id | null) {
   return { sensors, envoys };
 }
 
-export function observe(state: State, nation: Id | null): { world: VisibleWorld; you: PrivateState | null } {
+// `sc` lets a caller showing many nations the same state score it once.
+export function observe(state: State, nation: Id | null, sc?: Record<Id, Score>): { world: VisibleWorld; you: PrivateState | null } {
   const s = settled(state);
   const { sensors, envoys } = vision(s, nation);
   const me = nation ? s.nations[nation] : undefined;
@@ -49,7 +50,7 @@ export function observe(state: State, nation: Id | null): { world: VisibleWorld;
     regions,
     fleets,
     wars: Object.values(s.wars).map((w) => ({ ...w })),
-    scores: scores(s),
+    scores: sc ?? scores(s),
     presence: [],
     news: [...s.news],
   };

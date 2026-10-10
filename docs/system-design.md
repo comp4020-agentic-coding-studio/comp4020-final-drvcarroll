@@ -244,13 +244,25 @@ what fleets are there, never a rival's stockpile.
 | scrypt | 16 MB per hash, **at most 2 concurrent** (queue the rest) |
 | Headroom | ~100 MB |
 
-Node runs with `--max-old-space-size=160`. The scrypt limit matters: 30
-people signing up at once at the showcase would otherwise need ~500 MB.
+Node runs with `--max-old-space-size=160 --max-semi-space-size=4` (the
+small young generation trims ~30 MB of RSS; the JS heap itself is ~20 MB at
+30 clients). The scrypt limit matters: 30 people signing up at once at the
+showcase would otherwise need ~500 MB.
+
+**CPU per tick** (measured by `pnpm load`, `docs/measurements.md`):
+- The server owns its state, so it advances and applies commands in place
+  (`applyInPlace`); a rejection restores the stocks it settled, so the state
+  is exactly what replay builds. Rules callers that share state keep the
+  copying `apply`.
+- One settled view and one scoring per tick, shared by every client's
+  `observe`, not one each.
+- `advance` and `settle` return at once when time hasn't moved and nothing
+  is due, so a burst of commands in one tick doesn't rerun every economy.
 
 **Static assets:**
 - Content-hashed names with `Cache-Control: immutable`; Brotli precompressed
   at build.
-- Textures ship in the image (~40 MB) and download once per visitor.
+- Planet maps ship in the image (6.6 MB of WebP) and download once per visitor.
 - Fly egress costs a few cents per GB.
 
 ## 8. Client rendering budget

@@ -183,8 +183,11 @@ export function start(o: ServerOptions): Promise<Running> {
   const now = o.now ?? (() => Date.now());
   const db = openDb(o.dataDir);
   const world = new World(db);
+  const t0 = performance.now();
   world.boot(now());
+  const bootMs = performance.now() - t0;
   const hub = new Hub(world, o.build ?? "dev", now, o.log ?? new Log());
+  hub.log.write({ ts: now(), action: "boot", result: "ok", ms: Number(bootMs.toFixed(1)) }); // S5
   const app = createApp(db, world, hub, { secureCookies: o.secureCookies ?? false, now, admins: o.admins ?? [] });
   const snapshots = setInterval(() => world.snapshot(), 60_000);
   snapshots.unref();

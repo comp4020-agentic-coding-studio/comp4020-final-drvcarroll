@@ -21,7 +21,9 @@ export interface Stats {
   rejections: Record<string, number>;
   recent: Line[];
   tickMs: { p50: number; p99: number };
+  appendMs: { p99: number };
   rssMb: number;
+  heapMb: number;
 }
 
 const RECENT = 30;
@@ -48,7 +50,7 @@ export class Log {
   write(line: Line): void {
     this.sink(JSON.stringify(line));
     this.recent = [line, ...this.recent].slice(0, RECENT);
-    if (line.ms !== undefined) {
+    if (line.nation && line.ms !== undefined) { // a game command
       this.commands.push(line.ts);
       if (line.result !== "ok") this.rejections[line.result] = (this.rejections[line.result] ?? 0) + 1;
     }
@@ -59,13 +61,17 @@ export class Log {
     if (this.ticks.length > TICKS) this.ticks.shift();
   }
 
-  stats(now: number, online: string[], sockets: number): Stats {
+  stats(now: number, online: string[], sockets: number, appends: number[] = []): Stats {
     this.commands = this.commands.filter((t) => t > now - 60_000);
-    const sorted = [...this.ticks].sort((a, b) => a - b);
-    const q = (p: number) => sorted.length ? Number(sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))].toFixed(2)) : 0;
+    const q = (xs: number[], p: number) => {
+      const s = [...xs].sort((a, b) => a - b);
+      return s.length ? Number(s[Math.min(s.length - 1, Math.floor(p * s.length))].toFixed(2)) : 0;
+    };
+    const mem = process.memoryUsage();
     return {
       at: now, online, sockets, commandsPerMin: this.commands.length, rejections: { ...this.rejections },
-      recent: this.recent, tickMs: { p50: q(0.5), p99: q(0.99) }, rssMb: Math.round(process.memoryUsage().rss / 2 ** 20),
+      recent: this.recent, tickMs: { p50: q(this.ticks, 0.5), p99: q(this.ticks, 0.99) }, appendMs: { p99: q(appends, 0.99) },
+      rssMb: Math.round(mem.rss / 2 ** 20), heapMb: Math.round(mem.heapUsed / 2 ** 20),
     };
   }
 }

@@ -4,7 +4,8 @@
 import type { IncomingMessage } from "node:http";
 import type { Duplex } from "node:stream";
 import { WebSocketServer, type WebSocket } from "ws";
-import { observe, type Command, type CommandResult, type Id, type PrivateState, type VisibleWorld } from "../rules/index.ts";
+import { observe, settled, type Command, type CommandResult, type Id, type PrivateState, type Score, type State, type VisibleWorld } from "../rules/index.ts";
+import { scores } from "../rules/score.ts";
 import type { User } from "./auth.ts";
 import { Log, targetOf, type Stats } from "./log.ts";
 import { parseMessage } from "./schema.ts";
@@ -53,7 +54,7 @@ export class Hub {
 
   stats(): Stats {
     const names = this.online.map((id) => this.world.state?.nations[id]?.name ?? id);
-    return this.log.stats(this.now(), names, this.clients.size);
+    return this.log.stats(this.now(), names, this.clients.size, this.world.appends);
   }
 
   get online(): Id[] {
@@ -88,7 +89,10 @@ export class Hub {
     ws.on("close", () => {
       this.clients.delete(c);
       this.log.write({ ts: this.now(), user: user.username, nation, action: "disconnect", result: "ok" });
-      if (!this.clients.size) this.stopTicking();
+      if (!this.clients.size) {
+        this.stopTicking();
+        this.log.write({ ts: this.now(), action: "idle", result: "ok" }); // S2: no work with nobody here
+      }
     });
     this.startTicking();
   }
@@ -134,9 +138,11 @@ export class Hub {
       c.results.push(r);
       this.logCommand(c, cmd, r, performance.now() - t0);
     }
+    const view = this.world.state && settled(this.world.state); // one copy and one scoring per tick, not per client
+    const sc = view ? scores(view) : undefined;
     for (const c of this.clients) {
       c.queued = 0;
-      const msg = this.diff(c, now);
+      const msg = this.diff(c, now, view, sc);
       c.results = [];
       if (c.ws.readyState === c.ws.OPEN) c.ws.send(json(msg));
     }
@@ -150,14 +156,14 @@ export class Hub {
     });
   }
 
-  private view(c: Client): { world: VisibleWorld; you: PrivateState | null } {
-    const v = observe(this.world.state!, this.world.state!.nations[c.nation] ? c.nation : null);
+  private view(c: Client, s = this.world.state!, sc?: Record<Id, Score>): { world: VisibleWorld; you: PrivateState | null } {
+    const v = observe(s, s.nations[c.nation] ? c.nation : null, sc);
     v.world.presence = this.online;
     return v;
   }
 
-  private diff(c: Client, at: number): Record<string, unknown> {
-    const { world, you } = this.view(c);
+  private diff(c: Client, at: number, s?: State | null, sc?: Record<Id, Score>): Record<string, unknown> {
+    const { world, you } = this.view(c, s ?? undefined, sc);
     const msg: Record<string, unknown> = { t: "tick", n: this.n, at };
     if (c.results.length) msg.results = c.results;
     const changes: Record<string, unknown[]> = {};

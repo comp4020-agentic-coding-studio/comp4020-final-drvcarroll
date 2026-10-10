@@ -30,6 +30,22 @@ export function apply(state: State, nation: Id, cmd: Command, at: Ms): ApplyResu
   return { ok: true, state: s };
 }
 
+// apply() for a sole owner of the state (the server): mutates it, no copy.
+// A rejection leaves it exactly as an advance alone would, as on replay.
+export function applyInPlace(s: State, nation: Id, cmd: Command, at: Ms): Rejection | null {
+  advance(s, at);
+  const stocksAt = s.stocksAt;
+  const stocks = Object.values(s.nations).map((n) => [n, { ...n.stocks }] as const);
+  settle(s);
+  const plan = check(s, nation, cmd);
+  if (!isRejection(plan)) return (plan(), null);
+  s.stocksAt = stocksAt;
+  for (const [n, st] of stocks) n.stocks = st;
+  return plan;
+}
+
+export { advance } from "./advance.ts";
+
 // Why a command would be rejected right now, or null if it would apply.
 export function validate(state: State, nation: Id, cmd: Command): Rejection | null {
   const plan = check(settled(state), nation, cmd);
