@@ -28,10 +28,11 @@ export function Selection() {
   );
 }
 
-function Header({ title, sub, onClose }: { title: string; sub?: string; onClose?: () => void }) {
+// A designation strip over the title: the console's read-out of the target.
+function Header({ title, sub, desig, onClose }: { title: string; sub?: string; desig: string; onClose?: () => void }) {
   return (
     <header class="sel-head">
-      <div><h2>{title}</h2>{sub && <small>{sub}</small>}</div>
+      <div><span class="desig">{desig}</span><h2>{title}</h2>{sub && <small>{sub}</small>}</div>
       {onClose && <button class="icon" aria-label="Close" onClick={onClose}>✕</button>}
     </header>
   );
@@ -44,7 +45,7 @@ function BodyView({ id }: { id: string }) {
   const fleets = w.fleets.filter((x) => x.at === id);
   return (
     <>
-      <Header onClose={() => (selBody.value = null)} title={b.name} sub={`${b.zone[0].toUpperCase()}${b.zone.slice(1)} zone · ${regions.length} region${regions.length > 1 ? "s" : ""}${b.fusionBonus ? " · Fusion +50%" : ""}`} />
+      <Header onClose={() => (selBody.value = null)} desig={`Sector // ${b.zone}`} title={b.name} sub={`${b.zone[0].toUpperCase()}${b.zone.slice(1)} zone · ${regions.length} region${regions.length > 1 ? "s" : ""}${b.fusionBonus ? " · Fusion +50%" : ""}`} />
       <p class="hint">
         {b.zone === "terrestrial" ? "Unclaimed Earth regions are settled by marching an Army in." : "Claimed with a Colony Ship; each region costs 1 Materiel/min to hold."}
         {" "}Click a region on the globe, or below.
@@ -81,7 +82,7 @@ function RegionView({ id }: { id: string }) {
   const sensed = r.buildings !== undefined;
   return (
     <>
-      <Header title={rd.name} sub={bodyName(rd.body)} onClose={() => (selRegion.value = null)} />
+      <Header desig={`Sector // ${bodyName(rd.body)} · ${mine ? "held" : r.owner ? "foreign" : sensed ? "unclaimed" : "no sensor"}`} title={rd.name} sub={bodyName(rd.body)} onClose={() => (selRegion.value = null)} />
       <p class="yields">
         {sensed || r.owner ? <Chip id={r.owner} /> : <span class="muted">No sensor here</span>}
         <span class="goods">
@@ -403,7 +404,7 @@ function FleetView({ f }: { f: Fleet }) {
   const mineFleet = f.owner === me.value;
   return (
     <>
-      <Header title={mineFleet ? "Your fleet" : "Fleet"} sub={f.transit ? `${bodyName(f.transit.from)} → ${bodyName(f.transit.to)}` : `In orbit at ${bodyName(f.at!)}`} onClose={() => (selFleet.value = null)} />
+      <Header desig={`Fleet // ${f.id}${f.transit ? " · in transit" : ""}`} title={mineFleet ? "Your fleet" : "Fleet"} sub={f.transit ? `${bodyName(f.transit.from)} → ${bodyName(f.transit.to)}` : `In orbit at ${bodyName(f.at!)}`} onClose={() => (selFleet.value = null)} />
       {!mineFleet && <p><Chip id={f.owner} /></p>}
       <p><Units units={f.units} /></p>
       {f.transit && (

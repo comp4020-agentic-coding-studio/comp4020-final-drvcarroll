@@ -143,6 +143,19 @@ const PAGES: Record<Page, { title: string; body: () => ComponentChildren }> = {
   },
 };
 
+// game-design.md §12: imagery credits (CC BY needs them shown).
+function Credits() {
+  return (
+    <footer class="credits" id="credits">
+      Planet and Moon maps: <a href="https://www.solarsystemscope.com/textures/">Solar System Scope</a>, CC BY 4.0, resized.
+      Moon and dwarf-planet mosaics: <a href="https://astrogeology.usgs.gov/">USGS Astrogeology</a> (NASA Galileo, Voyager, Cassini, Dawn,
+      Viking, New Horizons), public domain, resized and tinted. Ceres, Enceladus, Titania, Oberon: NASA/JPL via Wikimedia Commons, public
+      domain. Deimos: Oleg-Pluton, <a href="https://commons.wikimedia.org/wiki/File:Deimos_color_map.jpg">CC BY-SA 3.0</a>. Borders:
+      {" "}<a href="https://www.naturalearthdata.com/">Natural Earth</a>, public domain. Feature positions: USGS Gazetteer of Planetary Nomenclature.
+    </footer>
+  );
+}
+
 export function GuideLink({ page, children = "How?" }: { page: Page; children?: ComponentChildren }) {
   return <button class="link" onClick={() => openGuide(page)}>{children}</button>;
 }
@@ -160,6 +173,7 @@ export function Guide() {
       <article>
         <h3>{p.title}</h3>
         {p.body()}
+        <Credits />
       </article>
     </div>
   );

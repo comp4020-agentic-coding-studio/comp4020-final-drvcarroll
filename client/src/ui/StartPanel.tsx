@@ -19,7 +19,7 @@ export function StartPanel() {
   const sel = selRegion.value && REGIONS[selRegion.value]?.start ? REGIONS[selRegion.value] : null;
   return (
     <aside class="hud selection start" aria-label="Choose where to begin">
-      <header class="sel-head"><div><h2>{eliminated ? "Your nation has fallen" : "Choose where to begin"}</h2>
+      <header class="sel-head"><div><span class="desig">Deployment // Earth</span><h2>{eliminated ? "Your nation has fallen" : "Choose where to begin"}</h2>
         <small>Click a free region on Earth</small></div></header>
       {sel ? (
         <div class="pick">

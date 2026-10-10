@@ -13,7 +13,7 @@ export function Drawer() {
   return (
     <aside class={`hud drawer ${d}`} aria-label={TITLES[d]}>
       <header class="sel-head">
-        <h2>{TITLES[d]}</h2>
+        <div><span class="desig">Command // {d}</span><h2>{TITLES[d]}</h2></div>
         <button class="icon" aria-label="Close" onClick={() => (drawer.value = null)}>✕</button>
       </header>
       <div class="scroll">

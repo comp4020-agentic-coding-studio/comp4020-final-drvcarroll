@@ -63,7 +63,7 @@ export function shellPage(username: string, assets: { js: string; css: string[] 
   const head = assets
     ? [...assets.css.map((h) => `<link rel="stylesheet" href="${h}">`), `<script type="module" src="${assets.js}"></script>`].join("\n")
     : "";
-  const fonts = `<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700&display=swap">`;
+  const fonts = ["rajdhani-600", "share-tech-mono"].map((f) => `<link rel="preload" href="/static/fonts/${f}.woff2" as="font" type="font/woff2" crossorigin>`).join("");
   return page("Grow", `
 <div id="app" data-user="${esc(username)}">
   <p class="narrow">${assets ? "Connecting…" : "The client isn't built: run <code>pnpm build</code>."}</p>

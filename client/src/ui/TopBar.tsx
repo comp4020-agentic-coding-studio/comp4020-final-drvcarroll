@@ -5,6 +5,7 @@ import { RESOURCES, RESOURCE_NAMES, type Resource } from "../../../rules/data/in
 import { dur, gameDate, num, perDay, signed, sourceName } from "../format.ts";
 import { eco } from "../mirror.ts";
 import { clock, conn, drawer, joined, myNation, season, stockNow, you, type Drawer } from "../store.ts";
+import { openGuide } from "./Guide.tsx";
 import { ResIcon } from "./icons.tsx";
 import { scene } from "./SceneHost.tsx";
 
@@ -80,6 +81,7 @@ export function TopBar({ user }: { user: string }) {
         <div>
           <a href="/empire">Empire name and colours</a>
           <a href="/readme/">About the game</a>
+          <button class="quiet" onClick={() => openGuide("resources")}>Guide and credits</button>
           <form method="post" action="/api/logout"><button class="quiet">Sign out</button></form>
         </div>
       </details>
