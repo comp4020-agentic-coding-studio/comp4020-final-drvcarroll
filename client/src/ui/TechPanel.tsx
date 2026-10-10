@@ -1,10 +1,11 @@
 // game-design.md §8: four ladders × six rungs, one research at a time.
 import { LADDERS, RUNGS, TECH, type Ladder } from "../../../rules/data/index.ts";
 import { techCost } from "../../../rules/commands.ts";
-import { dur, num } from "../format.ts";
+import { dur } from "../format.ts";
 import { mirror } from "../mirror.ts";
 import { clock, me, you } from "../store.ts";
 import { Action, Progress } from "./common.tsx";
+import { Amt } from "./icons.tsx";
 
 const BLURB: Record<Ladder, string> = {
   voidcraft: "Faster, better ships. Reach is a cost, never a wall.",
@@ -42,7 +43,7 @@ export function TechPanel() {
                     <small>{rung.desc}</small>
                     {held ? <span class="tag">Researched</span>
                       : active ? <span class="tag">In progress</span>
-                      : <Action kind="quiet" cmd={{ type: "research", tech: rung.id }}>Research · {num(n ? techCost(n, rung.id) : TECH.costs[i])} R</Action>}
+                      : <Action kind="quiet" cmd={{ type: "research", tech: rung.id }}>Research · <Amt res="R" v={n ? techCost(n, rung.id) : TECH.costs[i]} /></Action>}
                   </li>
                 );
               })}

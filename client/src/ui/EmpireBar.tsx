@@ -9,6 +9,7 @@ import { bodyName, dur, perDay } from "../format.ts";
 import { eco, mirror } from "../mirror.ts";
 import { clock, me, selFleet, selRegion, world, you } from "../store.ts";
 import { focusOn, picked, selectFleet } from "./SceneHost.tsx";
+import { ResIcon } from "./icons.tsx";
 import { Tutorial } from "./Side.tsx";
 
 export function EmpireBar() {
@@ -109,7 +110,7 @@ function Flows({ label, items }: { label: string; items: [Resource, number][] })
   return (
     <p class="flows"><small>{label} /day</small>
       {items.map(([res, v]) => (
-        <span key={res}><i class={`res res-${res}`} aria-hidden="true">{res}</i><span class={v < 0 ? "neg" : "pos"}>{perDay(v)}</span></span>
+        <span key={res}><ResIcon res={res} size={14} /><span class={v < 0 ? "neg" : "pos"}>{perDay(v)}</span></span>
       ))}
     </p>
   );

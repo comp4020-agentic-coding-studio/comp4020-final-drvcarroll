@@ -75,9 +75,15 @@ button.gain:hover, button.gain.on { border-color: var(--line-strong); background
 .breakdown td { padding: 3px 0; text-align: right; } .breakdown td:first-child { text-align: left; padding-right: 12px; }
 .breakdown td + td { padding-left: 10px; }
 .breakdown tfoot td { border-top: 1px solid var(--line); font-weight: 600; padding-top: 5px; }
-.res { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 6px; font: 700 10px var(--font); font-style: normal; color: #071018; }
-.res-E { background: #ffd166; } .res-M { background: #b9c4d3; } .res-V { background: #6ee7d7; }
-.res-A { background: #f4a261; } .res-R { background: #b892ff; } .res-Mt { background: #7bd88f; }
+/* icons (game-design.md §12: icons, never letters) */
+.ico { display: block; flex: none; }
+.res-ico, .u-ico { display: inline-flex; vertical-align: -3px; }
+.u-ico { color: var(--accent); }
+.amt { display: inline-flex; align-items: center; gap: 3px; font-variant-numeric: tabular-nums; }
+.amt.short { color: var(--error); }
+.goods { display: inline-flex; flex-wrap: wrap; gap: 4px 10px; }
+.b-ico { position: relative; display: inline-grid; place-items: center; }
+.b-ico .pip { position: absolute; right: -3px; top: -3px; width: 7px; height: 7px; border-radius: 50%; background: var(--good); box-shadow: 0 0 6px var(--good); }
 .neg { color: var(--error); } .pos { color: var(--good); }
 .warn { color: var(--warn); font-weight: 600; }
 .spacer { flex: 1; }
@@ -106,7 +112,6 @@ button.gain:hover, button.gain.on { border-color: var(--line-strong); background
 .flows { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
 .flows > small { width: 100%; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.68rem; }
 .flows span { display: inline-flex; align-items: center; gap: 4px; }
-.flows .res { width: 16px; height: 16px; font-size: 8px; border-radius: 4px; }
 .hud-title { background: none; border: 0; color: var(--muted); text-align: left; padding: 6px 2px; min-height: 36px; text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.72rem; }
 .hud-title.small { margin-top: 8px; }
 .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
@@ -132,9 +137,7 @@ li.item small.inline-small { display: inline; }
 .inline { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 input.count { width: 4.5rem; min-height: 34px; padding: 4px 8px; }
 select { min-height: 34px; }
-.cost span { margin-right: 6px; font-variant-numeric: tabular-nums; font-size: 0.85rem; }
-.cost span.short { color: var(--error); }
-.cost abbr { text-decoration: none; color: var(--muted); font-size: 0.8em; }
+.cost { display: inline-flex; flex-wrap: wrap; gap: 2px 10px; font-size: 0.85rem; }
 dl.facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 10px 0; font-size: 0.9rem; }
 dl.facts dt { color: var(--muted); }
 dl.facts dd { margin: 0; }

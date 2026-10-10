@@ -103,7 +103,8 @@ describe("the map is the screen (goals.md P10)", () => {
     const p = await player("golf", "Canada");
     await p.locator(".empire .list.sub button.row", { hasText: "Canada" }).click();
     expect(await p.locator(".drop .slot").allInnerTexts()).toEqual(["Solar plant", "Mine", "Refinery", "Lab"]);
-    expect(await p.locator(".drop .flows").first().innerText()).toMatch(/M\s*\+0\.13/); // 7.8 Metals/min
+    expect(await p.locator(".drop .flows").first().innerText()).toMatch(/\+0\.13/); // 7.8 Metals/min
+    expect(await p.locator(".drop .flows svg[aria-label=Metals]").count()).toBe(1);
     await p.locator(".stocks button.gain").nth(1).click();
     const rows = await p.locator(".breakdown tbody tr").allInnerTexts();
     expect(rows).toEqual([expect.stringMatching(/Mine\s+\+0\.13\s+\+7\.8/)]);

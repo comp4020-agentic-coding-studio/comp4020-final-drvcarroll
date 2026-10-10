@@ -4,6 +4,7 @@ import { useEffect } from "preact/hooks";
 import { REGIONS } from "../../../rules/data/index.ts";
 import { myNation, selRegion, world } from "../store.ts";
 import { Action, Chip } from "./common.tsx";
+import { ResIcon, SolarIcon } from "./icons.tsx";
 import { focusOn, scene } from "./SceneHost.tsx";
 
 export function StartPanel() {
@@ -24,9 +25,9 @@ export function StartPanel() {
         <div class="pick">
           <h3>{sel.name}</h3>
           <dl class="facts">
-            <dt>Metals</dt><dd>×{sel.m.toFixed(1)}</dd>
-            <dt>Volatiles</dt><dd>×{sel.v.toFixed(1)}</dd>
-            <dt>Solar</dt><dd>×{sel.s.toFixed(1)}</dd>
+            <dt><ResIcon res="M" /></dt><dd>×{sel.m.toFixed(1)}</dd>
+            <dt><ResIcon res="V" /></dt><dd>×{sel.v.toFixed(1)}</dd>
+            <dt><SolarIcon /></dt><dd>×{sel.s.toFixed(1)}</dd>
           </dl>
           {owner(sel.id) ? <p>Taken by <Chip id={owner(sel.id)} /></p> : <Action cmd={{ type: "join", region: sel.id }}>Start here</Action>}
         </div>

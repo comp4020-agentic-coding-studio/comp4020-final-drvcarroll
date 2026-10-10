@@ -5,6 +5,7 @@ import { RESOURCES, RESOURCE_NAMES, type Resource } from "../../../rules/data/in
 import { dur, gameDate, num, perDay, signed, sourceName } from "../format.ts";
 import { eco } from "../mirror.ts";
 import { clock, conn, drawer, joined, myNation, season, stockNow, you, type Drawer } from "../store.ts";
+import { ResIcon } from "./icons.tsx";
 import { scene } from "./SceneHost.tsx";
 
 const STATUS = { connecting: "Connecting…", open: "Live", reconnecting: "Reconnecting…", "signed-out": "Signed out" };
@@ -35,8 +36,7 @@ export function TopBar({ user }: { user: string }) {
             const v = stockNow(r);
             return (
               <li key={r} title={`${RESOURCE_NAMES[r]}: ${num(v)} of ${num(s.cap)}`}>
-                <i class={`res res-${r}`} aria-hidden="true">{r}</i>
-                <span class="sr">{RESOURCE_NAMES[r]}</span>
+                <ResIcon res={r} size={18} />
                 <b class={v >= s.cap - 0.5 ? "full" : ""}>{num(v)}</b>
                 <button class={`gain ${s.rate < -1e-6 ? "neg" : "pos"} ${open === r ? "on" : ""}`} aria-expanded={open === r}
                   aria-label={`${RESOURCE_NAMES[r]} ${perDay(s.rate)} per day: breakdown`} onClick={() => setOpen(open === r ? null : r)}>
@@ -89,7 +89,7 @@ function Breakdown({ res }: { res: Resource }) {
   const rows = [...by].sort((a, b) => b[1] - a[1]);
   return (
     <div class="breakdown" role="dialog" aria-label={`${RESOURCE_NAMES[res]} breakdown`}>
-      <h4>{RESOURCE_NAMES[res]} <small>{num(stockNow(res))} of {num(s.cap)}</small></h4>
+      <h4><span><ResIcon res={res} /> {RESOURCE_NAMES[res]}</span> <small>{num(stockNow(res))} of {num(s.cap)}</small></h4>
       {rows.length === 0 ? <p class="hint">Nothing makes or uses this yet.</p> : (
         <table>
           <thead><tr><th /><th>/day</th><th>/min</th></tr></thead>

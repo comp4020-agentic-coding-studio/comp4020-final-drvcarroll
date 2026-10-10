@@ -1,12 +1,12 @@
 // Shared pieces. Every action button asks the rules why it would be refused
 // and says so (game-design.md §11: every disabled action says why).
 import type { ComponentChildren } from "preact";
-import { RESOURCE_NAMES, type Goods, type Resource } from "../../../rules/data/index.ts";
+import type { Goods, Resource } from "../../../rules/data/index.ts";
 import type { Command, Id } from "../../../rules/index.ts";
-import { num } from "../format.ts";
 import { why } from "../mirror.ts";
 import { send } from "../net.ts";
 import { clock, nations, pending, stockNow } from "../store.ts";
+import { Amt } from "./icons.tsx";
 
 export function Action(p: { cmd: Command; children: ComponentChildren; confirm?: string; kind?: "primary" | "quiet" | "danger" }) {
   const bad = why(p.cmd);
@@ -51,11 +51,7 @@ export function Progress({ start, end, label }: { start: number; end: number; la
 export function Cost({ cost }: { cost: Goods }) {
   return (
     <span class="cost">
-      {(Object.entries(cost) as [Resource, number][]).map(([r, v]) => (
-        <span key={r} class={stockNow(r) + 1e-9 < v ? "short" : ""} title={RESOURCE_NAMES[r]}>
-          {num(v)} <abbr title={RESOURCE_NAMES[r]}>{r}</abbr>
-        </span>
-      ))}
+      {(Object.entries(cost) as [Resource, number][]).map(([r, v]) => <Amt key={r} res={r} v={v} short={stockNow(r) + 1e-9 < v} />)}
     </span>
   );
 }
