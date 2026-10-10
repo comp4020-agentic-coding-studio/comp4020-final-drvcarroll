@@ -127,8 +127,8 @@ Stellaris-like HUD and a selection panel that appears for whatever you click.
 Every command is reachable from the map: join, build, research, launch,
 colonise, trade, declare war, invade. Visuals are never deferred behind a
 "functional DOM client"; a page of forms fails P10 however correct it is.
-Region shapes start as stylised Voronoi patches (Earth seeded at real
-geography); real borders come later.
+Region shapes started as Voronoi patches; Stage E2 replaces them with real
+borders and features.
 
 **Exit criteria:** after joining, the canvas fills the viewport and the
 camera moves by drag, scroll and keys; clicking a body or region opens its
@@ -179,6 +179,35 @@ are met (first render, frame rate, GPU memory); fog of war, sensors and
 Envoy beacons render per spec.
 **Serves:** P8, and the judged half of P1/P7/P10.
 
+### E2. Real worlds and the command console (`game-design.md` §4, §12; system-design.md §2, §8)
+
+The user asked for the real solar system and a look that feels like
+commanding an empire, not another web app. Two halves, each its own run
+of units:
+
+- **Real worlds:** `scripts/worlds.ts` fetches Solar System Scope and USGS
+  maps and writes KTX2 tiers; it rasterises Earth's region map from Natural
+  Earth (countries, plus admin-1 for the US, Russia and China, membership
+  in `rules/data/map.ts`) and every other body's from a weighted Voronoi on
+  real feature centres and diameters (USGS Gazetteer, also in `map.ts`).
+  The region shader and picking move from seeds to region maps; gas-giant
+  orbital regions become bands. Credits go in the Guide footer and the
+  user menu.
+- **Command console:** gunmetal plates, console-key tabs and buttons,
+  corner brackets and designation strips, Rajdhani and Share Tech Mono
+  self-hosted, reticle selection, mechanical motion with a reduced-motion
+  off switch. Layout and behaviour stay exactly as D2 left them.
+
+**Exit criteria:** every playable body but Psyche renders its real map
+when focused; a unit test reads Earth's region map at the cities named in
+goals.md P10 and gets their regions, and open ocean gets none; every
+off-Earth region's anchor is within 5° of its gazetteer centre; clicking a
+country on the globe selects its region; first render still < 3 MB and
+GPU memory < 300 MB with Earth focused (Playwright measures transfer size);
+all e2e tests still pass; text contrast stays WCAG AA; screenshots at both
+viewports judged as a player would before calling it done.
+**Serves:** P8, P10, P7.
+
 ### F. Logging and observability (crit 10 ask)
 
 One structured log line per action; `/admin` live stats.
@@ -206,7 +235,7 @@ be hit eventually; it just slips to the next one.
 |---|---|---|---|
 | **Crit 8 — "It's alive!"** | Next week | Stage A done. Stage B: harness running and reporting real numbers — they don't need to be tuned yet. Stage C: full exit criteria, no slipping this one — "backend polished" means the server, persistence and protocol are actually right. Stage D: the map-first slice — the solar system as the main screen, navigable, bodies and regions clickable, the core loop playable through it. First `README.md` (400–600 words) live at `/readme/`. First `PROCESS.md`. | A, B (partial), **C (full)**, D (map-first slice) |
 | **Crit 9 — "All at once"** | Week 10 | Real-time fully wired end to end, not just the protocol — the client reflects it live. Stage D's full exit criteria: both viewports, keyboard-only. Stage D2 done (the playtest HUD revision). One documented decision on multi-user contention behaviour (system-design.md §5's ordering rule already is that decision — cite it, don't re-decide it). | **D (full)**, **D2** |
-| **Crit 10 — "Fly by instruments"** | Week 11 | Stage F done: logging, `/admin` live view. Stage E (visual fidelity) substantially in. Rendering polish beyond what's built waits until after D2. | E, **F** |
+| **Crit 10 — "Fly by instruments"** | Week 11 | Stage F done: logging, `/admin` live view. Stage E (visual fidelity) substantially in, and Stage E2 (real worlds, command console) done. | E, **E2**, **F** |
 | **Target: done** | End of week 12 | Self-imposed, ahead of the real deadline (noon Mon 9 Nov 2026) on purpose — a buffer, not a guess at the actual due date. Stage G's numbers in a reasonable place (never "finished" — that's the point of a loop). Final `README.md`/`PROCESS.md` pass, everything deployed and green. | G, polish |
 
 The map is the game from the first client on (goals.md P10): Stage E adds

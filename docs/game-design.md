@@ -90,6 +90,13 @@ for Metals (M), Volatiles (V) and Solar (S). Solar output off Earth is
 
 ### Off-Earth bodies
 
+Every off-Earth region is a **real named feature** (IAU names), centred and
+sized from the USGS Gazetteer of Planetary Nomenclature, so Hellas is the
+Hellas basin and Olympus sits on Olympus Mons (§12). Luna's "Far Side" region
+is the South Pole–Aitken basin. A gas giant's "orbital" regions are orbits,
+not ground: they are claimed and drawn as orbital bands around the planet,
+never as patches on its clouds.
+
 | Body | Regions | Slots | M | V | Notes |
 |---|---|---|---|---|---|
 | Luna | 4 | 3 | 1.0 | 0.5 | Fusion-mode Energy bonus |
@@ -118,8 +125,15 @@ for Metals (M), Volatiles (V) and Solar (S). Solar output off Earth is
 
 ### Earth: 24 start regions plus Antarctica
 
-Grouped from Natural Earth country borders. Slots 4. **Fairness rule:** every
-start region's M + V + S sums to 3.3, so geography is flavour, not advantage.
+Each region is a group of **real countries**, drawn with their real borders
+from Natural Earth (§12). The United States, Russia and China are split along
+their real internal borders: US West and US East at the state lines along
+the Mississippi basin's western edge, Western Russia and Siberia at the Urals
+(the Ural Federal District goes to Siberia), North and South China at the
+provincial lines along the Qinling–Huai line. The country and province
+lists live in `rules/data/map.ts`. Oceans belong to no region. Slots 4.
+**Fairness rule:** every start region's M + V + S sums to 3.3, so geography
+is flavour, not advantage.
 
 | Region | M | V | S |
 |---|---|---|---|
@@ -501,9 +515,37 @@ All rendering is client-side; the server never draws.
 └────────────┴──────────────────────────────────────────┴──────────────────┘
 ```
 
-The look is modern and quiet: one glass surface style, one accent colour,
-icons over words, generous spacing, no boxes inside boxes. Fewer, larger
-controls beat many small ones.
+#### The command console look
+
+You are a general at a war table, not a user in an app. The HUD is a
+futuristic command console laid over real space, with the same layout as
+above:
+
+- **Gunmetal plates, not glass.** Panels are dark brushed gunmetal
+  (`#1b1f24` to `#2c3138`), near-opaque, with a bevelled top edge, a thin
+  machined inner rule and chamfered (45° cut) corners. No rounded cards, no
+  frosted blur, no soft drop shadows.
+- **Tabs and buttons are console keys.** Gunmetal keys with engraved
+  uppercase labels; the active one is powered: a lit cyan edge and a faint
+  inner glow. Primary actions are lit cyan keys; danger is an amber-red key.
+  Disabled keys are unlit, still readable.
+- **HUD furniture.** Corner brackets on panels, a designation strip on each
+  panel header (`SECTOR // MARS · THARSIS`), hairline rules, a faint grid
+  over panel backgrounds. Selection on the map is a targeting reticle;
+  region borders read as holographic lines.
+- **Type.** A condensed technical face for labels and headings (Rajdhani),
+  tracked uppercase; a monospace for every number (Share Tech Mono), so
+  stocks and timers read like instruments. Both self-hosted, subset, under
+  100 KB together.
+- **Colour.** Gunmetal greys carry the UI; cyan (`#5cc8ff`) means live and
+  selected, amber means warning, red means hostile. Empire colours appear
+  only as owner chips and map tints. Text keeps WCAG AA contrast (P7).
+- **Motion.** Short mechanical easing: panels slide and lock, numbers tick,
+  a brief power-on flicker when a panel opens. All of it off under
+  `prefers-reduced-motion`.
+
+Still true from before: icons over words, no boxes inside boxes, fewer and
+larger controls.
 
 #### Icons, never letters
 
@@ -627,12 +669,12 @@ blur; the terminator follows each body round its orbit.
 | Piece | Approach |
 |---|---|
 | Engine | Three.js, logarithmic depth buffer (every custom shader writes it, so bodies are solid, never see-through) |
-| Surfaces | Hand-styled procedural shaders per body, drawn under the region patches. Earth: oceans, continents, ice caps, clouds, and city lights on the night side that grow with buildings in regions you can see. Luna and Mercury: craters. Mars: rust with dark plains and polar caps. Venus: swirling cloud deck. Gas giants: turbulent bands, Jupiter's Great Red Spot. Europa: cracked ice. Io: sulphur and volcanoes. Titan: orange haze |
-| Textures | Solar System Scope (CC BY 4.0), NASA Blue Marble / Black Marble (public domain), KTX2: a later upgrade over the procedural look, not a blocker |
+| Surfaces | **Real imagery** on every playable body, so each looks like the real world. Earth: Solar System Scope day, night (city lights), clouds, normal and specular maps; the night side's lights still grow with buildings in regions you can see. Sun, Mercury, Venus (its cloud deck), Luna, Mars, Jupiter, Saturn, Uranus, Neptune: Solar System Scope. Io, Europa, Ganymede, Callisto, Titan, Enceladus, Ceres, Vesta, Phobos, Deimos, Triton, Pluto, Titania, Oberon: USGS Astrogeology global mosaics from Galileo, Voyager, Cassini, Dawn, Viking and New Horizons, colourised where only greyscale exists, with unmapped gaps filled to match. Psyche has no global map, so it keeps its procedural metal look. Decorative minor bodies keep the procedural shaders |
+| Textures | Equirectangular maps converted to KTX2 by `scripts/worlds.ts` from the documented sources (Solar System Scope, CC BY 4.0; USGS, public domain), in tiers 512 / 2K, plus 4K for Earth. The procedural shaders render first and stay as the fallback; real textures stream in after the game is interactive, so first render is unchanged. Credits in the Guide's footer and the user menu |
 | Atmospheres | Rim-glow shells for Earth, Venus, Mars, Titan and the gas giants |
 | Sun and space | Large emissive sun with corona glow, bloom (off on phones), deep star field |
 | Rings | Saturn's banded rings with gaps; faint rings on Uranus |
-| Detail | Sphere detail by body size; texture tiers if textures land |
+| Detail | Sphere detail by body size; the focused body holds its top tier, others drop to 512 |
 
 ### A full, busy system
 
@@ -651,13 +693,25 @@ claimed.
 
 ### Regions on the surface
 
-Regions are drawn as **stylised patches** on each body's sphere: a spherical
-Voronoi partition around one seed point per region, softly shaded, with
-glowing borders. Earth's 24 start regions plus Antarctica are seeded at their
-real geographic centres (latitude/longitude in `rules/data/map.ts`), so the
-patches sit roughly where the countries are; other bodies' seeds are spread
-evenly. Real Natural Earth borders for Earth are a later upgrade, not a
-blocker.
+Regions follow real geography. Each body has a **region map**: an
+equirectangular image where every pixel holds its region's index (0 for
+none), built once by `scripts/worlds.ts`:
+
+- **Earth:** the real country and province borders from Natural Earth
+  (1:50m countries via `world-atlas`, 1:10m admin-1 for the US, Russia and
+  China), each filled with the region its country belongs to (§4). Oceans
+  are 0. Borders follow real coastlines and frontiers.
+- **Other bodies:** a weighted spherical Voronoi around each region's real
+  feature centre, weighted by the feature's real diameter (USGS Gazetteer),
+  so a large basin claims a large region and boundaries fall between real
+  features. Single-region bodies are one region.
+- **Gas giants:** no surface regions; the orbital regions are bands drawn
+  around the planet (§4).
+
+The shader samples the region map to tint owned regions and draws borders
+as glowing holographic lines where the index changes, over the real
+texture. Labels and fly-to use each region's anchor (the centroid of its
+largest piece), generated alongside the map.
 
 ### The mechanics on screen
 
@@ -691,7 +745,7 @@ zoom, two-finger twist to rotate; bloom off, decorative bodies thinned.
 
 | Budget | Target |
 |---|---|
-| First render | < 3 MB download (512 px textures), interactive on slow 4G |
+| First render | < 3 MB download (procedural surfaces, region maps, fonts), interactive on slow 4G; real textures stream after |
 | Frame rate | 60 fps desktop, 30 fps phone |
 | Pixel ratio | Capped at 2 desktop, 1.5 phone; post-processing off on phone |
 

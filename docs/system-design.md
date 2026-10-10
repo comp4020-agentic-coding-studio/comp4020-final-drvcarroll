@@ -31,6 +31,9 @@ live in [game-design.md](game-design.md).
 | UI | Preact + signals | 4 KB React-compatible API; signals update only the numbers that change, which matters with six ticking stock counters |
 | Passwords | `node:crypto` scrypt | Built in, memory-hard, no native dependency |
 | Markdown | `marked` on the server | `/readme/` must be in the HTML the server sends |
+| World assets (build time only) | `world-atlas` (Natural Earth 1:50m, ISC) + Natural Earth 1:10m admin-1, `topojson-client`, `d3-geo`; `toktx` for KTX2 | Real borders rasterised once into region maps; nothing geographic ships to the browser but images. A runtime vector globe library (three-globe, Cesium) would bring its own renderer and blow the 3 MB budget |
+| Planet imagery | Solar System Scope (CC BY 4.0), USGS Astrogeology mosaics (public domain) | The closest-to-real free global maps: NASA-derived for the planets, mission mosaics for the moons |
+| Fonts | Rajdhani, Share Tech Mono (OFL), self-hosted woff2 subsets | The command console look (game-design.md §12) without a Google Fonts round trip |
 
 ## 3. Repo layout
 
@@ -40,6 +43,8 @@ rules/        pure game logic and data, imported by everything below
 server/       HTTP, WebSocket, auth, persistence, logging
 client/       Vite app: scene/ (Three.js), ui/ (Preact), net/ (socket)
 sim/          headless runner, bots, LLM playtest driver, balance tests
+scripts/      worlds.ts: downloads the sources, writes textures and region maps
+client/public/worlds/  generated: <body>.<tier>.ktx2, <body>.regions.png (committed)
 spec/         black-box checks against the running app
 docs/         design, ADRs, balance log
 ```
@@ -257,8 +262,9 @@ The target is a consumer laptop with integrated graphics, not a gaming GPU.
 | KTX2/Basis textures | GPU-native compression, ~4× less GPU memory, decoded in a worker |
 | Texture tiers 512 / 2K / 8K by distance | Only the focused body holds 8K; others are disposed down |
 | ~40 draw calls total | Orbits in one `LineSegments`; fleets and icons instanced; region borders merged per body |
-| Regions as a spherical Voronoi | Each body's regions are patches around seed points (Earth's at real lat/long, from `rules/data/map.ts`); colouring is a per-vertex attribute, borders one line mesh per body |
-| Picking by nearest seed | Raycast the body sphere once, then the nearest region seed to the hit point is the region: no per-region meshes to test |
+| Region maps | One 8-bit equirectangular index image per body (2048×1024 Earth, 1024×512 others, lossless PNG): Earth from real Natural Earth borders, others a weighted Voronoi on real feature centres (game-design.md §12). Owner tints are a 256-entry palette texture, so a claim updates one texel, not the mesh; borders are drawn in the shader where the index changes |
+| Picking by region map | Raycast the body sphere once, convert the hit to lat/lon, read the index from a CPU copy of the region map: no per-region meshes to test. Index 0 (ocean) selects the body |
+| Real textures streamed | Procedural surfaces draw first; KTX2 tiers load after interactive, top tier only for the focused body (Earth 4K, others 2K), 512 for the rest. Total under 60 MB on disk, committed |
 | Bloom at half resolution | Glow without full-resolution post-processing cost; off on phones |
 | Decorative bodies on the GPU | Asteroid belt, Trojans and Kuiper belt are one `Points` cloud each (`scene/decor.ts`); each rock's orbit (a, phase, rate, eccentricity, tilt) is a vertex attribute and the shader moves and sun-shades it, so ~34k rocks (a third on phones) cost three draw calls and no CPU per frame. The six comets and fourteen named minor bodies are few enough to move on the CPU; minor bodies reuse the region material with zero regions |
 | Shaders write the log depth buffer | Custom materials include Three's logdepth chunks, so depth sorting is right and bodies are opaque |
@@ -267,7 +273,8 @@ The target is a consumer laptop with integrated graphics, not a gaming GPU.
 | Pause | Render loop stops when the tab is hidden or a full-screen panel covers the scene |
 
 Targets: 60 fps on a 2020 laptop with integrated graphics at 1080p (medium
-tier), 30 fps on a phone, GPU memory under 300 MB, first render under 3 MB.
+tier), 30 fps on a phone, GPU memory under 300 MB, first render under 3 MB
+(textures excluded: they stream after interactive).
 
 ## 9. Accounts and sessions
 

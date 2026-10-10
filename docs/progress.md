@@ -18,10 +18,19 @@ B harness running; G ongoing (build-process.md).
   bar button or `?`; goals and empty states link to it.
 `pnpm test` (66, needs a server on a fresh `DATA_DIR`), `pnpm test:e2e` (8),
 `pnpm sim:test` (2) green.
-**Next:** the user plays it and reports on D2. Then Crit 9 bar (build-process.md
-calendar): keyboard-only core loop pass. Balance: early game Alloy-starved
-(docs/balance-log.md). Rendering polish deferred by the user.
-**Flagged assumptions** (D2: the user's "garrison" building = the Spaceport;
+**Next:** Stage E2 (build-process.md E2; read game-design.md §4 Earth and
+Off-Earth, §12 "The command console look", "Rendering", "Regions on the
+surface"; system-design.md §2, §3, §8). Start with the real-worlds half:
+`scripts/worlds.ts`, country/province membership and gazetteer
+coordinates in `rules/data/map.ts`, then the region-map shader and
+picking. Crit 9's keyboard-only pass (Stage D full) must still land before
+week 10. Balance: early game Alloy-starved (docs/balance-log.md).
+**Flagged assumptions** (E2: Psyche keeps a procedural look, no global
+map exists; greyscale USGS mosaics are colourised and gaps filled; the
+US, Russia and China splits follow the lines in game-design.md §4; borderline
+countries (Turkey, the Caucasus, Greenland, Mongolia, Pakistan) are
+assigned in `map.ts` by the existing region names and adjacency; gas-giant
+orbital regions become bands. D2: the user's "garrison" building = the Spaceport;
 "upgrade" = Power Plant modes, other buildings upgrade via Industry rungs;
 single-slot produce/consume = the region's flows for that type ÷ its count.
 Numbers missing from `game-design.md`, all in
@@ -54,6 +63,6 @@ Numbers missing from `game-design.md`, all in
   ship, launch, colonise, invade, march, war, Envoy or trade-accept is legal.
 - A nation choosing its start sees Earth start-region owners (documented).
 - Respawn resets stocks to the starting kit.
-- Off-Earth region names and asteroid J2000 longitudes are invented or
-  approximate (`map.ts`).
-**Last updated:** 2026-10-10.
+- Asteroid J2000 longitudes are approximate (`map.ts`). Off-Earth region
+  names are IAU features; E2 replaces invented ones and their placement.
+**Last updated:** 2026-10-10 (E2 scoped).
