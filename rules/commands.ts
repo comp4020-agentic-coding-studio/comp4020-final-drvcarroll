@@ -1,7 +1,7 @@
 // system-design.md §14.5: each handler validates, then returns its executor.
 // The same check drives apply, legalActions and the client's disabled reasons.
 import {
-  BUILDINGS, ECONOMY, EMPIRE, MILITARY, POWER_MODES, REGIONS, RUNGS, SEASON, TECH, UNITS, WAR, type PowerMode,
+  BUILDINGS, ECONOMY, EMPIRE, MILITARY, POWER_MODES, REGIONS, RUNGS, SEASON, TECH, UNITS, WAR, type PowerMode, type Resource,
 } from "./data/index.ts";
 import {
   enqueue, isInt, isRejection, needs, no, ownRegion, regionName, type Cmd, type Handler, type Plan,
@@ -105,6 +105,28 @@ const demolish: Handler<"demolish"> = (s, n, c) => {
   };
 };
 
+// Demolish and rebuild one slot as one command: refused before anything is
+// torn down if the new building isn't affordable after the refund.
+const replace: Handler<"replace"> = (s, n, c) => {
+  const r = ownRegion(s, n, c.region);
+  if (isRejection(r)) return r;
+  const b = r.buildings.find((x) => x.slot === c.slot);
+  if (!b) return no("INVALID", `No building in slot ${c.slot}`);
+  const d = BUILDINGS[c.building];
+  if (!d) return no("INVALID", "Unknown building type");
+  if (b.type === c.building) return no("INVALID", `That slot is already a ${d.name}`);
+  const refund = scale(BUILDINGS[b.type].cost, ECONOMY.demolishRefund);
+  const after = { ...n.stocks };
+  for (const [k, v] of Object.entries(refund) as [Resource, number][]) after[k] += v;
+  return needs({ ...n, stocks: after }, d.cost) ?? (() => {
+    r.buildings = r.buildings.filter((x) => x !== b);
+    n.stocks = after;
+    spend(n, d.cost);
+    credit(s, n, scale(refund, 0)); // clamps the refunded stocks to the cap
+    enqueue(s, r, c.building, d.timeS * 1000, d.cost, c.slot);
+  });
+};
+
 const cancelBuild: Handler<"cancelBuild"> = (s, n, c) => {
   const r = ownRegion(s, n, c.region);
   if (isRejection(r)) return r;
@@ -183,7 +205,7 @@ const train: Handler<"train"> = (s, n, c) => {
 };
 
 const handlers: { [T in Exclude<Command["type"], "setEmpire">]: Handler<T> } = {
-  join, build, demolish, cancelBuild, setMode, research, cancelResearch, train,
+  join, build, demolish, replace, cancelBuild, setMode, research, cancelResearch, train,
   buildShip, launch, colonise, march, invade, declareWar, offerPeace, acceptPeace,
   offerTrade, acceptTrade, declineTrade, cancelTrade, gift, exchange, sendEnvoy, recallEnvoy,
 };

@@ -89,7 +89,7 @@ function handle(s: State, e: GameEvent): void {
       const r = s.regions[e.region];
       if (r.queue[0]?.id !== e.item) return;
       const done = r.queue.shift()!;
-      complete(s, r, done.item);
+      complete(s, r, done.item, done.slot);
       if (r.queue[0]) schedule(s, { kind: "queue", at: r.queue[0].finishAt, region: r.id, item: r.queue[0].id });
       return;
     }
@@ -122,7 +122,7 @@ function handle(s: State, e: GameEvent): void {
   }
 }
 
-function complete(s: State, r: RegionState, item: string): void {
+function complete(s: State, r: RegionState, item: string, pinned?: number): void {
   touch(r);
   if (item === "army") {
     r.armies++;
@@ -131,9 +131,10 @@ function complete(s: State, r: RegionState, item: string): void {
     shipDone(s, r.owner, r.id, item as Unit);
     resolveSpace(s, REGIONS[r.id].body);
   } else if (item in BUILDINGS) {
-    const used = new Set(r.buildings.map((b) => b.slot));
-    let slot = 0;
-    while (used.has(slot)) slot++;
+    // Lowest slot that's neither built nor pinned by a queued replace.
+    const used = new Set([...r.buildings.map((b) => b.slot), ...r.queue.flatMap((q) => q.slot ?? [])]);
+    let slot = pinned ?? 0;
+    while (pinned === undefined && used.has(slot)) slot++;
     r.buildings.push({ slot, type: item as Building });
   }
 }

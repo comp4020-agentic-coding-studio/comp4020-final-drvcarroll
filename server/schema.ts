@@ -7,6 +7,7 @@ const S: Record<Exclude<Command["type"], "setEmpire">, Record<string, Kind>> = {
   join: { region: "str" },
   build: { region: "str", building: "str" },
   demolish: { region: "str", slot: "num" },
+  replace: { region: "str", slot: "num", building: "str" },
   cancelBuild: { region: "str", index: "num" },
   setMode: { region: "str", slot: "num", mode: "str" },
   research: { tech: "str" },

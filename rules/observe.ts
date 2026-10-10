@@ -67,7 +67,7 @@ function privateState(s: State, n: NationState): PrivateState {
     techs: [...n.techs],
     research: n.research && { tech: n.research.tech, startAt: n.research.startAt, finishAt: n.research.finishAt },
     queues: Object.fromEntries(owned(s, n.id).filter((r) => r.queue.length)
-      .map((r) => [r.id, r.queue.map(({ item, startAt, finishAt }) => ({ item, startAt, finishAt }))])),
+      .map((r) => [r.id, r.queue.map(({ item, startAt, finishAt, slot }) => ({ item, startAt, finishAt, ...(slot === undefined ? {} : { slot }) }))])),
     trades: Object.values(s.offers).filter((o) => o.from === n.id || o.to === n.id).map((o) => ({ ...o })),
     envoys: n.envoys.map((x) => ({ ...x })),
   };

@@ -30,9 +30,9 @@ export function ownRegion(s: State, n: NationState, id: Id): Rejection | RegionS
   return r;
 }
 
-export function enqueue(s: State, r: RegionState, item: string, durMs: number, paid: Goods): void {
+export function enqueue(s: State, r: RegionState, item: string, durMs: number, paid: Goods, slot?: number): void {
   const startAt = r.queue.at(-1)?.finishAt ?? s.t;
-  const q: QueueItem = { id: `q_${s.nextId++}`, item, startAt, finishAt: startAt + durMs, paid };
+  const q: QueueItem = { id: `q_${s.nextId++}`, item, startAt, finishAt: startAt + durMs, paid, ...(slot === undefined ? {} : { slot }) };
   r.queue.push(q);
   if (r.queue.length === 1) schedule(s, { kind: "queue", at: q.finishAt, region: r.id, item: q.id });
   touch(r);

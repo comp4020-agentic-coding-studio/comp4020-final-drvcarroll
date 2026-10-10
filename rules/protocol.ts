@@ -11,6 +11,7 @@ export type Command =
   | { type: "join"; region: Id }
   | { type: "build"; region: Id; building: Building }
   | { type: "demolish"; region: Id; slot: number }
+  | { type: "replace"; region: Id; slot: number; building: Building } // demolish + build there, atomic
   | { type: "cancelBuild"; region: Id; index: number }
   | { type: "setMode"; region: Id; slot: number; mode: string }
   | { type: "research"; tech: string }
@@ -83,7 +84,7 @@ export interface News { at: Ms; kind: string; text: string; refs: Id[] }
 
 export interface TradeOffer { id: Id; from: Id; to: Id; give: Goods; get: Goods; expiresAt: Ms }
 
-export interface QueueEntry { item: string; startAt: Ms; finishAt: Ms }
+export interface QueueEntry { item: string; startAt: Ms; finishAt: Ms; slot?: number } // slot: pinned by replace
 
 export interface PrivateState {
   nation: Id;

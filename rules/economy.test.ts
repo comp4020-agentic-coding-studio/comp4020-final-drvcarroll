@@ -82,6 +82,31 @@ describe("build queues and research (game-design.md §6, §8)", () => {
     expect(s.regions.r_canada.buildings.filter((b) => b.type === "mine")).toHaveLength(2);
   });
 
+  it("replaces a slot in one command, counting the refund toward the cost", () => {
+    let s = world("r_canada");
+    s.nations.n_1.stocks.M = 35;
+    expect(validate(s, "n_1", { type: "replace", region: "r_canada", slot: 3, building: "spaceport" }))
+      .toMatchObject({ code: "INSUFFICIENT", reason: "Needs 5 more Metals" });
+    expect(s.regions.r_canada.buildings).toHaveLength(4);
+    s.nations.n_1.stocks.M = 200;
+    s = ok(s, "n_1", { type: "replace", region: "r_canada", slot: 3, building: "spaceport" });
+    expect(s.nations.n_1.stocks).toMatchObject({ M: 160, V: 105, A: 10 });
+    expect(s.regions.r_canada.buildings.map((b) => b.slot)).toEqual([0, 1, 2]);
+    s = advanceTo(s, T0 + 45 * S);
+    expect(s.regions.r_canada.buildings.find((b) => b.slot === 3)?.type).toBe("spaceport");
+  });
+
+  it("keeps a replaced slot for its new building while other builds finish", () => {
+    let s = world("r_canada");
+    s = ok(s, "n_1", { type: "demolish", region: "r_canada", slot: 3 });
+    s = ok(s, "n_1", { type: "build", region: "r_canada", building: "mine" });
+    s = ok(s, "n_1", { type: "replace", region: "r_canada", slot: 1, building: "factory" });
+    s = advanceTo(s, T0 + 20 * S);
+    expect(s.regions.r_canada.buildings.find((b) => b.slot === 3)?.type).toBe("mine");
+    s = advanceTo(s, T0 + 50 * S);
+    expect(s.regions.r_canada.buildings.find((b) => b.slot === 1)?.type).toBe("factory");
+  });
+
   it("refunds a cancelled item and pulls the rest of the queue forward", () => {
     let s = world("r_canada");
     s = ok(s, "n_1", { type: "train", region: "r_canada", count: 3 });
@@ -111,6 +136,7 @@ describe("invariants", () => {
     return pick<Command>([
       { type: "build", region: pick(regions), building: pick(["mine", "foundry", "factory", "powerPlant", "lab"]) },
       { type: "demolish", region: pick(regions), slot: Math.floor(r() * 4) },
+      { type: "replace", region: pick(regions), slot: Math.floor(r() * 4), building: pick(["mine", "lab", "spaceport"]) },
       { type: "train", region: pick(regions), count: 1 + Math.floor(r() * 5) },
       { type: "cancelBuild", region: pick(regions), index: 0 },
       { type: "research", tech: pick(["voidcraft.1", "industry.1", "science.1", "society.1"]) },

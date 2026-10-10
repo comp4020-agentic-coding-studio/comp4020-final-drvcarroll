@@ -18,6 +18,7 @@ export interface QueueItem {
   startAt: Ms;
   finishAt: Ms;
   paid: Goods;
+  slot?: number; // pinned by replace
 }
 
 export interface RegionState {
