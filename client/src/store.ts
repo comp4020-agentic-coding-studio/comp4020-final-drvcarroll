@@ -5,6 +5,8 @@ import type { Command, Id, NationPublic, PrivateState, Season, VisibleWorld } fr
 export type Conn = "connecting" | "open" | "reconnecting" | "signed-out";
 export interface Toast { id: number; text: string; kind: "error" | "info" }
 export type Drawer = "tech" | "empires" | "guide";
+export type Quality = "high" | "medium" | "low";
+export type Graphics = "auto" | Quality;
 
 export const world = signal<VisibleWorld | null>(null);
 export const you = signal<PrivateState | null>(null);
@@ -22,6 +24,17 @@ export const selFleet = signal<Id | null>(null);
 export const launchTo = signal<string | null>(null); // set by clicking a body while a fleet is selected
 export const drawer = signal<Drawer | null>(null);
 export const guidePage = signal("resources");
+// The player's graphics choice, kept per viewer; `tier` is what draws now.
+const GFX_KEY = "grow.graphics";
+const GFX: Graphics[] = ["auto", "high", "medium", "low"];
+export const graphics = signal<Graphics>((() => {
+  try { return GFX.find((g) => g === localStorage.getItem(GFX_KEY)) ?? "auto"; } catch { return "auto"; }
+})());
+export const tier = signal<Quality>("high");
+export function cycleGraphics(): void {
+  graphics.value = GFX[(GFX.indexOf(graphics.value) + 1) % GFX.length];
+  try { localStorage.setItem(GFX_KEY, graphics.value); } catch { /* private mode */ }
+}
 
 export const me = computed(() => you.value?.nation ?? null);
 export const nations = computed(() => Object.fromEntries((world.value?.nations ?? []).map((n) => [n.id, n])) as Record<Id, NationPublic>);

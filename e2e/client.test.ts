@@ -239,6 +239,22 @@ describe("the map is the screen (goals.md P10)", () => {
     await b.close();
   }, 60_000);
 
+  it("steps graphics quality from the user menu, kept across reloads (system-design.md §8)", async () => {
+    const p = await player("oscar", "Andean States");
+    const ratio = () => p.evaluate(() => (window as any).scene?.renderer.getPixelRatio() as number | undefined);
+    await p.locator(".menu summary").click();
+    const gfx = p.locator(".menu button.graphics");
+    expect(await gfx.textContent()).toMatch(/^Graphics: auto \((high|medium|low)\)$/);
+    for (const t of ["high", "medium", "low"]) {
+      await gfx.click();
+      expect(await gfx.textContent()).toBe(`Graphics: ${t}`);
+    }
+    expect(await ratio()).toBe(1);
+    await p.reload();
+    await expect.poll(ratio, { timeout: 10_000 }).toBe(1);
+    await p.close();
+  });
+
   it("pins an Envoy beacon on the host's capital, for the sender only", async () => {
     const a = await player("november", "North China");
     const b = await player("mike", "West Africa");

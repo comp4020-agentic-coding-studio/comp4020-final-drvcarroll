@@ -1,9 +1,10 @@
 # Progress
 
-**Stage:** D full done (keyboard-only core loop at 1920×1080 and 390×844,
-`e2e/client.test.ts`; visible focus rings). F done. Next E's remaining
-exit items, then more G loops. Envoy beacons render (amber pip on the
-host capital's labels, sender only; e2e).
+**Stage:** E done: Envoy beacons (amber pip on the host capital's labels,
+sender only), quality tiers with auto step-down and a Graphics menu item
+(system-design.md §8), P8 judged in docs/checks.md (60 fps, ~210 MB on an
+M4). D full done (keyboard-only core loop at both viewports). F done.
+Next: G loops.
 **Last verified checkpoint:** E2 per game-design.md §4, §12:
 - `pnpm worlds` (`scripts/worlds.ts`) builds `client/public/worlds/`:
   region maps (Earth from Natural Earth countries and admin-1 per
@@ -17,12 +18,12 @@ host capital's labels, sender only; e2e).
 - Gunmetal command console in `app.css`; Rajdhani and Share Tech Mono
   self-hosted; designation strips; credits in the Guide and user menu.
 `pnpm test` (71, needs a server on a fresh `DATA_DIR`), `pnpm test:e2e`
-(12, incl. first render < 3 MB and the keyboard loop, which runs last so
+(13, incl. first render < 3 MB and the keyboard loop, which runs last so
 earlier players aren't late joiners), `pnpm sim:test` green.
-**Next:** Stage E's remaining exit items (build-process.md E): frame rate
-and GPU memory budgets
-recorded as judged checks in docs/checks.md. Then G loops (Mars time,
-Voidcraft 2, win-rate spread; docs/balance-log.md). F detail:
+**Next:** Stage G loops (Mars time, Voidcraft 2, win-rate spread;
+docs/balance-log.md), one `rules/data/` or bot change at a time with
+`pnpm sim:test`, each logged. A real-phone fps check is owed before
+Crit 10 (needs the user's phone). F detail:
 `server/log.ts` lines and stats; `/admin` for `ADMIN_USERS` (set the Fly
 secret before Crit 10); `pnpm load` writes docs/measurements.md (all met);
 docs/checks.md holds judged checks.

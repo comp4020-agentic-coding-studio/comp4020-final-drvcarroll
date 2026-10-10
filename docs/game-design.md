@@ -752,6 +752,8 @@ zoom, two-finger twist to rotate; bloom off, decorative bodies thinned.
 | First render | < 3 MB download (procedural surfaces, region maps, fonts), interactive on slow 4G; real textures stream after |
 | Frame rate | 60 fps desktop, 30 fps phone |
 | Pixel ratio | Capped at 2 desktop, 1.5 phone; post-processing off on phone |
+| GPU memory | < 300 MB |
+| Graphics | Quality tiers high, medium, low (system-design.md §8): auto starts high on desktop, medium on phone, and steps down when frames stay slow; the user menu's Graphics item overrides it, kept per browser |
 
 ## 13. Headless sim and agent playtesting
 

@@ -9,7 +9,7 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { BODIES, MAP, REGIONS } from "../../../rules/data/index.ts";
-import { beacons, me, nations, offset, season, selBody, selRegion, world } from "../store.ts";
+import { beacons, graphics, me, nations, offset, season, selBody, selRegion, tier, world, type Quality } from "../store.ts";
 import { Decor } from "./decor.ts";
 import { anchor, BANDS, MINOR, TILT, moonDistance, orbitRadius, parentOf, position, regionsOn, SIZE, sphereOf, SPHERES, SUN_SIZE, type V3 } from "./layout.ts";
 import { loadRegionMap, loadTexture, regionAt, TEXTURED, type Tier } from "./worlds.ts";
@@ -20,6 +20,16 @@ const SYSTEM_VIEW = { target: new THREE.Vector3(0, 0, 0), offset: new THREE.Vect
 const PHONE = innerWidth < 720;
 const FLY_MS = 1100;
 const GLOBE_DRAG = 22; // within SIZE × this, left-drag spins the globe
+// system-design.md §8: each step down drops pixel ratio, then bloom, then
+// textures. Bloom is always off on phones.
+const TIERS: Record<Quality, { ratio: number; bloom: boolean; earthDay: Tier }> = {
+  high: { ratio: 2, bloom: true, earthDay: "top" },
+  medium: { ratio: 1.5, bloom: true, earthDay: "top" },
+  low: { ratio: 1, bloom: false, earthDay: "2k" },
+};
+const DOWN: Record<Quality, Quality> = { high: "medium", medium: "low", low: "low" };
+const SLOW_MS = 20; // a frame slower than this counts against the tier
+const WINDOW_MS = 3000; // auto steps down if most frames in one were slow
 
 interface BodyView {
   id: string;
@@ -64,11 +74,14 @@ export class GameScene {
   private low = new Map<string, THREE.Texture>();
   private high: { id: string; tex: THREE.Texture[] } | null = null;
   private disposed = false;
+  private frameAt = 0;
+  private windowAt = 0;
+  private frames = 0;
+  private slow = 0;
 
   constructor(canvas: HTMLCanvasElement, overlay: HTMLElement) {
     this.overlay = overlay;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, logarithmicDepthBuffer: true });
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio, innerWidth < 720 ? 1.5 : 2));
     this.renderer.setClearColor(0x000000);
     this.camera = new THREE.PerspectiveCamera(45, 1, 0.05, 200_000);
     this.camera.position.copy(SYSTEM_VIEW.offset);
@@ -84,15 +97,9 @@ export class GameScene {
     this.decor = new Decor(this.scene, PHONE);
     for (const id of [...SPHERES, ...Object.keys(MINOR)]) this.buildBody(id);
     this.bindInput(canvas);
-    if (!PHONE) {
-      this.composer = new EffectComposer(this.renderer);
-      this.composer.addPass(new RenderPass(this.scene, this.camera));
-      this.composer.addPass(new UnrealBloomPass(new THREE.Vector2(512, 512), 0.85, 0.55, 0.8));
-      this.composer.addPass(new OutputPass());
-    }
     this.stop.push(effect(() => this.paintOwners()));
     this.stop.push(effect(() => this.paintSelection()));
-    this.resize();
+    this.stop.push(effect(() => this.apply(graphics.value === "auto" ? (PHONE ? "medium" : "high") : graphics.value)));
     this.loop();
     setTimeout(() => this.streamTextures(), 2000); // after interactive: P8's first render
   }
@@ -220,16 +227,54 @@ export class GameScene {
     if (!TEXTURED.has(id) || this.high?.id === id) return;
     const prev = this.high;
     this.high = { id, tex: [] };
-    const want: [string, Tier][] = id === "earth" ? [["earth", "top"], ["earth.night", "2k"], ["earth.clouds", "2k"]] : [[id, "2k"]];
+    const day = TIERS[tier.peek()].earthDay;
+    const want: [string, Tier][] = id === "earth" ? [["earth", day], ["earth.night", "2k"], ["earth.clouds", "2k"]] : [[id, "2k"]];
     const tex = await Promise.all(want.map(([n, t]) => loadTexture(n, t))).catch(() => null);
     if (!tex || this.disposed || this.high?.id !== id) return tex?.forEach((t) => t.dispose());
     this.high.tex = tex;
     this.setMaps(id, tex[0], tex[1], tex[2]);
-    if (prev) {
-      prev.tex.forEach((t) => t.dispose());
-      const lo = this.low.get(prev.id);
-      if (lo) this.setMaps(prev.id, lo);
+    if (prev) this.lower(prev);
+  }
+
+  private lower(h: { id: string; tex: THREE.Texture[] }): void {
+    h.tex.forEach((t) => t.dispose());
+    const lo = this.low.get(h.id);
+    if (lo) this.setMaps(h.id, lo);
+  }
+
+  // A quality tier: pixel ratio, bloom (built on first use), Earth's day map.
+  private apply(t: Quality): void {
+    const was = tier.peek();
+    tier.value = t;
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio, TIERS[t].ratio));
+    if (TIERS[t].bloom && !PHONE && !this.composer) {
+      this.composer = new EffectComposer(this.renderer);
+      this.composer.addPass(new RenderPass(this.scene, this.camera));
+      this.composer.addPass(new UnrealBloomPass(new THREE.Vector2(512, 512), 0.85, 0.55, 0.8));
+      this.composer.addPass(new OutputPass());
     }
+    this.resize();
+    if (this.high?.id === "earth" && TIERS[t].earthDay !== TIERS[was].earthDay) {
+      const h = this.high;
+      this.high = null;
+      this.lower(h);
+      void this.raise("earth");
+    }
+  }
+
+  // Auto quality steps down, never up, when frames stay slow; a few
+  // hitches (a texture decoding) don't count.
+  private pace(now: number): void {
+    const dt = now - this.frameAt;
+    this.frameAt = now;
+    if (dt > 250) return; // a stall or a hidden tab, not the scene
+    this.frames++;
+    if (dt > SLOW_MS) this.slow++;
+    if (now - this.windowAt < WINDOW_MS) return;
+    const step = graphics.peek() === "auto" && this.slow > this.frames / 2 && tier.peek() !== "low";
+    this.windowAt = now;
+    this.frames = this.slow = 0;
+    if (step) this.apply(DOWN[tier.peek()]);
   }
 
   // --- what the store says ---------------------------------------------------
@@ -443,6 +488,7 @@ export class GameScene {
   private loop = (): void => {
     this.raf = requestAnimationFrame(this.loop);
     if (document.hidden) return;
+    this.pace(performance.now());
     this.frame();
   };
 
@@ -503,7 +549,7 @@ export class GameScene {
     this.hover();
     this.labels();
     this.sun.uniforms.time.value = performance.now() / 1000;
-    if (this.composer) this.composer.render();
+    if (this.composer && TIERS[tier.peek()].bloom) this.composer.render();
     else this.renderer.render(this.scene, this.camera);
   }
 

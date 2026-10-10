@@ -4,7 +4,7 @@ import { useEffect, useState } from "preact/hooks";
 import { RESOURCES, RESOURCE_NAMES, type Resource } from "../../../rules/data/index.ts";
 import { dur, gameDate, num, perDay, signed, sourceName } from "../format.ts";
 import { eco } from "../mirror.ts";
-import { clock, conn, drawer, joined, myNation, season, stockNow, you, type Drawer } from "../store.ts";
+import { clock, conn, cycleGraphics, drawer, graphics, joined, myNation, season, stockNow, tier, you, type Drawer } from "../store.ts";
 import { openGuide } from "./Guide.tsx";
 import { ResIcon } from "./icons.tsx";
 import { scene } from "./SceneHost.tsx";
@@ -82,6 +82,7 @@ export function TopBar({ user }: { user: string }) {
           <a href="/empire">Empire name and colours</a>
           <a href="/readme/">About the game</a>
           <button class="quiet" onClick={() => openGuide("resources")}>Guide and credits</button>
+          <button class="quiet graphics" onClick={cycleGraphics}>Graphics: {graphics.value === "auto" ? `auto (${tier.value})` : graphics.value}</button>
           <form method="post" action="/api/logout"><button class="quiet">Sign out</button></form>
         </div>
       </details>

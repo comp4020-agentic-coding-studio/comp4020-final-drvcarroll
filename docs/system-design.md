@@ -279,7 +279,7 @@ The target is a consumer laptop with integrated graphics, not a gaming GPU.
 
 | Technique | Effect |
 |---|---|
-| Texture tiers 512 / 2K / 8K by distance | Only the focused body holds 8K; others are disposed down |
+| Texture tiers 512 / 2K / 4K | Only the focused body holds its top tier; the last one is disposed back to 512 |
 | ~40 draw calls total | Orbits in one `LineSegments`; fleets and icons instanced; region borders merged per body |
 | Region maps | One 8-bit equirectangular index image per body (2048×1024 Earth, 1024×512 others, lossless PNG): Earth from real Natural Earth borders, others a weighted Voronoi on real feature centres (game-design.md §12). Owner tints are per-region uniform arrays indexed by the map's value, so a claim updates one uniform, not the mesh; borders are drawn in the shader where the index changes |
 | Picking by region map | Raycast the body sphere once, convert the hit to lat/lon, read the index from a CPU copy of the region map: no per-region meshes to test. Index 0 (ocean) selects the body |
@@ -287,8 +287,8 @@ The target is a consumer laptop with integrated graphics, not a gaming GPU.
 | Bloom at half resolution | Glow without full-resolution post-processing cost; off on phones |
 | Decorative bodies on the GPU | Asteroid belt, Trojans and Kuiper belt are one `Points` cloud each (`scene/decor.ts`); each rock's orbit (a, phase, rate, eccentricity, tilt) is a vertex attribute and the shader moves and sun-shades it, so ~34k rocks (a third on phones) cost three draw calls and no CPU per frame. The six comets and fourteen named minor bodies are few enough to move on the CPU; minor bodies reuse the region material with zero regions |
 | Shaders write the log depth buffer | Custom materials include Three's logdepth chunks, so depth sorting is right and bodies are opaque |
-| Adaptive quality | Watch frame time; drop pixel ratio, then bloom, then texture tier if frames exceed 20 ms |
-| Quality tiers | High, medium, low; auto-detected, user-overridable |
+| Quality tiers | High (pixel ratio 2, bloom, Earth 4K day), medium (1.5, bloom, 4K), low (1, no bloom, Earth 2K): each step drops pixel ratio, then bloom, then texture tier. Bloom is off on phones at every tier. Auto starts high on desktop, medium on phone; the user menu's Graphics item picks a tier instead, kept in localStorage |
+| Adaptive quality | In auto, the render loop counts frames over 20 ms in 3 s windows and steps one tier down when they are the majority; it never steps up, so it can't oscillate. Single hitches (a texture decoding) don't count |
 | Pause | Render loop stops when the tab is hidden or a full-screen panel covers the scene |
 
 Targets: 60 fps on a 2020 laptop with integrated graphics at 1080p (medium
