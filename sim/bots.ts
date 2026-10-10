@@ -37,7 +37,7 @@ const base: Weights = {
 };
 
 const WEIGHTS: Record<Exclude<Archetype, "random">, Weights> = {
-  expander: { ...base, ladders: { voidcraft: 5, industry: 2, science: 1, society: 3 }, expand: 9, colonise: 9, armyTarget: 8 },
+  expander: { ...base, ladders: { voidcraft: 5, industry: 2, science: 1, society: 3 }, expand: 9, colonise: 9 },
   builder: { ...base, ladders: { voidcraft: 1, industry: 6, science: 2, society: 2 }, expand: 5 },
   trader: { ...base, ladders: { voidcraft: 1, industry: 2, science: 5, society: 2 }, envoy: 7, trade: 5 },
   conqueror: {
@@ -48,6 +48,12 @@ const WEIGHTS: Record<Exclude<Archetype, "random">, Weights> = {
 };
 
 const ZONE_PREF: Record<string, number> = { cislunar: 5, inner: 4, belt: 2, jovian: 1, saturnian: 0.5, outer: 0.2, terrestrial: 0 };
+// How much a player wants a body: its zone's nearness × its worth (slots ×
+// yields) against the best in that zone.
+const worth = (b: string) => BODIES[b].slots * (BODIES[b].m + BODIES[b].v);
+const ZONE_BEST: Record<string, number> = {};
+for (const b of Object.keys(BODIES)) ZONE_BEST[BODIES[b].zone] = Math.max(ZONE_BEST[BODIES[b].zone] ?? 0, worth(b));
+export const appeal = (b: string) => (ZONE_PREF[BODIES[b].zone] * worth(b)) / (ZONE_BEST[BODIES[b].zone] || 1);
 
 function score(w: Weights, c: Command, x: Ctx): number {
   const rate = (r: keyof PrivateState["stocks"]) => x.you.stocks[r].rate;
@@ -71,6 +77,16 @@ function score(w: Weights, c: Command, x: Ctx): number {
       if (b === "lab") return w.lab;
       return hasSpaceport ? 0 : Math.max(w.colonise, w.military) - 1;
     }
+    case "replace": { // boxed in: swap a stocked secondary output for a missing Lab or Spaceport
+      const hasLab = mine.some((r) => r.buildings?.some((b) => b.type === "lab"))
+        || Object.values(x.you.queues).some((q) => q.some((i) => i.item === "lab"));
+      const missing = c.building === "lab" ? !hasLab : c.building === "spaceport" && !hasSpaceport;
+      const old = mine.find((r) => r.id === c.region)?.buildings?.find((b) => b.slot === c.slot)?.type;
+      const res = old && BUILDINGS[old].output?.res;
+      const room = x.legal.some((l) => l.type === "build" || (l.type === "march" && !x.world.regions.find((r) => r.id === l.to)?.owner));
+      if (!missing || !res || room || old === "powerPlant" || old === "lab" || old === "mine") return 0;
+      return (c.building === "lab" ? w.lab : Math.max(w.colonise, w.military) - 1) - 1 + Math.min(1, stock(res) / 500);
+    }
     case "setMode": return c.mode === "fusion" ? 3 : c.mode === "fission" ? 2 : 0;
     case "train": return armies < w.armyTarget && stock("Mt") >= 20 ? 4 : 0; // keep a Colony Ship's Materiel
     case "march": {
@@ -86,9 +102,8 @@ function score(w: Weights, c: Command, x: Ctx): number {
     }
     case "launch": {
       if (!c.units.colonyShip) return 0;
-      const zone = BODIES[c.to].zone;
       const free = x.world.regions.some((r) => r.body === c.to && !r.owner);
-      return free ? (w.colonise * ZONE_PREF[zone]) / 5 : 0;
+      return free ? (w.colonise * appeal(c.to)) / 5 : 0;
     }
     case "colonise": return 10;
     case "invade": return w.attack;

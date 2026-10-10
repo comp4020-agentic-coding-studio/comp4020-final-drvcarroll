@@ -38,6 +38,9 @@ describe("late joining when Earth is full (game-design.md §11)", () => {
     expect(validate(s, "n_2", { type: "join", region: "r_antarctica" })).toMatchObject({ reason: "Earth is full: pick a free off-Earth region" });
     s = ok(s, "n_2", { type: "join", region: "r_mars_tharsis" });
     expect(s.regions.r_mars_tharsis.owner).toBe("n_2");
+    // Its kit's Power Plant runs on fission where that beats the sun (Mars).
+    expect(s.regions.r_mars_tharsis.buildings[0]).toMatchObject({ type: "powerPlant", mode: "fission" });
+    expect(s.regions.r_canada.buildings[0].mode).toBeUndefined();
   });
 });
 

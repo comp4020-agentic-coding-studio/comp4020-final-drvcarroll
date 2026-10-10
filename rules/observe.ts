@@ -103,6 +103,7 @@ export function legalActions(state: State, nation: Id): Command[] {
     for (const r of mine) {
       for (const b of Object.keys(BUILDINGS) as Building[]) out.push({ type: "build", region: r.id, building: b });
       for (const b of r.buildings) {
+        for (const t of Object.keys(BUILDINGS) as Building[]) if (t !== b.type) out.push({ type: "replace", region: r.id, slot: b.slot, building: t });
         if (b.type !== "powerPlant") continue;
         for (const mode of Object.keys(POWER_MODES)) if (mode !== (b.mode ?? "solar")) out.push({ type: "setMode", region: r.id, slot: b.slot, mode });
       }

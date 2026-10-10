@@ -1,7 +1,7 @@
 // system-design.md §14.5: each handler validates, then returns its executor.
 // The same check drives apply, legalActions and the client's disabled reasons.
 import {
-  BUILDINGS, ECONOMY, EMPIRE, MILITARY, POWER_MODES, REGIONS, RUNGS, SEASON, TECH, UNITS, WAR, type PowerMode, type Resource,
+  BUILDINGS, ECONOMY, EMPIRE, MAP, MILITARY, POWER_MODES, REGIONS, RUNGS, SEASON, TECH, UNITS, WAR, type PowerMode, type Resource,
 } from "./data/index.ts";
 import {
   enqueue, isInt, isRejection, needs, no, ownRegion, regionName, type Cmd, type Handler, type Plan,
@@ -67,7 +67,9 @@ const join: Handler<"join"> = (s, n, c) => {
   return () => {
     const kit = ECONOMY.startKit;
     r.owner = n.id;
-    r.buildings = kit.buildings.slice(0, slotsOf(s, r.id)).map((type, slot) => ({ slot, type }));
+    const sun = MAP.solarBase * REGIONS[r.id].s;
+    const mode = !REGIONS[r.id].start && POWER_MODES[kit.offEarthPower].flat! > sun ? kit.offEarthPower : undefined;
+    r.buildings = kit.buildings.slice(0, slotsOf(s, r.id)).map((type, slot) => (type === "powerPlant" && mode ? { slot, type, mode } : { slot, type }));
     r.armies = kit.armies;
     touch(r);
     const late = s.t - s.season.startedAt >= WAR.boostS * 1000;

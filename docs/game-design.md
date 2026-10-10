@@ -217,8 +217,11 @@ Each off-Earth region costs **1 Materiel/min** colony upkeep; a shortfall
 halves its output. Society tech (§8) reduces both this and building Energy
 upkeep.
 
-**Starting kit:** capital with Power Plant, Mine, Refinery, Lab; 2 Armies;
-200 M, 100 V, 60 A, 50 Materiel, 30 R, 500 E.
+**Starting kit:** capital with Power Plant, Mine, Refinery, Lab (as many as
+the region has slots); 2 Armies; 200 M, 100 V, 60 A, 50 Materiel, 30 R,
+500 E. Off Earth (a late join or respawn), the Power Plant arrives in
+Fission mode (15 E/min) wherever that beats the local sun, so a lone start
+on Mars or beyond isn't starved of Energy.
 
 ## 7. Military
 

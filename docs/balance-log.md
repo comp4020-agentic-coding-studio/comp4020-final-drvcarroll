@@ -71,3 +71,28 @@ which one depends on the start draw, not the strategy. The rules are not
 the bottleneck any more; bot play is (one colony ship at a time, Luna
 first, wars almost never declared). Targets met: 9 of 12. Open, carried to
 the next loop: first Mars ~32 min, Voidcraft 2 at 93%, win rates.
+
+## Loop 3, 2026-10-10: Mars, expanders, the late joiner
+
+Instrumented first (`inspect`): Luna fills by ~16 min, then colony ships
+scatter evenly over Mercury, Venus, Mars, Phobos and Deimos, so Mars got a
+fifth of the inner picks. Expanders scored below builders even on
+Territory. The late joiner sat on a dead start (Europa, then Venus).
+
+| Change | Why | Effect |
+|---|---|---|
+| Bot: launch by appeal (zone nearness × slots × yields, against the zone's best) | All inner bodies looked alike to bots | Mars 31.8 → 24.5 min (met) |
+| Bot: expander Army target 8 → 4 | Materiel went to garrisons, not ships | small |
+| Bot: expander colonise 9 → 6, 7, 8, back to 9 | Colonise 9 outranks every economy build under the save rule, so expanders stopped building while saving | 6: expander wins 4 → 13% but first colony 4.5 → 11.4 min; kept 9 |
+| Sim: late joiner picks the free region by appeal, not id order | Id order could land it on an outer moon | Europa picks gone; Mars and Venus starts still stalled |
+| `legalActions` lists `replace`; bot replaces a Refinery, Foundry or Factory for a missing Lab or Spaceport, only when boxed in (no free slot, no free neighbour) | Bots could never do what the Guide tells a full capital to do | unrestricted: V2 68% (bots swapped out their only Lab); restricted: V2 96%, Mars 22.5 min |
+| Rule: an off-Earth start's kit Power Plant runs Fission where that beats the sun (`startKit.offEarthPower`) | A lone Mars start made 4 E/min against 5+ E/min of upkeep: dead for a human too | late joiner 15 → 22% |
+
+**After:** 9 of 12 met. Thrust Vectoring 2.3 min, first colony 4.3 min,
+first Mars 22.5 min (newly met), Voidcraft 2 at 95%, expanders win 17%
+(was 4%). Late joiner 22% (want 25%); the earlier 32% came from id-order
+picks and rivals crippling their own Labs, not a stronger joiner.
+Conqueror and researcher still rarely win. They need bot play the rules
+already allow (timed wars, Envoy-led trade), not new numbers.
+Stage G stands here: the numbers are reasonable and logged. The loop
+reopens after any `rules/data/` change.

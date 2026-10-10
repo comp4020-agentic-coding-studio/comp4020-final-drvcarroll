@@ -53,6 +53,7 @@ export const ECONOMY = {
   boostMultiplier: 2,
   startKit: {
     buildings: ["powerPlant", "mine", "refinery", "lab"] as Building[],
+    offEarthPower: "fission" as PowerMode, // off Earth, when it beats the local sun
     armies: 2,
     stocks: { E: 500, M: 200, V: 100, A: 60, R: 30, Mt: 50 } as Record<Resource, number>,
   },

@@ -1,10 +1,11 @@
 # Progress
 
-**Stage:** E done: Envoy beacons (amber pip on the host capital's labels,
-sender only), quality tiers with auto step-down and a Graphics menu item
-(system-design.md §8), P8 judged in docs/checks.md (60 fps, ~210 MB on an
-M4). D full done (keyboard-only core loop at both viewports). F done.
-Next: G loops.
+**Stage:** every stage meets its exit criteria. G loop 3 logged
+(docs/balance-log.md): 9 of 12 targets met, first Mars now 22.5 min; late
+joiner 22% (want 25%), Voidcraft 2 at 95%, conqueror and researcher win
+rates low, all diagnosed as bot play. E done: Envoy beacons, quality tiers
+with auto step-down and a Graphics menu item, P8 judged in docs/checks.md.
+D full done (keyboard-only core loop at both viewports). F done.
 **Last verified checkpoint:** E2 per game-design.md §4, §12:
 - `pnpm worlds` (`scripts/worlds.ts`) builds `client/public/worlds/`:
   region maps (Earth from Natural Earth countries and admin-1 per
@@ -20,10 +21,9 @@ Next: G loops.
 `pnpm test` (71, needs a server on a fresh `DATA_DIR`), `pnpm test:e2e`
 (13, incl. first render < 3 MB and the keyboard loop, which runs last so
 earlier players aren't late joiners), `pnpm sim:test` green.
-**Next:** Stage G loops (Mars time, Voidcraft 2, win-rate spread;
-docs/balance-log.md), one `rules/data/` or bot change at a time with
-`pnpm sim:test`, each logged. A real-phone fps check is owed before
-Crit 10 (needs the user's phone). F detail:
+**Next:** nothing staged. Open for the user: a real-phone fps check and
+the Fly secret `ADMIN_USERS` before Crit 10. Optional G work: bot wars and
+Envoy-led trade for conqueror and researcher win rates. F detail:
 `server/log.ts` lines and stats; `/admin` for `ADMIN_USERS` (set the Fly
 secret before Crit 10); `pnpm load` writes docs/measurements.md (all met);
 docs/checks.md holds judged checks.
@@ -47,6 +47,8 @@ Numbers missing from `game-design.md`, all in
 - Colour clash = RGB distance < 60 (`victory.ts`).
 - Cancelling a build or research refunds in full (only demolish is 50%).
 - "Late join" boost goes to anyone joining 5+ min into the season.
+- An off-Earth start's kit Power Plant runs Fission where 15 E/min beats
+  the local sun (G loop 3; game-design.md §6 records it).
 - Launching needs no Spaceport at the origin, only ships in orbit there.
 - Armies launched off a body come from your garrisons there, in region-id
   order.
@@ -67,4 +69,4 @@ Numbers missing from `game-design.md`, all in
 - Respawn resets stocks to the starting kit.
 - Asteroid J2000 longitudes are approximate (`map.ts`). Off-Earth region
   names are IAU features; E2 replaces invented ones and their placement.
-**Last updated:** 2026-10-10 (E2 scoped).
+**Last updated:** 2026-10-10 (D, E done; G loop 3).

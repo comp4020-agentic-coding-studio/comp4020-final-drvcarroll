@@ -7,7 +7,7 @@ import {
   advanceTo, apply, legalActions, newSeason, observe, settled, validate, type Command, type Id, type Score, type State,
 } from "../rules/index.ts";
 import { leader, scores } from "../rules/score.ts";
-import { decide, startRegions, type Archetype } from "./bots.ts";
+import { decide, startRegions, appeal, type Archetype } from "./bots.ts";
 
 export const T0 = 1_800_000_000_000;
 const MIN = 60_000;
@@ -94,8 +94,10 @@ export function run(o: RunOptions): RunResult {
   };
 
   const joinFree = (id: Id) => {
+    // Earth full: the free region a player would want most.
     const region = starts.find((x) => !s.regions[x].owner)
-      ?? legalActions(s, id).find((c): c is Extract<Command, { type: "join" }> => c.type === "join")?.region;
+      ?? legalActions(s, id).filter((c): c is Extract<Command, { type: "join" }> => c.type === "join")
+        .map((c) => c.region).sort((a, b) => appeal(REGIONS[b].body) - appeal(REGIONS[a].body))[0];
     return !!region && step(id, { type: "join", region });
   };
 
