@@ -163,7 +163,7 @@ more polished HUD. This revises the D client in place, no new client:
 check scans the HUD text); every resource icon has an accessible name; a
 held region shows `slotsOf` tiles and its build, replace, upgrade and
 demolish work from them; `replace` is refused with a reason when the new
-building can't be afforded after the refund (spec); the Guide opens from the
+building can't be afforded after the refund (rules test); the Guide opens from the
 top bar with its pages; the core loop still completes at both viewports and
 by keyboard; screenshots judged as a player would before calling it done.
 **Serves:** P1, P2, P7, P10.

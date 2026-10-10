@@ -511,8 +511,9 @@ Every resource has an SVG icon, and the icon replaces the resource's letter
 or name **everywhere** it appears: top bar, costs, yields, upkeep,
 breakdowns, trade forms, the Guide. No "M" for Metals anywhere in the UI.
 Each icon carries an accessible name (`role="img"` and `aria-label`, e.g.
-"Metals") and shows it as a tooltip on hover and keyboard focus, so it is
-never a puzzle (goals.md P2, P7). Region yields use the same set, plus a sun
+"Metals") and shows it as a tooltip on hover, so it is never a puzzle
+(goals.md P2, P7). Resource pickers (trade, the Exchange) are a radio group
+of the six icons, not a list of names. Region yields use the same set, plus a sun
 icon for Solar.
 
 Every building has a detailed SVG icon, and so does each upgrade: Power

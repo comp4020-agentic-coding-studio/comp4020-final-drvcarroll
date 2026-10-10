@@ -1,30 +1,29 @@
 # Progress
 
-**Stage:** D done, E (visual fidelity) largely done (build-process.md).
-A done, B harness running, C done.
-**Last verified checkpoint:** the client is a full-screen Three.js solar
-system with a glass HUD (game-design.md §12, goals.md P10):
-- Map: Google-Maps navigation, fly-to and follow, Voronoi region patches
-  with owner tints; procedural opaque surfaces per body (oceans, clouds,
-  craters, bands, ice, volcanoes, city lights), atmospheres, rings, bloom;
-  radius^0.75 sizes, wider orbits.
-- A busy system: GPU-orbited asteroid belt (Kirkwood gaps), Trojans,
-  Kuiper belt; dwarf planets and minor moons in real order; six comets on
-  real Kepler orbits with tails (`scene/decor.ts`, `scene/layout.ts`).
-- HUD: top bar totals with +X/day buttons opening per-source breakdowns
-  (`economy().lines`); left empire bar (regions by body, dropdown slots and
-  per-day output/upkeep, fleets, goals, all bodies); right selection panel;
-  bottom news ticker; Tech/Empires/Trade drawers; phone bottom sheets.
-`pnpm test` (63) and `pnpm test:e2e` (6, headless Chrome) green. `pnpm dev`
-serves it on :8080. Screenshots: a scratch Playwright script (untracked).
-**Next:** Stage D2, the playtest HUD revision (build-process.md D2,
-game-design.md §11 Guide, §12 screen): resource and building SVG icons
-everywhere, tab-free selection panel with slot grid and Forces here, atomic
-`replace` command, Empire menu (Territory, Armies, Fleets, Tech tree),
-Empires overlay (rank, war, trade, Earth Exchange), the Guide. Balance runs
-continue alongside (early game Alloy-starved, docs/balance-log.md).
+**Stage:** D2 (playtest HUD revision) done. A, C, D done; E largely done;
+B harness running; G ongoing (build-process.md).
+**Last verified checkpoint:** D2 per game-design.md §11–12:
+- SVG icons for resources (aria-label + tooltip), buildings, Power Plant
+  modes, ships and Armies (`client/src/ui/icons.tsx`); no resource letters
+  left in the HUD (e2e scans for them).
+- Selection panel with no tabs: slot grid, tile menu (replace, upgrade,
+  demolish; Spaceport builds ships and Armies), Forces here (garrison,
+  train, march, orbit, inbound, last battle). Atomic `replace` command with
+  a pinned slot (rules). Space battle news refs carry the body.
+- Empire menu: Territory, Armies (incl. marches, new `PrivateState.marches`),
+  Fleets, Tech tree (four-column overlay, only the next rung researchable).
+- Empires overlay: rank, war status, Envoy, trade deals per nation, Earth
+  Exchange. Tech/Trade drawers removed.
+- The Guide (`ui/Guide.tsx`): nine pages, numbers from `rules/data/`, top
+  bar button or `?`; goals and empty states link to it.
+`pnpm test` (66, needs a server on a fresh `DATA_DIR`), `pnpm test:e2e` (8),
+`pnpm sim:test` (2) green.
+**Next:** the user plays it and reports on D2. Then Crit 9 bar (build-process.md
+calendar): keyboard-only core loop pass. Balance: early game Alloy-starved
+(docs/balance-log.md). Rendering polish deferred by the user.
 **Flagged assumptions** (D2: the user's "garrison" building = the Spaceport;
-"upgrade" = Power Plant modes, other buildings upgrade via Industry rungs.
+"upgrade" = Power Plant modes, other buildings upgrade via Industry rungs;
+single-slot produce/consume = the region's flows for that type ÷ its count.
 Numbers missing from `game-design.md`, all in
 `rules/data/`, sim-tunable):
 - Envoy upkeep 3 E/min (`economy.ts`).
