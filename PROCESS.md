@@ -2,7 +2,9 @@
 
 Opus 5.5 is making me question my future as a programmer. I decided to give it more freedom and a less constrictive harness, as I've seen other projects in the crits where a literal three line prompt to Opus 5.5 one-shots an extremely polished web app.
 
-## 1. Planning
+# Week 8
+
+## 1. Planning 
 
 First I defined the goals ([6325c60](https://github.com/comp4020-agentic-coding-studio/comp4020-final-drvcarroll/commit/6325c60)) aligned with the concept I wanted, a space-based game to appeal to my science fiction fantasies. The core game mechanic is expanding territory, growing the economy and discovering new technologies, basically a civilisation simulator. These goals can be broadly split into two categories: player-oriented goals, which concern the direct user experience of the game, and system-oriented goals, which concern how the system is designed to support that experience.
 
@@ -19,3 +21,17 @@ In place of `execute_plan` I made a simple skill called `comp4020_resume` ([b0cb
 While the backend and functionality were great, I find it faster to prototype iteratively, particularly for large software projects (anything more than a website with a few pages), since the details are too expansive to capture in a prompt, design document or system scaffold, at which point you may as well code it yourself. So instead I prompt, let Opus run with the skill, and interrupt whenever it's clear I haven't explained my vision or defined the goals well enough.
 
 A clear example of this was the UI. The initial client was just a bunch of dropdown menus for the different planets ([8b7f4ae](https://github.com/comp4020-agentic-coding-studio/comp4020-final-drvcarroll/commit/8b7f4ae)), so I changed it to make the interactive solar system view the main interface, and had that decision recorded across all three design docs so later sessions wouldn't drift back ([604d19c](https://github.com/comp4020-agentic-coding-studio/comp4020-final-drvcarroll/commit/604d19c)). That led to the 3D solar system with a Stellaris-style HUD ([ed41d5a](https://github.com/comp4020-agentic-coding-studio/comp4020-final-drvcarroll/commit/ed41d5a)), with subtle side menus that I'm still working on designing.
+
+# Week 9 
+
+## 4. Integrating Feedback
+
+The feedback from the crit was encouraging; people enjoyed the game and the idea and seemed to have fun, but there were two clear improvements to make: a better UI, and clearer instructions. So I explained the changes I wanted, a less cluttered HUD with icons in place of letters, a selection panel without tabs, an Empire menu for territory, armies and tech, and an in-game guide, and had Opus 5.5 write them into the relevant core documents, mainly the game design and build process files ([89b4079](https://github.com/comp4020-agentic-coding-studio/comp4020-final-drvcarroll/commit/89b4079)). Then I resumed the run with `comp4020_resume`, and it built the icons ([fe12709](https://github.com/comp4020-agentic-coding-studio/comp4020-final-drvcarroll/commit/fe12709)), the new selection panel ([670b52e](https://github.com/comp4020-agentic-coding-studio/comp4020-final-drvcarroll/commit/670b52e)), the Empire menu ([0bde927](https://github.com/comp4020-agentic-coding-studio/comp4020-final-drvcarroll/commit/0bde927)) and the Guide ([2eb3063](https://github.com/comp4020-agentic-coding-studio/comp4020-final-drvcarroll/commit/2eb3063)) with very little input from me. It worked really well.
+
+Writing these updates and making sure the right core files were modified was a little tedious, so I've refined this process with a new skill called `comp4020_update` ([fa42c7c](https://github.com/comp4020-agentic-coding-studio/comp4020-final-drvcarroll/commit/fa42c7c)), which (if you didn't guess already) takes any change to the game I want to make and folds it into the core design documents and build plan, so that desired changes land in the harness properly and can be tracked with high visibility. Its first real use was swapping the stylised planets for real imagery and real country borders, with a command console look for the HUD ([8a964fa](https://github.com/comp4020-agentic-coding-studio/comp4020-final-drvcarroll/commit/8a964fa)). It also makes integrating feedback into the build process really seamless.
+
+I also had to modify `comp4020_resume` so it no longer waits for user input between stages. Now the build is almost fully automated, with a really smooth human-LLM interactive loop: I play the game, describe what I want changed with `comp4020_update`, and let `comp4020_resume` build it.
+
+## 5. A Note on Bot Testing
+
+Bot testing is proving really valuable for balancing a more complex game such as this one. Opus dispatches subagents to playtest the game headlessly and measures the speed of progression through different playstyles, to ensure the viability of different options. Each round of this balance loop found a real problem, from a stalled early game, where fixing the costs took the met balance targets from 6 of 12 to 9 ([379d005](https://github.com/comp4020-agentic-coding-studio/comp4020-final-drvcarroll/commit/379d005)), to bots saving for costs they could never reach ([3d6f4fa](https://github.com/comp4020-agentic-coding-studio/comp4020-final-drvcarroll/commit/3d6f4fa)) and off-Earth starts falling behind ([c174080](https://github.com/comp4020-agentic-coding-studio/comp4020-final-drvcarroll/commit/c174080)). It's not even that expensive, maybe $30 of credits, as the subagents are quite cheap now and the game is easy to interact with headlessly.

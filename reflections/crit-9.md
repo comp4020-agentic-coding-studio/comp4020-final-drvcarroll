@@ -1,0 +1,11 @@
+# Crit 9 Reflection
+
+I've changed my perspective on using LLMs for building software, or rather using LLMs for any task in general. Initially, my aim was **"automate as much as I can"**, as the quintessential computer scientist I am. However, a better approach I've found that works for me is to work on **polishing the human-computer interactive approach to iterative development**. Forgive the bold text I am starting to write like an LLM; what has become of us. Sometimes I wonder if I am learning from the AI, or if the AI is learning from me. 
+
+This "breakthrough" was predominantly catalysed by the fact that my attempts at full automation for software development end-to-end, given a single prompt, is actually fairly restrictive, and not really condusive to agile development. In particular, good game design relies on user feedback and manual playthroughs, which is far more condusive to rapid prototyping and iterative development. As such, I think the best strategy is as follows:
+1. Define clear goals, from both a user perspective (front-end) and systems perspective (back-end)
+2. Have several core documents defining how success is measured, driving principles, design goals, and so forth. Splitting documents by function helps to avoid context rot and allows for more efficient retrieval.
+3. Create two main "harness crutches" (I don't want to call them 'skills' as this can in theory be applied to custom harnesses) for automating the build process, and updating the build process. 
+4. Engage in a development loop: Run the build process automation, interact with the end product, update the build process, repeat
+
+Additionally, I found that ensuring a clean headless interactive element to the game really helps with using lighter LLM agents to playtest. For any relatively complex piece of software, particularly a multi-player game, bots that playtest and implement balance changes has actually proved quite useful to ensure the game mechanics are well balanced and ensure you accomodate multiple different playstyles. 
