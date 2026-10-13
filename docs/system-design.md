@@ -157,6 +157,24 @@ the time model is analytic (game-design.md §3).
   bodies for sensors, held nation ids for Envoys, at most 24 of each),
   nowhere near that budget.
 
+### Why one thread, and why 500 ms
+
+The server is one Node process: socket I/O is concurrent on the event loop,
+but every state change goes through the tick, one writer, no locks. Only
+scrypt runs off the loop (libuv pool, capped at 2, §7).
+
+| Option | Verdict |
+|---|---|
+| **Single writer, arrival order** (current) | One order to log and replay; ties go to the lower-latency link |
+| Intake threads → shared queue → writer, a sender thread per client | The current design with OS threads in place of event-loop callbacks. One shared vCPU means threads take turns, not run in parallel; each `worker_thread` is a V8 isolate (~10 to 30 MB of 256 MB) and isolates can't share the world, so senders need a copy per tick, costlier than the diff they'd take over |
+| Thread per client, round-robin writes to the world | Same thread costs. The round-robin half is sound without threads: one queue per client, one command each in turn, rotating who goes first. Removes the latency edge on contested actions (claims, invasions, trades); costs a less intuitive rule (a later command can win) and a rotation replay must reproduce. Irrelevant to commands that touch only the sender |
+| 250 ms tick | Halves the tick wait (p95 visibility ~250 to 300 ms, from 501 ms). Fixed per-tick work (advance, one view, scoring, per-client diff) runs every tick, so CPU per second doubles: ~8% of a core at load, above shared-cpu-1x's ~6% baseline (verify against Fly's docs), so a sustained showcase load risks throttling. Twice the fsyncs and messages. Players gain little: the client already interpolates between ticks (§6); only command confirmation speeds up, ~0.3 s from ~0.5 s |
+
+Load is not the constraint: tick processing is 14 ms p50, 20 ms p99 of
+500 ms (`docs/measurements.md`), so the loop idles ~96% of the time. 500 ms
+stays: about half the brief's second, inside the CPU baseline. If commands
+feel slow in play, try 333 ms and rerun `pnpm load` before changing S1.
+
 ### Clock
 
 Every `tick` carries the server time. The client keeps the offset from the

@@ -415,7 +415,9 @@ two of three can).
   claims, declarations, battles, trades.
 - **Concurrency:** commands are serialised and validated against current state.
   Two Colony Ships for one region: first arrival wins; tie goes to the earlier
-  launch, then lower id. The loser waits in orbit.
+  launch, then lower id. The loser waits in orbit. Commands in one tick
+  apply in arrival order; why, and the alternatives weighed (threads, round
+  robin, a faster tick), are in system-design.md §5.
 
 ### Sensors, fog of war and Envoys
 
