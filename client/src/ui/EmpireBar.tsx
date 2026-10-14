@@ -1,38 +1,41 @@
-// game-design.md §12 empire menu: Territory, Armies, Fleets, Tech tree. A
-// region drops down to its slots and output; a second click flies there.
+// game-design.md §12 empire menu: Territory, Military, Research. A region
+// drops down to its slots and output; a second click flies there.
 // Doubles as the keyboard route into the map (goals.md P7).
 import type { ComponentChildren } from "preact";
 import { useState } from "preact/hooks";
-import { BODIES, BUILDINGS, REGIONS, RESOURCES, RUNGS, type Building, type Resource } from "../../../rules/data/index.ts";
+import { BODIES, BUILDINGS, LADDERS, REGIONS, RESOURCES, RUNGS, type Building, type Resource } from "../../../rules/data/index.ts";
+import { techCost } from "../../../rules/commands.ts";
+import { battleCounts } from "../../../rules/war.ts";
 import { slotsOf } from "../../../rules/economy.ts";
-import type { Region } from "../../../rules/index.ts";
+import type { Battle, Region } from "../../../rules/index.ts";
 import { bodyName, dur, perDay, regionName } from "../format.ts";
 import { eco, mirror } from "../mirror.ts";
 import { clock, drawer, me, selFleet, selRegion, world, you } from "../store.ts";
-import { Progress } from "./common.tsx";
-import { BuildingIcon, ResIcon, UnitIcon, Units } from "./icons.tsx";
+import { Action, Progress } from "./common.tsx";
+import { Amt, BuildingIcon, ResIcon, UnitIcon, Units } from "./icons.tsx";
 import { GuideLink } from "./Guide.tsx";
 import { focusOn, picked, selectFleet } from "./SceneHost.tsx";
 import { Tutorial } from "./Side.tsx";
 
 export function EmpireBar() {
   const w = world.value!, y = you.value!, t = clock.value;
-  const [open, setOpen] = useState(innerWidth > 720);
-  const [all, setAll] = useState(false);
+  const phone = innerWidth <= 720;
+  const [open, setOpen] = useState(!phone);
   const mine = w.regions.filter((r) => r.owner === me.value);
   const byBody: Record<string, Region[]> = {};
   for (const r of mine) (byBody[r.body] ??= []).push(r);
   const fleets = w.fleets.filter((f) => f.owner === me.value);
   const garrisons = mine.filter((r) => r.armies);
   const marches = w.marches.filter((m) => m.owner === me.value);
+  const battles = w.battles.filter((b) => b.attacker === me.value || b.defender === me.value);
   const armies = garrisons.reduce((a, r) => a + r.armies!, 0) + marches.reduce((a, m) => a + m.count, 0);
-  const tech = drawer.value === "tech";
+  const research = y.research ? `${RUNGS[y.research.tech].name} ${dur(y.research.finishAt - t)}` : `${y.techs.length}/${Object.keys(RUNGS).length}`;
   return (
     <nav class={`hud empire ${open ? "" : "closed"}`} aria-label="Your empire">
-      <button class="hud-title" aria-expanded={open} onClick={() => setOpen(!open)}>Empire {open ? "▾" : "▸"}</button>
+      {phone && <button class="hud-title" aria-expanded={open} onClick={() => setOpen(!open)}>Empire {open ? "▾" : "▸"}</button>}
       {open && (
         <div class="scroll">
-          <Sec label="Territory" count={mine.length} start>
+          <Sec label="Territory" count={String(mine.length)} start>
             <ul class="list tight">
               {Object.entries(byBody).map(([body, rs]) => (
                 <li key={body}>
@@ -41,10 +44,13 @@ export function EmpireBar() {
                 </li>
               ))}
             </ul>
+            <AllBodies />
           </Sec>
-          <Sec label="Armies" count={armies}>
-            {armies === 0 && <p class="hint">None. Train them in any region you hold. <GuideLink page="armies" /></p>}
+          <Sec label="Military" count={`${battles.length ? "⚔ " : ""}${armies} · ${fleets.length}`}>
+            <h4>Armies <small>{armies}</small></h4>
+            {armies === 0 && !battles.length && <p class="hint">None. Train them in any region you hold. <GuideLink page="armies" /></p>}
             <ul class="list tight">
+              {battles.map((b) => <BattleRow key={b.id} b={b} />)}
               {garrisons.map((r) => (
                 <li key={r.id}>
                   <button class={`row ${selRegion.value === r.id ? "on" : ""}`} onClick={() => focusOn(r.body, r.id)}>
@@ -60,8 +66,7 @@ export function EmpireBar() {
                 </li>
               ))}
             </ul>
-          </Sec>
-          <Sec label="Fleets" count={fleets.length}>
+            <h4>Fleets <small>{fleets.length}</small></h4>
             {fleets.length === 0 && <p class="hint">None yet: build one at a Spaceport. <GuideLink page="colonising" /></p>}
             <ul class="list tight">
               {fleets.map((f) => (
@@ -74,32 +79,74 @@ export function EmpireBar() {
               ))}
             </ul>
           </Sec>
-          <button class={`sec-head ${tech ? "on" : ""}`} aria-pressed={tech} onClick={() => (drawer.value = tech ? null : "tech")}>
-            <span>Tech tree</span>
-            <small>{y.research ? `${RUNGS[y.research.tech].name} ${dur(y.research.finishAt - t)}` : `${y.techs.length} of ${Object.keys(RUNGS).length}`}</small>
-          </button>
-          {y.research && <Progress start={y.research.startAt} end={y.research.finishAt} label="Research progress" />}
+          <Sec label="Research" count={research}>
+            {y.research && <Progress start={y.research.startAt} end={y.research.finishAt} label="Research progress" />}
+            <NextRungs />
+          </Sec>
           <Tutorial />
-          <button class="hud-title small" aria-expanded={all} onClick={() => setAll(!all)}>All bodies {all ? "▾" : "▸"}</button>
-          {all && (
-            <ul class="list tight">
-              {Object.values(BODIES).filter((b) => b.id !== "antarctica").map((b) => (
-                <li key={b.id}><button class="row" onClick={() => focusOn(b.id)}>{b.name}<small>{b.zone}</small></button></li>
-              ))}
-            </ul>
-          )}
         </div>
       )}
     </nav>
   );
 }
 
-function Sec({ label, count, start, children }: { label: string; count: number; start?: boolean; children: ComponentChildren }) {
+function BattleRow({ b }: { b: Battle }) {
+  const [atk, def] = battleCounts(b, clock.value);
+  const [us, them] = b.attacker === me.value ? [atk, def] : [def, atk];
+  return (
+    <li>
+      <button class="row battle" onClick={() => focusOn(REGIONS[b.id].body, b.id)}>
+        <span>⚔ {regionName(b.id)}</span><small>{us.toFixed(0)} vs {them.toFixed(0)}</small>
+      </button>
+    </li>
+  );
+}
+
+// Each ladder's next rung, and the full tree as an overlay.
+function NextRungs() {
+  const y = you.value!, n = mirror.value?.nations[me.value!];
+  const tech = drawer.value === "tech";
+  return (
+    <>
+      <ul class="list tight">
+        {Object.values(LADDERS).map((rungs) => {
+          const next = rungs.find((r) => !y.techs.includes(r.id));
+          if (!next || y.research?.tech === next.id) return null;
+          return (
+            <li key={next.id} class="item">
+              <div><b>{next.name}</b><small>{next.desc}</small></div>
+              <Action kind="quiet" cmd={{ type: "research", tech: next.id }}><Amt res="R" v={n ? techCost(n, next.id) : 0} /></Action>
+            </li>
+          );
+        })}
+      </ul>
+      <button class={`link ${tech ? "on" : ""}`} aria-pressed={tech} onClick={() => (drawer.value = tech ? null : "tech")}>Tech tree</button>
+    </>
+  );
+}
+
+function AllBodies() {
+  const [all, setAll] = useState(false);
+  return (
+    <>
+      <button class="hud-title small" aria-expanded={all} onClick={() => setAll(!all)}>All bodies {all ? "▾" : "▸"}</button>
+      {all && (
+        <ul class="list tight">
+          {Object.values(BODIES).filter((b) => b.id !== "antarctica").map((b) => (
+            <li key={b.id}><button class="row" onClick={() => focusOn(b.id)}>{b.name}<small>{b.zone}</small></button></li>
+          ))}
+        </ul>
+      )}
+    </>
+  );
+}
+
+function Sec({ label, count, start, children }: { label: string; count: string; start?: boolean; children: ComponentChildren }) {
   const [open, setOpen] = useState(!!start);
   return (
     <section class="sec">
       <button class="sec-head" aria-expanded={open} onClick={() => setOpen(!open)}>
-        <span>{label}</span><small>{count || ""} {open ? "▾" : "▸"}</small>
+        <span>{label}</span><small>{count} {open ? "▾" : "▸"}</small>
       </button>
       {open && children}
     </section>

@@ -6,11 +6,12 @@ import {
   type Building, type BuildingData, type Mod, type PowerMode, type Resource, type Unit,
 } from "../../../rules/data/index.ts";
 import { mods, slotsOf } from "../../../rules/economy.ts";
-import type { Command, Fleet, QueueEntry, Region } from "../../../rules/index.ts";
+import { battleCounts } from "../../../rules/war.ts";
+import type { Battle, Command, Fleet, QueueEntry, Region } from "../../../rules/index.ts";
 import { isLocal, launchEnergy, travelMs, windowPenalty } from "../../../rules/orbit.ts";
 import { bodyName, dur, num, regionName, toDay } from "../format.ts";
 import { eco, mirror } from "../mirror.ts";
-import { clock, launchTo, me, season, selBody, selFleet, selRegion, stockNow, world, you } from "../store.ts";
+import { clock, launchTo, me, nations, season, selBody, selFleet, selRegion, stockNow, world, you } from "../store.ts";
 import { Action, Chip, Cost, Count, Progress } from "./common.tsx";
 import { Amt, BuildingIcon, ResIcon, SolarIcon, UnitIcon, Units } from "./icons.tsx";
 import { GuideLink } from "./Guide.tsx";
@@ -80,8 +81,10 @@ function RegionView({ id }: { id: string }) {
   const rd = REGIONS[id];
   const mine = r.owner === me.value;
   const sensed = r.buildings !== undefined;
+  const battle = world.value!.battles.find((b) => b.id === id);
   return (
     <>
+      {battle && <BattleView b={battle} />}
       <Header desig={`Sector // ${bodyName(rd.body)} · ${mine ? "held" : r.owner ? "foreign" : sensed ? "unclaimed" : "no sensor"}`} title={rd.name} sub={bodyName(rd.body)} onClose={() => (selRegion.value = null)} />
       <p class="yields">
         {sensed || r.owner ? <Chip id={r.owner} /> : <span class="muted">No sensor here</span>}
@@ -356,6 +359,40 @@ function Forces({ r, mine }: { r: Region; mine: boolean }) {
 
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 
+// game-design.md §12: a ground battle, both sides draining live.
+function BattleView({ b }: { b: Battle }) {
+  const t = clock.value;
+  const [atk, def] = battleCounts(b, t);
+  const top = Math.max(1, b.atk, b.def);
+  const side = (who: string, n: number, role: string) => (
+    <li class="side">
+      <Chip id={who} /><small>{role}</small>
+      <div class="bar" role="meter" aria-label={`${role} Armies`} aria-valuenow={Math.round(n)} aria-valuemin={0} aria-valuemax={top}>
+        <div style={{ width: `${(n / top) * 100}%`, background: nations.value[who]?.primary }} />
+      </div>
+      <span class="amt"><UnitIcon unit="army" size={16} /> {n.toFixed(1)}</span>
+    </li>
+  );
+  return (
+    <section class="battle-now" aria-label="Battle" aria-live="polite">
+      <h3>⚔ Battle <small>{dur(b.endsAt - t)} left</small></h3>
+      <ul class="list">{side(b.attacker, atk, "Attacker")}{side(b.defender, def, "Defender")}</ul>
+    </section>
+  );
+}
+
+// At peace with the owner: declare war here, Attack shown until it's active.
+function WarAction({ owner }: { owner: string }) {
+  const w = world.value!.wars.find((x) => (x.a === owner && x.b === me.value) || (x.b === owner && x.a === me.value));
+  if (w && w.activeAt <= clock.value) return null;
+  return (
+    <p class="war-here">
+      {w ? <small class="warn">War goes active in {dur(w.activeAt - clock.value)}</small>
+        : <Action kind="danger" confirm={`Declare war on ${nations.value[owner]?.name}? It's public.`} cmd={{ type: "declareWar", nation: owner }}>Declare war</Action>}
+    </p>
+  );
+}
+
 function Foreign({ r }: { r: Region }) {
   const w = world.value!;
   const body = REGIONS[r.id].body;
@@ -366,6 +403,7 @@ function Foreign({ r }: { r: Region }) {
   const none = !(colonisers.length && !r.owner && !isEarth(r.id)) && !(invaders.length && r.owner) && !marchers.length;
   return (
     <>
+      {r.owner && <WarAction owner={r.owner} />}
       {none && (
         <p class="hint">
           {isEarth(r.id) ? "March Armies in from a region you hold next door."

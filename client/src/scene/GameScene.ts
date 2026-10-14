@@ -62,6 +62,7 @@ export class GameScene {
   private fleets: FleetLayer;
   private decor: Decor;
   private regionLabels = new Map<string, HTMLElement>();
+  private marchMarks = new Map<string, HTMLElement>();
   private flight: Flight | null = null;
   private lastFocusPos = new THREE.Vector3();
   private down: { x: number; y: number } | null = null;
@@ -604,14 +605,18 @@ export class GameScene {
     const f = this.focus;
     const showRegions = !!f && camPos.distanceTo(this.bodyPos(f)) < SIZE[f] * 9;
     for (const [id, el] of this.regionLabels) if (!showRegions || REGIONS[id] && sphereOf(REGIONS[id].body) !== f) el.style.display = "none";
+    this.marches(showRegions ? f! : null, place);
     if (!showRegions) return;
     const c = this.bodyPos(f!);
+    const w0 = world.value;
+    const byId = new Map((w0?.regions ?? []).map((r) => [r.id, r]));
+    const fights = new Set((w0?.battles ?? []).map((b) => b.id));
     for (const s of regionsOn(f!).map((r) => ({ region: r.id, dir: anchor(r.id) }))) {
       let el = this.regionLabels.get(s.region);
       if (!el) {
         el = document.createElement("button");
         el.className = "label region";
-        el.textContent = REGIONS[s.region].name;
+        el.append(REGIONS[s.region].name, Object.assign(document.createElement("span"), { className: "force" }));
         el.tabIndex = -1;
         el.addEventListener("click", () => this.select(REGIONS[s.region].body, s.region));
         this.overlay.append(el);
@@ -620,10 +625,37 @@ export class GameScene {
       const p = v3(s.dir).multiplyScalar(SIZE[f!]).add(c);
       const facing = !!BANDS[s.region] || v3(s.dir).normalize().dot(camPos.clone().sub(c).normalize()) > 0.25;
       place(el, p, facing, -8);
-      const owner = world.value?.regions.find((r) => r.id === s.region)?.owner;
+      const r = byId.get(s.region);
+      const owner = r?.owner;
       el.classList.toggle("mine", owner === me.value);
+      force(el.lastChild as HTMLElement, r?.armies ?? 0, owner, fights.has(s.region));
       el.classList.toggle("sel", selRegion.value === s.region);
       el.classList.toggle("envoy", beacons.value.has(s.region));
+    }
+  }
+
+  // game-design.md §12: Armies on the move, between the two regions' anchors.
+  private marches(f: string | null, place: (el: HTMLElement, p: THREE.Vector3, show: boolean, dy?: number) => void): void {
+    const seen = new Set<string>();
+    const now = this.now();
+    for (const m of f ? (world.value?.marches ?? []) : []) {
+      if (sphereOf(REGIONS[m.from].body) !== f) continue;
+      seen.add(m.id);
+      let el = this.marchMarks.get(m.id);
+      if (!el) {
+        el = Object.assign(document.createElement("span"), { className: "label march" });
+        el.append(Object.assign(document.createElement("span"), { className: "force" }));
+        this.overlay.append(el);
+        this.marchMarks.set(m.id, el);
+      }
+      force(el.firstChild as HTMLElement, m.count, m.owner, false);
+      const k = THREE.MathUtils.clamp((now - m.departAt) / (m.arriveAt - m.departAt), 0, 1);
+      const p = v3(anchor(m.from)).lerp(v3(anchor(m.to)), k).normalize().multiplyScalar(SIZE[f!] * 1.01).add(this.bodyPos(f!));
+      place(el, p, true, -8);
+    }
+    for (const [id, el] of this.marchMarks) if (!seen.has(id)) {
+      el.remove();
+      this.marchMarks.delete(id);
     }
   }
 
@@ -635,6 +667,17 @@ export class GameScene {
     this.renderer.dispose();
     this.overlay.replaceChildren();
   }
+}
+
+const ARMY_SVG = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 13a7 7 0 0 1 14 0v2H5v-2Z" fill="currentColor" fill-opacity="0.2"/><path d="M3 15h18M8 15v4h8v-4M12 6V3"/></svg>';
+
+// A garrison badge: army icon and count in the owner's colour, ⚔ in battle.
+function force(el: HTMLElement, armies: number, owner: string | undefined, battle: boolean): void {
+  const key = `${armies}|${owner}|${battle}`;
+  if (el.dataset.k === key) return;
+  el.dataset.k = key;
+  el.style.color = (owner && nations.value[owner]?.primary) || "";
+  el.innerHTML = (armies ? `${ARMY_SVG}${armies}` : "") + (battle ? '<b class="swords" aria-label="Battle">⚔</b>' : "");
 }
 
 function ring(r: number, color: number, opacity: number): THREE.LineLoop {

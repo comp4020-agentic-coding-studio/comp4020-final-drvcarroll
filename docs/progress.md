@@ -1,11 +1,7 @@
 # Progress
 
-**Stage:** D3 (new, not started). Before it, every stage met its exit criteria. G loop 3 logged
-(docs/balance-log.md): 9 of 12 targets met, first Mars now 22.5 min; late
-joiner 22% (want 25%), Voidcraft 2 at 95%, conqueror and researcher win
-rates low, all diagnosed as bot play. E done: Envoy beacons, quality tiers
-with auto step-down and a Graphics menu item, P8 judged in docs/checks.md.
-D full done (keyboard-only core loop at both viewports). F done.
+**Stage:** D3 code complete, e2e verification open; D4 next. Before D3,
+every stage met its exit criteria (G loop 4 logged in docs/balance-log.md).
 **Last verified checkpoint:** E2 per game-design.md §4, §12:
 - `pnpm worlds` (`scripts/worlds.ts`) builds `client/public/worlds/`:
   region maps (Earth from Natural Earth countries and admin-1 per
@@ -21,20 +17,24 @@ D full done (keyboard-only core loop at both viewports). F done.
 `pnpm test` (71, needs a server on a fresh `DATA_DIR`), `pnpm test:e2e`
 (13, incl. first render < 3 MB and the keyboard loop, which runs last so
 earlier players aren't late joiners), `pnpm sim:test` green.
-**Next:** Stage D3 (build-process.md D3). Read game-design.md §7 Combat
-and War rules, §12 Empire menu, Selection panel, The mechanics on screen;
-system-design.md §14.3 tick, §14.4 (Battle, March), §6 Visibility filter.
-Data edits pending: `WAR.protectionS` 300 → 60; new `MILITARY.groundRate`
-0.025 (Armies destroyed per Army per second); Spaceport cost
-`{ M: 60, A: 20 }` → `{ M: 100, A: 40 }`, `timeS` 75 → 240; remove
-`startKit.offEarthPower`. Update the off-Earth join test in
-`rules/economy.test.ts` to the new refusal. Open for the user: a real-phone fps check and
-the Fly secret `ADMIN_USERS` before Crit 10. Optional G work: bot wars and
-Envoy-led trade for conqueror and researcher win rates. F detail:
-`server/log.ts` lines and stats; `/admin` for `ADMIN_USERS` (set the Fly
-secret before Crit 10); `pnpm load` writes docs/measurements.md (all met);
-docs/checks.md holds judged checks.
-**After D3:** Stage D4 (build-process.md D4). Read game-design.md §7
+**D3 done so far** (commits b9258ae, 974a928, 1ac5713 and the client
+commit after them): 1 min protection; Earth-only starts with `EARTH_FULL`;
+Spaceport 70 M, 25 A, 240 s (loop 4: first colony 7.3 min, never before 5);
+timed ground battles (`battleCounts`, `battle` event, reinforcements, one
+attacker per region), rules v2; battles and marches in `VisibleWorld`,
+vision-gated (rules and spec tests); map army badges, march markers and ⚔
+on battles (`GameScene.force`, `marches`); Battle panel with draining bars
+and Declare war in place (`Selection.tsx`); Empire menu as Territory,
+Military, Research (`EmpireBar.tsx`). `pnpm test` 77 green, `pnpm
+sim:test` green, typecheck clean.
+**Next:** re-run `pnpm test:e2e` on an idle machine. The last runs stalled:
+single tests took 650 to 1000 s against 30 s timeouts, so failures there
+are not verdicts. One earlier full run on this code passed 13 of 14,
+both core loops included; the new war test ("three dropdowns ... battle
+drain live") passed alone once and has not yet passed in a full run. If
+it still fails idle, its likely weak point is `shift()` (reload to resync
+the client clock after the e2e server's clock skew). Then Stage D4.
+**Then:** Stage D4 (build-process.md D4). Read game-design.md §7
 Combat, §9 Alliances and sanctions, §10, §11 Admin reset, §12 Top bar and
 Empires; system-design.md §4 (stages), §9 Admin, §11 reset, §14.2, §14.4,
 §14.5. Data edits pending: `SEASON.lengthS` and `lateJoinCutoffS` go,
@@ -97,8 +97,8 @@ Numbers missing from `game-design.md`, all in
 - Respawn resets stocks to the starting kit.
 - Asteroid J2000 longitudes are approximate (`map.ts`). Off-Earth region
   names are IAU features; E2 replaces invented ones and their placement.
-**Last updated:** 2026-10-14 (D4 staged: stages, alliances, admin reset;
-D3 in progress: unit 1 committed, timed battles uncommitted in the tree).
+**Last updated:** 2026-10-14 (D3 built, e2e verification blocked by a
+stalling machine; D4 staged, not started).
 Earlier: 2026-10-14 (D3 staged: visible war, 1 min protection,
 three-dropdown menu).
 Earlier: 2026-10-10 (D, E done; G loop 3).

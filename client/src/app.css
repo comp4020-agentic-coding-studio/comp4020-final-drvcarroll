@@ -357,3 +357,24 @@ button.small { min-height: 26px; padding: 2px 8px; font-size: 0.76rem; }
   button, select, input, button.row, .drawers button { min-height: 44px; }
   .tiles { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
 }
+
+/* map forces: garrisons, marches, battles (game-design.md §12) */
+.label .force { display: inline-flex; align-items: center; gap: 2px; margin-left: 6px; font: 400 11px var(--mono); letter-spacing: 0; }
+.label .force:empty { display: none; }
+.label .force svg { filter: drop-shadow(0 0 2px #000); }
+.label.march { pointer-events: none; padding: 0; }
+.label.march .force { margin: 0; padding: 1px 4px; background: rgba(6, 8, 11, 0.7); border: 1px solid currentColor; }
+.label .swords { margin-left: 4px; color: var(--error); text-shadow: 0 0 8px var(--error); animation: beacon 0.9s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .label .swords { animation: none; } }
+.empire .sec h4 { margin: 8px 2px 2px; font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
+.empire button.row.battle { color: var(--error); }
+.empire .sec .link { margin: 4px 2px 8px; }
+
+/* battle in the selection panel */
+.battle-now { margin-bottom: 12px; padding: 8px 10px; border: 1px solid rgba(255, 107, 122, 0.6); box-shadow: inset 0 0 24px rgba(255, 107, 122, 0.12); }
+.battle-now h3 { margin: 0 0 6px; color: var(--error); justify-content: space-between; }
+.battle-now h3::before { background: var(--error); box-shadow: 0 0 6px var(--error); }
+.battle-now .side { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; margin: 6px 0; }
+.battle-now .bar { grid-column: 1 / -1; height: 8px; background: #0d1013; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5); }
+.battle-now .bar div { height: 100%; transition: width 0.25s linear; box-shadow: 0 0 8px currentColor; }
+.war-here { margin: 8px 0; }

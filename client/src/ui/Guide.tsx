@@ -113,8 +113,9 @@ const PAGES: Record<Page, { title: string; body: () => ComponentChildren }> = {
     title: "War and invasion",
     body: () => <>
       <ol>
-        <li>Open <b>Empires</b> and <b>Declare war</b>. It's public and goes active {min(WAR.activationS)} later. New nations are protected for {min(WAR.protectionS)}.</li>
+        <li>Click a rival's region (or open <b>Empires</b>) and <b>Declare war</b>. It's public and goes active {min(WAR.activationS)} later. New nations are protected for {min(WAR.protectionS)}.</li>
         <li>Fleets sharing an orbit with an enemy fight at once. The stronger side wins and keeps part of its fleet; no luck involved.</li>
+        <li>Armies attacking a defended region start a battle, marked ⚔ on the map. Click the region to watch both sides drain; reinforcements join on arrival.</li>
         <li>Launch Troop Transports with Armies aboard. Once no enemy warships are left in orbit, open an enemy region there and <b>Invade</b>.</li>
         <li>Peace takes both sides: offer it in Empires.</li>
       </ol>
