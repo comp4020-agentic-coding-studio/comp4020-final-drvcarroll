@@ -173,8 +173,8 @@ by keyboard; screenshots judged as a player would before calling it done.
 Playtest feedback: war was opaque, the left menu cluttered, and new-player
 protection too long. Revises the rules and the D2 client in place:
 
-- **Rules:** protection 1 min (`WAR.protectionS` 60). Spaceport 100 M,
-  40 A, 240 s (§6). Starts on Earth only: off-Earth joins and the
+- **Rules:** protection 1 min (`WAR.protectionS` 60). Spaceport 70 M,
+  25 A, 240 s (§6). Starts on Earth only: off-Earth joins and the
   `offEarthPower` kit rule go, a full Earth refuses with `EARTH_FULL`. Ground combat becomes a
   timed battle (§7): a `battle` per region with analytic counts, a scheduled
   end, reinforcements joining; `battleCounts(battle, t)` exported for the

@@ -96,3 +96,20 @@ Conqueror and researcher still rarely win. They need bot play the rules
 already allow (timed wars, Envoy-led trade), not new numbers.
 Stage G stands here: the numbers are reasonable and logged. The loop
 reopens after any `rules/data/` change.
+
+## Loop 4, 2026-10-14: the 5 min Spaceport floor
+
+D3 made the Spaceport the gate off Earth (240 s build) and starts
+Earth-only. First run at 100 M, 40 A: no off-Earth claim before 8.3 min
+(floor holds) but the median first colony fell to 11.0 min, Mars to 27.4
+and the late joiner to 14%: Alloys, not the timer, were the bottleneck.
+
+| Change | Why | Effect |
+|---|---|---|
+| Spaceport 100 M, 40 A → 80 M, 30 A | Alloys for Spaceport + Colony Ship far past the kit | first colony 8.3 min; late joiner 33% |
+| → 70 M, 25 A (kept) | Still above the old 60 M, 20 A; the 240 s build is the floor | first colony 7.3 min, earliest 6.5 (met); late joiner 23% |
+
+**After:** first colony met under the new 5 to 8 min band, never before
+5 min. Mars 25.6 min (0.6 past the band) and conqueror/researcher win
+rates stay open; D4 replaces season wins with stage wins, so the loop
+reopens there.

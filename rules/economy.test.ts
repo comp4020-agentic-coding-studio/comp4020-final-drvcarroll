@@ -94,13 +94,13 @@ describe("build queues and research (game-design.md §6, §8)", () => {
 
   it("replaces a slot in one command, counting the refund toward the cost", () => {
     let s = world("r_canada");
-    s.nations.n_1.stocks.M = 75;
+    s.nations.n_1.stocks.M = 45;
     expect(validate(s, "n_1", { type: "replace", region: "r_canada", slot: 3, building: "spaceport" }))
       .toMatchObject({ code: "INSUFFICIENT", reason: "Needs 5 more Metals" });
     expect(s.regions.r_canada.buildings).toHaveLength(4);
     s.nations.n_1.stocks.M = 200;
     s = ok(s, "n_1", { type: "replace", region: "r_canada", slot: 3, building: "spaceport" });
-    expect(s.nations.n_1.stocks).toMatchObject({ M: 120, V: 105, A: 20 });
+    expect(s.nations.n_1.stocks).toMatchObject({ M: 150, V: 105, A: 35 });
     expect(s.regions.r_canada.buildings.map((b) => b.slot)).toEqual([0, 1, 2]);
     s = advanceTo(s, T0 + 240 * S);
     expect(s.regions.r_canada.buildings.find((b) => b.slot === 3)?.type).toBe("spaceport");

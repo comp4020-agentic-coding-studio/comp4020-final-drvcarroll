@@ -33,7 +33,7 @@ export const BUILDINGS: Record<Building, BuildingData> = {
     name: "Factory", cost: { M: 60, V: 10 }, timeS: 30, output: { res: "Mt", base: 3 }, input: { A: 2, V: 1 },
     upkeep: { E: 5 },
   },
-  spaceport: { name: "Spaceport", cost: { M: 100, A: 40 }, timeS: 240, upkeep: { E: 2 } },
+  spaceport: { name: "Spaceport", cost: { M: 70, A: 25 }, timeS: 240, upkeep: { E: 2 } },
 };
 
 // Power Plant output per mode, E/min. Solar is base × region S.

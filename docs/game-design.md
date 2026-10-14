@@ -211,12 +211,12 @@ as one command. Slots: Earth 4, large bodies 3, small bodies 2.
 | Foundry | 50 M | 30 s | 4 M → 3 A | 4 E |
 | Lab | 40 M, 10 V | 30 s | 5 R | 3 E |
 | Factory | 60 M, 10 V | 30 s | 2 A + 1 V → 3 Materiel | 5 E |
-| Spaceport | 100 M, 40 A | 240 s | Builds ships and Armies; launches from this body | 2 E |
+| Spaceport | 70 M, 25 A | 240 s | Builds ships and Armies; launches from this body | 2 E |
 
 The Spaceport is the gate off Earth. Its 240 s build plus a Colony Ship
 (45 s) and the hop to Luna (30 s) put the earliest off-Earth claim at
-5 min 15 s; its cost (with a Colony Ship's, 80 A against the kit's 60)
-means running a Foundry or using the Exchange first.
+5 min 15 s; its cost (with a Colony Ship's, 65 A against the kit's 60)
+means a little Foundry output or Exchange trade first.
 
 Each off-Earth region costs **1 Materiel/min** colony upkeep; a shortfall
 halves its output. Society tech (§8) reduces both this and building Energy

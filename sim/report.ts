@@ -30,6 +30,7 @@ export function report(runs: RunResult[]): Row[] {
   // Pace for a player heading there: each run's first, like the colony targets.
   const tv = median(runs.map((r) => Math.min(...r.nations.map((n) => n.thrustVectoringMin ?? Infinity))));
   const off = median(runs.map((r) => earliest(r, "offEarthMin")));
+  const soonest = Math.min(...runs.map((r) => earliest(r, "offEarthMin")));
   const mars = median(runs.map((r) => earliest(r, "marsMin")));
   const all = runs.flatMap((r) => r.nations);
   const dead = all.reduce((a, n) => a + n.dead, 0) / Math.max(1, all.reduce((a, n) => a + n.decisions, 0));
@@ -50,7 +51,10 @@ export function report(runs: RunResult[]): Row[] {
 
   return [
     { target: "Thrust Vectoring researched", want: "~2 min", measured: `${mins(tv)} (median)`, met: tv >= 1.5 && tv <= 3 },
-    { target: "First off-Earth colony", want: "4 to 7 min", measured: `${mins(off)} (median)`, met: off >= 4 && off <= 7 },
+    {
+      target: "First off-Earth colony", want: "5 to 8 min, never before 5",
+      measured: `${mins(off)} (median), earliest ${mins(soonest)}`, met: off >= 5 && off <= 8 && soonest >= 5,
+    },
     { target: "First Mars colony", want: "12 to 25 min", measured: `${mins(mars)} (median)`, met: mars >= 12 && mars <= 25 },
     { target: "Dead time, first 30 min", want: "< 20%", measured: pct(dead), met: dead < 0.2 },
     { target: "Deadlock: reaches Voidcraft 2", want: "every sensible bot", measured: pct(v2), met: v2 === 1 },
