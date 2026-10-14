@@ -75,6 +75,6 @@ export const MILITARY = {
 
 export const WAR = {
   activationS: 60,
-  protectionS: 300,
+  protectionS: 60,
   boostS: 300,
 };

@@ -1,7 +1,8 @@
 // game-design.md §11 onboarding: the camera opens on Earth, free start regions
 // lit; click one (or pick from the list) and start.
 import { useEffect } from "preact/hooks";
-import { REGIONS } from "../../../rules/data/index.ts";
+import { REGIONS, WAR } from "../../../rules/data/index.ts";
+import { dur } from "../format.ts";
 import { myNation, selRegion, world } from "../store.ts";
 import { Action, Chip } from "./common.tsx";
 import { ResIcon, SolarIcon } from "./icons.tsx";
@@ -17,10 +18,12 @@ export function StartPanel() {
   const owner = (id: string) => w.regions.find((r) => r.id === id)?.owner;
   const starts = Object.values(REGIONS).filter((r) => r.start);
   const sel = selRegion.value && REGIONS[selRegion.value]?.start ? REGIONS[selRegion.value] : null;
+  const full = starts.every((r) => owner(r.id));
   return (
     <aside class="hud selection start" aria-label="Choose where to begin">
       <header class="sel-head"><div><span class="desig">Deployment // Earth</span><h2>{eliminated ? "Your nation has fallen" : "Choose where to begin"}</h2>
         <small>Click a free region on Earth</small></div></header>
+      {full && <p class="hint warn">Every Earth start region is held. Joining reopens when one frees up.</p>}
       {sel ? (
         <div class="pick">
           <h3>{sel.name}</h3>
@@ -34,7 +37,8 @@ export function StartPanel() {
       ) : (
         <p class="hint">
           Every start region's Metals + Volatiles + Solar adds to 3.3: geography is flavour, not advantage. You begin with a Power Plant,
-          Mine, Refinery and Lab, two Armies, and {eliminated ? "double production for" : ""} five minutes of protection.
+          Mine, Refinery and Lab, two Armies, {dur(WAR.protectionS * 1000)} of protection
+          {eliminated ? ` and double production for ${dur(WAR.boostS * 1000)}` : ""}.
         </p>
       )}
       <details>

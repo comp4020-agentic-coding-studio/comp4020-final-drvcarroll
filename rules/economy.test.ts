@@ -12,7 +12,7 @@ describe("join and the starting kit (game-design.md §6)", () => {
     expect(s.regions.r_canada.armies).toBe(2);
     expect(n.stocks).toEqual(ECONOMY.startKit.stocks);
     expect(n.capital).toBe("r_canada");
-    expect(n.protectedUntil).toBe(T0 + 300 * S);
+    expect(n.protectedUntil).toBe(T0 + 60 * S);
   });
 
   it("refuses a taken region, and names before joining", () => {
@@ -28,19 +28,13 @@ describe("join and the starting kit (game-design.md §6)", () => {
   });
 });
 
-describe("late joining when Earth is full (game-design.md §11)", () => {
-  it("starts a newcomer on one free off-Earth region, only once no Earth start is free", () => {
-    let s = world("r_canada");
-    s = ok(s, "n_2", { type: "setEmpire", name: "Late", primary: "#123456", secondary: "#ffffff" });
+describe("every start is on Earth (game-design.md §11)", () => {
+  it("refuses off-Earth starts, and every join once Earth is full", () => {
+    const s = ok(world("r_canada"), "n_2", { type: "setEmpire", name: "Late", primary: "#123456", secondary: "#ffffff" });
     expect(validate(s, "n_2", { type: "join", region: "r_mars_tharsis" }))
       .toMatchObject({ code: "INVALID", reason: "Pick a free Earth start region" });
     for (const r of Object.values(s.regions)) if (REGIONS[r.id].start) r.owner = "n_1";
-    expect(validate(s, "n_2", { type: "join", region: "r_antarctica" })).toMatchObject({ reason: "Earth is full: pick a free off-Earth region" });
-    s = ok(s, "n_2", { type: "join", region: "r_mars_tharsis" });
-    expect(s.regions.r_mars_tharsis.owner).toBe("n_2");
-    // Its kit's Power Plant runs on fission where that beats the sun (Mars).
-    expect(s.regions.r_mars_tharsis.buildings[0]).toMatchObject({ type: "powerPlant", mode: "fission" });
-    expect(s.regions.r_canada.buildings[0].mode).toBeUndefined();
+    expect(validate(s, "n_2", { type: "join", region: "r_mars_tharsis" })).toMatchObject({ code: "EARTH_FULL" });
   });
 });
 
@@ -100,15 +94,15 @@ describe("build queues and research (game-design.md §6, §8)", () => {
 
   it("replaces a slot in one command, counting the refund toward the cost", () => {
     let s = world("r_canada");
-    s.nations.n_1.stocks.M = 35;
+    s.nations.n_1.stocks.M = 75;
     expect(validate(s, "n_1", { type: "replace", region: "r_canada", slot: 3, building: "spaceport" }))
       .toMatchObject({ code: "INSUFFICIENT", reason: "Needs 5 more Metals" });
     expect(s.regions.r_canada.buildings).toHaveLength(4);
     s.nations.n_1.stocks.M = 200;
     s = ok(s, "n_1", { type: "replace", region: "r_canada", slot: 3, building: "spaceport" });
-    expect(s.nations.n_1.stocks).toMatchObject({ M: 160, V: 105, A: 40 });
+    expect(s.nations.n_1.stocks).toMatchObject({ M: 120, V: 105, A: 20 });
     expect(s.regions.r_canada.buildings.map((b) => b.slot)).toEqual([0, 1, 2]);
-    s = advanceTo(s, T0 + 75 * S);
+    s = advanceTo(s, T0 + 240 * S);
     expect(s.regions.r_canada.buildings.find((b) => b.slot === 3)?.type).toBe("spaceport");
   });
 

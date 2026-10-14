@@ -33,7 +33,7 @@ export const BUILDINGS: Record<Building, BuildingData> = {
     name: "Factory", cost: { M: 60, V: 10 }, timeS: 30, output: { res: "Mt", base: 3 }, input: { A: 2, V: 1 },
     upkeep: { E: 5 },
   },
-  spaceport: { name: "Spaceport", cost: { M: 60, A: 20 }, timeS: 75, upkeep: { E: 2 } },
+  spaceport: { name: "Spaceport", cost: { M: 100, A: 40 }, timeS: 240, upkeep: { E: 2 } },
 };
 
 // Power Plant output per mode, E/min. Solar is base × region S.
@@ -53,7 +53,6 @@ export const ECONOMY = {
   boostMultiplier: 2,
   startKit: {
     buildings: ["powerPlant", "mine", "refinery", "lab"] as Building[],
-    offEarthPower: "fission" as PowerMode, // off Earth, when it beats the local sun
     armies: 2,
     stocks: { E: 500, M: 200, V: 100, A: 60, R: 30, Mt: 50 } as Record<Resource, number>,
   },

@@ -37,7 +37,7 @@ export type Command =
 export type RejectCode =
   | "INVALID" | "NOT_JOINED" | "NOT_OWNER" | "INSUFFICIENT" | "LOCKED" | "NO_SLOT"
   | "NO_ENVOY_SLOT" | "NOT_ADJACENT" | "PROTECTED" | "NOT_AT_WAR" | "TAKEN"
-  | "SEASON_OVER" | "RATE_LIMIT";
+  | "EARTH_FULL" | "SEASON_OVER" | "RATE_LIMIT";
 
 export interface Rejection { ok: false; code: RejectCode; reason: string }
 

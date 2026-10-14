@@ -1,7 +1,7 @@
 // system-design.md §14.5: each handler validates, then returns its executor.
 // The same check drives apply, legalActions and the client's disabled reasons.
 import {
-  BUILDINGS, ECONOMY, EMPIRE, MAP, MILITARY, POWER_MODES, REGIONS, RUNGS, SEASON, TECH, UNITS, WAR, type PowerMode, type Resource,
+  BUILDINGS, ECONOMY, EMPIRE, MILITARY, POWER_MODES, REGIONS, RUNGS, SEASON, TECH, UNITS, WAR, type PowerMode, type Resource,
 } from "./data/index.ts";
 import {
   enqueue, isInt, isRejection, needs, no, ownRegion, regionName, type Cmd, type Handler, type Plan,
@@ -60,16 +60,15 @@ const join: Handler<"join"> = (s, n, c) => {
   const r = s.regions[c.region];
   if (!r) return no("INVALID", "Unknown region");
   if (r.owner) return no("TAKEN", `${regionName(r.id)} is taken`);
-  const earthFull = Object.values(s.regions).every((x) => !REGIONS[x.id].start || x.owner);
-  // Earth full (late in a season, or after a fall): one off-Earth colony instead.
-  const ok = REGIONS[r.id].start || (earthFull && REGIONS[r.id].body !== "antarctica");
-  if (!ok) return no("INVALID", earthFull ? "Earth is full: pick a free off-Earth region" : "Pick a free Earth start region");
+  // Every start is on Earth (game-design.md §11).
+  if (Object.values(s.regions).every((x) => !REGIONS[x.id].start || x.owner)) {
+    return no("EARTH_FULL", "Every Earth start region is held; joining reopens when one frees up");
+  }
+  if (!REGIONS[r.id].start) return no("INVALID", "Pick a free Earth start region");
   return () => {
     const kit = ECONOMY.startKit;
     r.owner = n.id;
-    const sun = MAP.solarBase * REGIONS[r.id].s;
-    const mode = !REGIONS[r.id].start && POWER_MODES[kit.offEarthPower].flat! > sun ? kit.offEarthPower : undefined;
-    r.buildings = kit.buildings.slice(0, slotsOf(s, r.id)).map((type, slot) => (type === "powerPlant" && mode ? { slot, type, mode } : { slot, type }));
+    r.buildings = kit.buildings.slice(0, slotsOf(s, r.id)).map((type, slot) => ({ slot, type }));
     r.armies = kit.armies;
     touch(r);
     const late = s.t - s.season.startedAt >= WAR.boostS * 1000;

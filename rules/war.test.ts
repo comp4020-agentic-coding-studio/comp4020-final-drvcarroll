@@ -4,7 +4,7 @@ import { advanceTo, observe, validate, type State } from "./index.ts";
 import { S, T0, ok, world } from "./test-helpers.ts";
 import { survivors } from "./war.ts";
 
-const PROTECTED = 300 * S;
+const PROTECTED = 60 * S;
 
 // Two nations past protection, at active war.
 function war(...regions: string[]): State {
