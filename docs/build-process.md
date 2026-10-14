@@ -168,6 +168,34 @@ top bar with its pages; the core loop still completes at both viewports and
 by keyboard; screenshots judged as a player would before calling it done.
 **Serves:** P1, P2, P7, P10.
 
+### D3. War you can see, a cleaner menu (`game-design.md` §7, §11, §12; system-design.md §14)
+
+Playtest feedback: war was opaque, the left menu cluttered, and new-player
+protection too long. Revises the rules and the D2 client in place:
+
+- **Rules:** protection 1 min (`WAR.protectionS` 60). Ground combat becomes a
+  timed battle (§7): a `battle` per region with analytic counts, a scheduled
+  end, reinforcements joining; `battleCounts(battle, t)` exported for the
+  client. Marches and battles go in `VisibleWorld`, vision-gated like
+  garrisons.
+- **Map:** army icons with counts on visible garrisons, moving marches,
+  a crossed-swords marker on battles.
+- **Panel:** the Battle block with live draining bars; a rival's region
+  offers Declare war or Attack in place.
+- **Empire menu:** three dropdowns, Territory, Military (Armies, Fleets),
+  Research.
+
+**Exit criteria:** rules tests: a 10 vs 10 garrison battle lasts 21 ± 1 s
+and its survivors equal the old instant result for the same forces;
+reinforcements extend a battle; a second attacker is turned back; protection
+ends at 60 s. A client without vision on a region never receives its battle
+or marches (P5 spec). e2e: the Empire menu has exactly three dropdowns; a
+march into a garrison shows a battle whose counts fall between two ticks; a
+rival's region at peace offers Declare war, and Attack once the war is
+active. Sim balance suite rerun and logged (respawn and conqueror targets).
+All existing tests still green; screenshots judged as a player would.
+**Serves:** P2, P4, P5, P6, P10.
+
 ### E. Visual fidelity and budgets (`game-design.md` §12, system-design.md §8)
 
 Polish on top of the map client, not a separate client: textures,
@@ -235,7 +263,7 @@ be hit eventually; it just slips to the next one.
 |---|---|---|---|
 | **Crit 8 — "It's alive!"** | Next week | Stage A done. Stage B: harness running and reporting real numbers — they don't need to be tuned yet. Stage C: full exit criteria, no slipping this one — "backend polished" means the server, persistence and protocol are actually right. Stage D: the map-first slice — the solar system as the main screen, navigable, bodies and regions clickable, the core loop playable through it. First `README.md` (400–600 words) live at `/readme/`. First `PROCESS.md`. | A, B (partial), **C (full)**, D (map-first slice) |
 | **Crit 9 — "All at once"** | Week 10 | Real-time fully wired end to end, not just the protocol — the client reflects it live. Stage D's full exit criteria: both viewports, keyboard-only. Stage D2 done (the playtest HUD revision). One documented decision on multi-user contention behaviour (system-design.md §5's ordering rule already is that decision — cite it, don't re-decide it). | **D (full)**, **D2** |
-| **Crit 10 — "Fly by instruments"** | Week 11 | Stage F done: logging, `/admin` live view. Stage E (visual fidelity) substantially in, and Stage E2 (real worlds, command console) done. | E, **E2**, **F** |
+| **Crit 10 — "Fly by instruments"** | Week 11 | Stage F done: logging, `/admin` live view. Stage E (visual fidelity) substantially in, and Stage E2 (real worlds, command console) done. Stage D3 (visible war, three-dropdown menu) done. | E, **E2**, **F**, **D3** |
 | **Target: done** | End of week 12 | Self-imposed, ahead of the real deadline (noon Mon 9 Nov 2026) on purpose — a buffer, not a guess at the actual due date. Stage G's numbers in a reasonable place (never "finished" — that's the point of a loop). Final `README.md`/`PROCESS.md` pass, everything deployed and green. | G, polish |
 
 The map is the game from the first client on (goals.md P10): Stage E adds

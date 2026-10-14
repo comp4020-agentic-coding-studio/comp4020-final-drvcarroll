@@ -60,7 +60,7 @@ when updates are sent; an event due at 12.3 s resolves as of 12.3 s.
 - **Stocks:** `stock(t) = min(cap, stock₀ + rate × (t − t₀))`. Rates are
   constant between events.
 - **Events:** building complete, unit complete, fleet arrival, war becomes
-  active, protection ends, **stock depleted** (scheduled at
+  active, protection ends, **ground battle ends** (§7), **stock depleted** (scheduled at
   `t = stock ÷ −rate` when a rate is negative).
 - **Processing:** on any read or command, due events are applied in order of
   time, then event id. Deterministic.
@@ -279,17 +279,33 @@ orbit, including on arrival.
   No randomness.
 
 **Invasion:** win orbital superiority (no hostile warships in orbit), land
-Armies from Transports, then ground combat by the same rule: Armies vs
-garrison Armies, garrison getting a flat +50% holding a region it already
-owns. Winning transfers the region with its buildings. An undefended region
-falls to any Army.
+Armies from Transports, or march them in on Earth. An undefended region
+falls to any Army at once. A defended one starts a **ground battle**.
+
+**Ground battles take time.** Space combat stays instant; ground combat is
+the same square law played out as it happens, so a player can watch it:
+
+- Each Army destroys `0.025` enemy Armies per second; a garrison holding
+  its own region destroys `0.025 × 1.5²` (its +50% strength, squared as the
+  square law has it): `dA/dt = −0.05625 × D`, `dD/dt = −0.025 × A`. This
+  is Lanchester's own equation, so the survivors are exactly
+  `√(1 − (L/W)²)` as before; only the timing is new. 10 attackers against
+  10 garrison Armies lose in about 21 s.
+- Counts follow the analytic solution between events (§3); the battle ends
+  when a side drops below half an Army, and that side is wiped out (both, if
+  even). Winning as attacker transfers the region with its buildings.
+- **Reinforcements join:** the attacker's Armies arriving at the region and
+  the defender's Armies trained there add to their side, and the end time is
+  recomputed. The garrison can't march out while fighting.
+- One attacker per region at a time: another nation's Armies arriving at a
+  region already in battle return home.
 
 ### War rules
 
 | Rule | Value |
 |---|---|
 | Declaration | Public; active 1 min later |
-| Protection | New and respawned nations: untouchable for 5 min, cannot declare |
+| Protection | New and respawned nations: untouchable for 1 min, cannot declare |
 | Conquest | Full; capitals can fall. Capital moves to largest remaining region |
 | Elimination | Losing every region. Respawn on a free Earth region, or a single off-Earth colony if Earth is full, with ×2 production for 5 min |
 | Peace | Both sides agree |
@@ -512,13 +528,13 @@ All rendering is client-side; the server never draws.
 
 ```
 ┌ GROW · ⚡512 +0.25/day  ⛏210 +0.16/day  …  · date ·      Empires  Guide ┐
-│ Empire ▾   │                                          │ Mars North    ✕  │
-│ Territory  │        full-screen 3D solar system       │ ┌──┐┌──┐┌──┐     │
-│ Armies     │   (zoom from the whole system to a       │ │⛏ ││⚡ ││ +│     │
-│ Fleets     │    surface; asteroids, comets, moons)    │ └──┘└──┘└──┘     │
-│ Tech tree  │                                          │ +6⛏ −2⚡ +10⚡     │
-│ goals      │                                          │ Forces here      │
-│            │ ─────────────── news ticker ──────────── │ ⚔ 4 · fleet ▸    │
+│ Territory ▸│                                          │ Mars North    ✕  │
+│ Military ▾ │        full-screen 3D solar system       │ ⚔ BATTLE  0:12   │
+│  Armies    │   (zoom from the whole system to a       │ you  ███████░ 7  │
+│  Fleets    │    surface; army markers on regions,     │ them ███░░░░░ 3  │
+│ Research ▸ │    fleets on their arcs, ⚔ on battles)   │ ┌──┐┌──┐┌──┐     │
+│ goals      │                                          │ │⛏ ││⚡ ││ +│     │
+│            │ ─────────────── news ticker ──────────── │ Forces here      │
 └────────────┴──────────────────────────────────────────┴──────────────────┘
 ```
 
@@ -582,19 +598,22 @@ tech lives in the empire menu, trade in Empires.
 
 #### Empire menu (left)
 
-One collapsible menu headed **Empire**, with four sections:
+Three dropdowns, each a console key with its count or status on the key,
+and nothing else above them:
 
 - **Territory:** every region you hold, grouped by body. Click one to drop
   it down: its slots as a row of small building icons and its output and
   upkeep per day; a second click flies there and opens its panel. The
-  dropdown follows the selection.
-- **Armies:** every garrison by region, and Armies marching, with ETAs.
-  Click one to select its region.
-- **Fleets:** every fleet, in orbit or in transit with its ETA. Click one to
-  select it.
-- **Tech tree:** opens the four ladders as an overlay beside the menu, map
-  visible behind, closed with Esc. Current research and its progress show
-  on the section itself.
+  dropdown follows the selection. All bodies sit at the end, for flying to
+  one you don't hold.
+- **Military:** two lists. **Armies:** every garrison by region, Armies
+  marching with ETAs, and any battle you're in with both live counts.
+  **Fleets:** every fleet, in orbit or in transit with its ETA. Click a row
+  to select its region or fleet.
+- **Research:** current research and its progress on the key; dropped down,
+  each ladder's next rung with cost and a Research action, and a button
+  that opens the full tree as an overlay beside the menu, map visible
+  behind, closed with Esc.
 
 The tutorial goals sit below the menu until done.
 
@@ -634,14 +653,31 @@ For a **region you hold**:
      Armies.
 3. **Forces here:** your garrison with Train Armies and, on Earth, March to a
    neighbour; fleets in orbit at this body, yours and any you can see;
-   hostile fleets inbound with ETA; and the last battle here with its
-   Lanchester result and losses on each side. While a hostile force is in
-   orbit or landing, this section leads with it, outlined in red.
+   hostile fleets and Armies inbound with ETA; and the last battle here with
+   its Lanchester result and losses on each side. While a hostile force is
+   in orbit or landing, this section leads with it, outlined in red.
+
+**Battle:** while a ground battle is on in the region, the panel leads with
+it, above the header: attacker and defender, each with their army icon, a
+bar and a count that drain live, and the time left. Reinforcements show as
+a jump in their side's bar. When it ends, the result stays as the last
+battle under Forces here.
 
 A **foreign or unclaimed region** shows its header, its slots read-only
-where you have a sensor, Forces here, and its claim or attack actions
-(colonise, march, invade). A **body** lists its regions and the fleets in its
-orbit. A **fleet** shows its units and the launch planner.
+where you have a sensor, Forces here, and one action block for what you can
+do to it:
+
+- **Unclaimed:** Settle (march from a neighbour) or Colonise.
+- **Held by a nation you're at war with:** Attack, with the Armies each
+  bordering garrison of yours would send, or Invade from a Transport in
+  orbit.
+- **Held by a nation you're not at war with:** Declare war on its owner,
+  in place, with the 1 min activation shown after; disabled with the reason
+  while either side is protected. Attack shows beside it, disabled until
+  the war is active.
+
+A **body** lists its regions and the fleets in its orbit. A **fleet** shows
+its units and the launch planner.
 
 #### News ticker (bottom)
 
@@ -738,7 +774,13 @@ mainland (French Guiana, Réunion) join the nearest region instead.
   gauge (green in the window); confirm to launch.
 - **Envoys:** a small beacon on a nation's capital where you hold an Envoy,
   visible only to you.
-- **Battles:** flashes in orbit and a ticker entry with the Lanchester result.
+- **Armies:** an army icon with a count pinned on every region whose
+  garrison you can see, in its owner's colour; Armies marching on Earth as
+  the same icon moving along a line between the two regions, with ETA.
+  Same vision rule as fleets: nothing for Armies you can't see.
+- **Battles:** a pulsing crossed-swords icon on a region in a ground battle,
+  clickable to open its Battle panel; space battles flash in orbit. Either
+  kind puts the Lanchester result in the ticker.
 - **Choosing a start:** the camera opens on Earth with free start regions
   lit and taken ones in their owners' colours; click one to begin (also
   listed for keyboard users).

@@ -220,8 +220,8 @@ per-nation view computed from it.
 | Tier | What | Who |
 |---|---|---|
 | **Globally public** | Wars declared, scores, presence, news ticker, a region's existence and slot count (not its owner), which region is each nation's capital | Every client, unfiltered |
-| **Vision-gated, full** | A region's owner, its buildings, fleets present or in transit there | Only a nation with a **sensor** there: owns any region on that body |
-| **Vision-gated, partial** | A region's owner, fleets present or in transit there (never buildings) | Only a nation with an active **Envoy** on the region's owning nation — empire-wide, not body-specific |
+| **Vision-gated, full** | A region's owner, its buildings, its garrison and any ground battle on it, fleets present or in transit there, Armies marching to or from it | Only a nation with a **sensor** there: owns any region on that body |
+| **Vision-gated, partial** | A region's owner, garrison and battle, fleets and marches (never buildings) | Only a nation with an active **Envoy** on the region's owning nation — empire-wide, not body-specific |
 | **Private to the owner** | Stocks and rates, queues, research, trade offers it is party to, its own Envoys' targets and upkeep | That nation alone |
 
 A region with neither a sensor on its body nor an Envoy on its owner renders
@@ -474,7 +474,9 @@ other than `t`, `n`, `at` and `you.stocks` appear only when they changed.
     regions?: Region[],           // whole entity; owner/buildings/armies present only where you have vision
     fleets?: Fleet[],             // only fleets you have vision on
     wars?: War[],
-    removed?: { fleets?: Id[]; wars?: Id[] }  // destroyed/arrived, or left your vision
+    battles?: Battle[],           // started, or reinforced (counts and endsAt reset)
+    marches?: March[],
+    removed?: { fleets?: Id[]; wars?: Id[]; battles?: Id[]; marches?: string[] }  // ended, arrived, or left your vision; battles by region, marches by `${from}>${to}@${departAt}`
   },
   scores?: Record<Id, Score>,     // when any total changed
   presence?: Id[],                // online nation ids, when it changed
@@ -525,6 +527,8 @@ interface VisibleWorld {
   regions: Region[];       // all 74, but owner/buildings/armies populated only where you have vision
   fleets: Fleet[];         // only fleets you have vision on (sensor, or an Envoy on their owner)
   wars: War[];
+  battles: Battle[];       // ground battles on regions you have vision on
+  marches: March[];        // Armies on the move between regions you have vision on
   scores: Record<Id, Score>;
   presence: Id[];
   news: News[];            // last 50
@@ -554,6 +558,12 @@ interface Fleet {
 
 interface War { id: Id; a: Id; b: Id; declaredAt: Ms; activeAt: Ms; peaceFrom?: Id } // peaceFrom: who has offered peace
 
+// game-design.md §7: counts at `at`; the client draws them to endsAt with
+// rules' battleCounts(battle, now), the same analytic solution the server uses
+interface Battle { region: Id; attacker: Id; defender: Id; atk: number; def: number; bonus: boolean; at: Ms; endsAt: Ms }
+
+interface March { owner: Id; from: Id; to: Id; count: number; departAt: Ms; arriveAt: Ms }
+
 interface Score { territory: number; economy: number; tech: number; total: number }
 
 interface News { at: Ms; kind: string; text: string; refs: Id[] }
@@ -567,7 +577,6 @@ interface PrivateState {
   queues: Record<Id, { item: string; startAt: Ms; finishAt: Ms; slot?: number }[]>; // slot: pinned by replace
   trades: TradeOffer[];    // offers you sent or received
   envoys: { nation: Id; since: Ms }[]; // Envoy relationships you maintain (private: targets are never public)
-  marches: { from: Id; to: Id; count: number; arriveAt: Ms }[]; // your Armies on the move (empire menu)
 }
 
 interface TradeOffer { id: Id; from: Id; to: Id; give: Goods; get: Goods; expiresAt: Ms }
@@ -636,7 +645,7 @@ function; the server's answer is still the one that counts.
 | `NO_SLOT` | "No free slot in Siberia" |
 | `NO_ENVOY_SLOT` | "All your Envoy slots are in use" |
 | `NOT_ADJACENT` | "Canada doesn't border India" |
-| `PROTECTED` | "Nova Terra is protected for 3 more minutes" |
+| `PROTECTED` | "Nova Terra is protected for 40 more seconds" |
 | `NOT_AT_WAR` | "You aren't at war with Nova Terra" |
 | `TAKEN` | "US West was claimed this tick" |
 | `SEASON_OVER` | "The season has ended" |

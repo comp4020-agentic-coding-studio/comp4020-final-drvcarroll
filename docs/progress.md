@@ -1,6 +1,6 @@
 # Progress
 
-**Stage:** every stage meets its exit criteria. G loop 3 logged
+**Stage:** D3 (new, not started). Before it, every stage met its exit criteria. G loop 3 logged
 (docs/balance-log.md): 9 of 12 targets met, first Mars now 22.5 min; late
 joiner 22% (want 25%), Voidcraft 2 at 95%, conqueror and researcher win
 rates low, all diagnosed as bot play. E done: Envoy beacons, quality tiers
@@ -21,13 +21,23 @@ D full done (keyboard-only core loop at both viewports). F done.
 `pnpm test` (71, needs a server on a fresh `DATA_DIR`), `pnpm test:e2e`
 (13, incl. first render < 3 MB and the keyboard loop, which runs last so
 earlier players aren't late joiners), `pnpm sim:test` green.
-**Next:** nothing staged. Open for the user: a real-phone fps check and
+**Next:** Stage D3 (build-process.md D3). Read game-design.md §7 Combat
+and War rules, §12 Empire menu, Selection panel, The mechanics on screen;
+system-design.md §14.3 tick, §14.4 (Battle, March), §6 Visibility filter.
+Data edits pending: `WAR.protectionS` 300 → 60; new `MILITARY.groundRate`
+0.025 (Armies destroyed per Army per second). Open for the user: a real-phone fps check and
 the Fly secret `ADMIN_USERS` before Crit 10. Optional G work: bot wars and
 Envoy-led trade for conqueror and researcher win rates. F detail:
 `server/log.ts` lines and stats; `/admin` for `ADMIN_USERS` (set the Fly
 secret before Crit 10); `pnpm load` writes docs/measurements.md (all met);
 docs/checks.md holds judged checks.
-**Flagged assumptions** (E2: Psyche and Ceres stay procedural, no
+**Flagged assumptions** (D3: "safe cooldown" = protection, both new and
+respawned nations; the ×2 boost stays 5 min. "Battle going on" = ground
+combat only; space combat stays instant with its orbit flash. Battle speed
+0.025/s is a first guess so a typical fight lasts 15 to 30 s. Marches leave
+`PrivateState` for `VisibleWorld` so rivals see Armies coming. Research
+dropdown shows each ladder's next rung; the full tree stays an overlay.
+E2: Psyche and Ceres stay procedural, no
 usable global albedo map; Titania, Oberon and Triton gaps are filled from
 mirrors and column blends and look smeared up close; Triton's map keeps
 USGS's own fill; GPU memory with Earth focused is ~175 MB by arithmetic,
@@ -69,4 +79,6 @@ Numbers missing from `game-design.md`, all in
 - Respawn resets stocks to the starting kit.
 - Asteroid J2000 longitudes are approximate (`map.ts`). Off-Earth region
   names are IAU features; E2 replaces invented ones and their placement.
-**Last updated:** 2026-10-10 (D, E done; G loop 3).
+**Last updated:** 2026-10-14 (D3 staged: visible war, 1 min protection,
+three-dropdown menu).
+Earlier: 2026-10-10 (D, E done; G loop 3).
