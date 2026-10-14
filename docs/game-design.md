@@ -277,6 +277,8 @@ Space combat fires whenever hostile fleets (and platforms) share a body's
 orbit, including on arrival.
 
 - **Effective strength** of a side = the flat sum of its units' strength.
+  Allies at war with the same enemy in one orbit fight as one side, each
+  fleet keeping the side's survival fraction of its units.
 - **Lanchester square law:** the stronger side wins and keeps
   √(1 − (L/W)²) of each stack, rounded to whole units. Equal sides annihilate.
   No randomness.
@@ -300,8 +302,12 @@ the same square law played out as it happens, so a player can watch it:
 - **Reinforcements join:** the attacker's Armies arriving at the region and
   the defender's Armies trained there add to their side, and the end time is
   recomputed. The garrison can't march out while fighting.
-- One attacker per region at a time: another nation's Armies arriving at a
-  region already in battle return home.
+- One attacking side per region at a time: Armies of the attacker's allies
+  at war with the defender join the attack; anyone else's return home.
+  Armies marching into an ally's region under attack join its defence.
+  Every Armies count on a side is kept per nation; losses fall on each in
+  proportion. When the battle ends, allied survivors march back to the
+  region they came from (lost if it fell).
 
 ### War rules
 
@@ -311,13 +317,13 @@ the same square law played out as it happens, so a player can watch it:
 | Protection | New and respawned nations: untouchable for 1 min, cannot declare |
 | Conquest | Full; capitals can fall. Capital moves to largest remaining region |
 | Elimination | Losing every region. Respawn on a free Earth start region, with ×2 production for 5 min; while none is free, respawn waits |
-| Peace | Both sides agree |
+| Peace | Both sides agree; joining an alliance forces it between members |
 
 ## 8. Tech: 4 ladders × 6 rungs
 
 Rung *n* needs rung *n − 1* in its own ladder; no ladder depends on another.
 Costs double per rung: 40, 80, 160, 320, 640, 1280 R. One research at a time.
-24 rungs total, not 48 — a season should see a strong player hold about half
+24 rungs total, not 48 — an hour should see a strong player hold about half
 the tree, not a third of it.
 
 ### Voidcraft: faster, better ships; reach is a cost, not a wall
@@ -390,7 +396,33 @@ the corridor rewards diplomacy, not just the goods themselves. It does not
 apply to **Gift** (nothing to multiply both sides of) or the **Earth
 Exchange** (no capital to send an Envoy to).
 
-## 10. Victory: seasons
+### Alliances and sanctions
+
+An alliance is a pact of up to 4 nations. It shares no score, no stocks
+and no vision; it is about who fights whom and who trades with whom.
+
+- **Forming:** any nation invites another; accepting forms an alliance, or
+  joins the inviter's. A nation is in at most one alliance. Leaving is
+  immediate; an alliance of one dissolves.
+- **Forced peace:** accepting ends every war between the joiner and the
+  members. Members can't declare war on each other.
+- **Fighting together:** each member still declares its own wars. Where
+  members are at war with the same nation, their forces fight as one side
+  (§7): fleets in one orbit, Armies joining an ally's attack or an ally's
+  defence.
+- **Sanctions:** any member can sanction a nation outside the alliance, and
+  any member can lift it. While it stands, no offer, accept or gift passes
+  between any member and that nation, and their open offers are cancelled.
+  The Earth Exchange and Envoys are unaffected. A sanctioned nation can't
+  be invited. Sanctions and alliances are public and in the ticker.
+
+## 10. Victory: stages in a world that keeps going
+
+The world never ends on its own. It runs until an admin resets it (§11),
+and its time is cut into **stages** of 20 minutes. A stage is what a season
+was: a ranking with a winner and a hall of fame entry. But when it ends the
+game carries on, and the next stage adds a global modifier that changes how
+everyone plays.
 
 | Category | Measure | Points |
 |---|---|---|
@@ -398,39 +430,54 @@ Exchange** (no capital to send an Envoy to).
 | Economy | Total production /min across stocks | 1 per 5 |
 | Tech | Rungs held | 1 per rung × rung number |
 
-Each category is **capped at 40% of the threshold** (three categories, so pure
-specialisation in one can never reach 100% alone, but near-even play across
-two of three can).
+A nation's **score** is the sum, uncapped, shown live in Empires.
 
-**A season lasts at most 60 minutes**, about the longest an assessor will play.
+- **A stage ranks score gained during it:** total at stage end minus total
+  at stage start (or at joining, for a nation that joined mid-stage). Growth
+  wins a stage, not size, so a late joiner or a small empire can top one.
+- At each stage end the top three go in the hall of fame with their gains,
+  and the ticker announces the winner and the next stage. A stage in which
+  nobody issued a command records nothing.
+- **Global modifiers stack.** Each stage from the second adds one, for every
+  nation, from then on. They add to tech bonuses, like tech bonuses do.
 
-- First to the threshold wins early. The sim tunes the threshold so a strong
-  player reaches it at around 50 min.
-- At 60 min, the highest score wins.
-- The end writes a hall of fame entry; accounts, empire names and colours carry
-  over to the next season.
-- **A new season starts when the first player connects after the last one
-  ended**, not on a clock. Otherwise an empty world would burn through
-  seasons nobody plays while the machine sleeps.
-- A player returning the next day sees the last season's result, then joins
-  the season their arrival starts.
+| Stage | Starts | Name | Adds, for everyone |
+|---|---|---|---|
+| 1 | 0 min | Founding | nothing |
+| 2 | 20 min | Industrial Age | Mines and Refineries +25% output |
+| 3 | 40 min | Space Age | Spaceports −25% cost and −50% build time; ships build 25% faster; warships +20% strength |
+| 4 | 60 min | Information Age | Research output +25%; tech costs −10% |
+| 5 | 80 min | Expansion Age | Launch energy −25%; colony Materiel upkeep −50% |
+| 6 | 100 min | Fusion Age | Power Plant output +25% |
+| 7+ | 120 min on | Golden Age | nothing new; stages keep ranking every 20 min |
+
+Stage ends are scheduled events (§3), so rates change exactly at the
+boundary and an idle server catches up exactly. Accounts, empire names and
+colours carry over a reset; progress does not.
 
 ## 11. Players and presence
 
 - **Accounts:** username and password (system-design.md §9). An account lasts
-  across seasons; an empire belongs to one season.
-- **Empire:** name (3 to 24 characters, unique per season), primary and
+  across worlds; an empire belongs to one world, until a reset.
+- **Empire:** name (3 to 24 characters, unique per world), primary and
   secondary colour. Colours are picked from 24 presets chosen to stay
   distinguishable on the map, or custom; a custom colour too close to an
   existing empire's is refused with the clash named. The form starts on the
   first preset nobody is using, so a new player never hits a clash by
   default. Editable any time.
 - **World size:** at most 24 nations (one per Earth start region).
-- **Late joining:** allowed until minute 50, with ×2 production for the first
-  5 min so a late start isn't hopeless. **Every start is on Earth**: a
+- **Late joining:** always open, with ×2 production for the first 5 min for
+  anyone joining 5+ min into the world, so a late start isn't hopeless. **Every start is on Earth**: a
   newcomer or respawn picks a free Earth start region, never an off-Earth
   one. While none is free, joining is refused with that reason and the
   start screen says so; it opens again when a region frees up.
+- **Admin reset:** the account `admin` (password `platypus`, hardcoded and
+  seeded at boot; the username is reserved at sign-up) opens `/admin`, which
+  has a **Reset world** button. Confirmed, it kicks every connected player,
+  ends the world with no winner, and starts a fresh one at stage 1: every
+  empire, region, fleet, alliance and stock is gone; accounts, sessions,
+  empire names and colours, and the hall of fame stay. Players reconnect to
+  the start screen.
 - **Presence:** online nations glow; a live news ticker reports launches,
   claims, declarations, battles, trades.
 - **Concurrency:** commands are serialised and validated against current state.
@@ -501,7 +548,8 @@ the real icons inline:
 | Sending ships | Select a fleet, click a destination, the window gauge, energy |
 | War and invasion | Declaring, protection, orbit battles, landing Armies |
 | Trade and Envoys | Offers, gifts, the Earth Exchange, the trade multiplier |
-| Winning | The three scores, the 40% cap, the threshold and season end |
+| Stages | The three scores, stage rankings by gain, each stage's modifier |
+| Alliances | Inviting, forced peace, fighting together, sanctions |
 
 Pages are data in the client, and every number in them is read from
 `rules/data/`, so the Guide can't drift from the rules. Empty states and
@@ -596,7 +644,8 @@ Each of the six resources shows its icon, the empire's total and a
 **+X/day** button (a day is one second of play, so this is the gain per
 day). Clicking it opens that resource's breakdown: what produces it, what
 consumes it, per day and per minute. Also the shortfall warning, game date,
-protection/boost/season timers, connection state, and two buttons on the
+protection/boost timers, the current stage with its time left and modifier
+(hover for the full list), connection state, and two buttons on the
 right: **Empires** and **Guide** (§11). There is no Tech or Trade button:
 tech lives in the empire menu, trade in Empires.
 
@@ -624,12 +673,16 @@ The tutorial goals sit below the menu until done.
 #### Empires (top right)
 
 One overlay, one row per nation: leaderboard rank and score (Territory,
-Economy, Tech), war status (protected, at peace, war declared, at war, peace
-offered) with the matching action (declare war, offer or accept peace), your
+Economy, Tech) and its gain this stage, its alliance, war status (allied,
+protected, at peace, war declared, at war, peace offered) with the matching
+action (declare war, offer or accept peace, invite to alliance, sanction or
+lift), your
 Envoy on them, and your trade deals with them (open offers in both
 directions, with accept, decline, cancel, plus new offer and gift). The
-Earth Exchange is the last row. This replaces the old Tech, Empires and
-Trade drawers.
+Earth Exchange is the last row. A header row shows your alliance: members,
+pending invites (accept, decline), its sanctions, and Leave. A **Stages**
+tab-free section at the foot lists past stage winners. This replaces the old
+Tech, Empires and Trade drawers.
 
 #### Selection panel (right)
 
@@ -822,15 +875,15 @@ hours, not guessed.
   - `legalActions(state, nationId) → command[]`
 - `rules/data/`: every number in this document.
 - Because time is analytic, the sim jumps straight between decision points: a
-  multi-hour season runs in milliseconds.
+  multi-hour world runs in milliseconds.
 
 ### Keep sim runs cheap
 
 Bot runs cost nothing but wall-clock time; LLM playtests draw on the credit
 budget. Default sim runs to a short simulated window (15 to 20 simulated
 minutes is enough to see whether the early game works) rather than the full
-60-minute cap, and only run a full-length season when specifically checking
-threshold or late-game behaviour. LLM playtests are used sparingly: a handful
+first 60 minutes, and only run longer when specifically checking stages
+past the third or late-game behaviour. LLM playtests are used sparingly: a handful
 of short sessions, not a continuous loop.
 
 ### Players
@@ -843,7 +896,7 @@ of short sessions, not a continuous loop.
 
 Agents decide every 15 simulated seconds, or on any event that concerns them
 (completion, arrival, declaration, attack). A **newcomer agent** joins
-mid-season to test the late-join experience.
+mid-world to test the late-join experience.
 
 ### Balance targets (enforced)
 
@@ -857,11 +910,11 @@ includes `spec/`).
 | First Mars colony | 12 to 25 min |
 | Dead time (decision points with no useful action), first 30 min | < 20% |
 | Deadlock | none: from any start, a sensible bot always reaches Voidcraft 2 |
-| Strategy win rates | every bot strategy wins 10 to 35% of runs |
-| Snowball | leader holds < 40% of total score at mid-season |
-| Late joiner (joins at 30 min) | reaches 25% of median score by 60 min |
+| Strategy win rates | every bot strategy wins 10 to 35% of stages 1 to 3 |
+| Snowball | leader holds < 40% of total score at 30 min |
+| Late joiner (joins at 30 min) | reaches 25% of median score by 60 min, and wins at least one stage in 10% of runs |
 | Respawn | survives its protection window and holds a region 10 min later in 80% of runs |
-| Season length | threshold reached at 50 ± 10 min, or the 60 min cap |
+| Stage winners | no nation wins all of stages 1 to 3 in more than 50% of runs |
 | Progression | winner holds ~10 of 24 rungs; no ladder finished before 40 min |
 | Earth fairness | every start region's M + V + S = 3.3 |
 

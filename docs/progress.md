@@ -34,7 +34,20 @@ Envoy-led trade for conqueror and researcher win rates. F detail:
 `server/log.ts` lines and stats; `/admin` for `ADMIN_USERS` (set the Fly
 secret before Crit 10); `pnpm load` writes docs/measurements.md (all met);
 docs/checks.md holds judged checks.
-**Flagged assumptions** (D3: "safe cooldown" = protection, both new and
+**After D3:** Stage D4 (build-process.md D4). Read game-design.md §7
+Combat, §9 Alliances and sanctions, §10, §11 Admin reset, §12 Top bar and
+Empires; system-design.md §4 (stages), §9 Admin, §11 reset, §14.2, §14.4,
+§14.5. Data edits pending: `SEASON.lengthS` and `lateJoinCutoffS` go,
+new `SEASON.stageS` 1200; `SCORE.categoryCap` and `threshold` go; new
+`STAGES` table (game-design.md §10); new `ALLIANCE.maxMembers` 4.
+**Flagged assumptions** (D4: stage length 20 min, ranking by gain, and
+allies keep their own wars, all chosen by the user. Stage modifiers and
+their numbers are first guesses for the sim to tune. "Combine forces" =
+one side per orbit and per ground battle, losses shared in proportion.
+Sanctions block player trade only, not the Exchange or Envoys. Reset ends
+the world with no winner; names and colours carry over. The admin
+password is hardcoded at the user's request. Code keeps the `Season` and
+`seasons` names for the world. D3: "safe cooldown" = protection, both new and
 respawned nations; the ×2 boost stays 5 min. "Battle going on" = ground
 combat only; space combat stays instant with its orbit flash. Battle speed
 0.025/s is a first guess so a typical fight lasts 15 to 30 s. Marches leave
@@ -58,7 +71,6 @@ Numbers missing from `game-design.md`, all in
 - Envoy upkeep 3 E/min (`economy.ts`).
 - Research takes 15 s × rung after paying its cost (`tech.ts`).
 - Trade offers expire after 5 min (`victory.ts`).
-- Season threshold 300 points, first guess (`victory.ts`).
 - Launch to a Terrestrial body costs 10 E/mass, like Cislunar (`military.ts`).
 - Torch Ships' "almost none" window penalty = coefficient 0.2 (`tech.ts`).
 - Tech bonuses stack additively (`tech.ts`).
@@ -85,6 +97,8 @@ Numbers missing from `game-design.md`, all in
 - Respawn resets stocks to the starting kit.
 - Asteroid J2000 longitudes are approximate (`map.ts`). Off-Earth region
   names are IAU features; E2 replaces invented ones and their placement.
-**Last updated:** 2026-10-14 (D3 staged: visible war, 1 min protection,
+**Last updated:** 2026-10-14 (D4 staged: stages, alliances, admin reset;
+D3 in progress: unit 1 committed, timed battles uncommitted in the tree).
+Earlier: 2026-10-14 (D3 staged: visible war, 1 min protection,
 three-dropdown menu).
 Earlier: 2026-10-10 (D, E done; G loop 3).

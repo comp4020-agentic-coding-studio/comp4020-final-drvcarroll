@@ -73,13 +73,21 @@ append-only log of commands, with periodic snapshots to keep replay short.
 ```sql
 users      (id, username UNIQUE, password_hash, created_at)
 sessions   (token_hash PRIMARY KEY, user_id, created_at, expires_at)
-seasons    (id, started_at, ended_at, winner_nation_id, rules_version)
+seasons    (id, started_at, ended_at, winner_nation_id, rules_version)  -- one row per world
+stages     (season_id, n, started_at, ended_at, ranking JSON)  -- top three by gain
 nations    (id, season_id, user_id, name, colour_primary, colour_secondary,
             UNIQUE(season_id, name), UNIQUE(season_id, user_id))
 commands   (seq PRIMARY KEY, season_id, nation_id, at, type, payload JSON,
             result, client_cmd_id)
 snapshots  (season_id, seq, at, rules_version, state BLOB)
 ```
+
+A `seasons` row is one world. The table and the `Season` type keep their
+names so the schema and protocol need no rename; the docs say world. Each
+stage end writes a `stages` row (game-design.md §10); the old `seasonEnd`
+event becomes a `stageEnd` event, scheduled 20 min ahead each time, that
+records the ranking, resets `base` and applies the next stage modifier from
+`rules/data/victory.ts` (`STAGES`).
 
 ### Write path
 
@@ -204,7 +212,7 @@ its own decisions:
 |---|---|---|
 | Stock counters | value, rate, cap | `value + rate × elapsed`, clamped to cap |
 | Fleet positions | launch time, arrival time, origin, target | position along the transfer arc |
-| Planets and moons | season start time | `position(body, t)` |
+| Planets and moons | world start time | `position(body, t)` |
 | Build and research progress | start time, duration | elapsed ÷ duration |
 
 If the next tick disagrees with what was drawn, the tick wins.
@@ -219,7 +227,7 @@ per-nation view computed from it.
 
 | Tier | What | Who |
 |---|---|---|
-| **Globally public** | Wars declared, scores, presence, news ticker, a region's existence and slot count (not its owner), which region is each nation's capital | Every client, unfiltered |
+| **Globally public** | Wars declared, alliances, members, invites and sanctions, the stage, scores, presence, news ticker, a region's existence and slot count (not its owner), which region is each nation's capital | Every client, unfiltered |
 | **Vision-gated, full** | A region's owner, its buildings, its garrison and any ground battle on it, fleets present or in transit there, Armies marching to or from it | Only a nation with a **sensor** there: owns any region on that body |
 | **Vision-gated, partial** | A region's owner, garrison and battle, fleets and marches (never buildings) | Only a nation with an active **Envoy** on the region's owning nation — empire-wide, not body-specific |
 | **Private to the owner** | Stocks and rates, queues, research, trade offers it is party to, its own Envoys' targets and upkeep | That nation alone |
@@ -325,9 +333,14 @@ tier), 30 fps on a phone, GPU memory under 300 MB, first render under 3 MB
 | Rate limit | 5 failed logins per username per 15 min, 20 per IP; in memory |
 | Recovery | None (no email collected). Stated in the README; an admin CLI can reset a password |
 
-**Account vs empire:** an account lasts across seasons. An empire (name,
-colours, nation) belongs to one season and can be renamed or recoloured any
-time.
+**Account vs empire:** an account lasts across worlds. An empire (name,
+colours, nation) belongs to one world and can be renamed or recoloured any
+time; a reset carries the name and colours into the next world.
+
+**Admin:** boot ensures an account `admin` with password `platypus`
+(hardcoded in `server/auth.ts`, hashed like any other; the user asked for
+it, and it is a coursework server). Sign-up refuses the name. `admin` is
+always an admin, alongside `ADMIN_USERS`.
 
 ## 10. Pages and flows
 
@@ -357,7 +370,13 @@ game-design.md §11; the Guide is a client overlay, not a route.
   one SSE stream (`/api/admin/stream`, once a second). Online players,
   sockets, commands per minute, rejections by reason, recent actions, tick
   p50/p99 and RSS. SSE rather than the game socket, so watching the server
-  never joins the season or counts as a player.
+  never joins the world or counts as a player.
+- **Reset world** on `/admin` posts `/api/admin/reset` (admin only, a
+  confirm step in the page). The server snapshots and closes the current
+  world (`ended_at` set, no winner), creates a new `seasons` row and
+  `newSeason(now)`, closes every socket with `4004` "World reset", and logs
+  `{action: "reset"}`. Clients reconnect to the empty world; the server
+  re-issues each returning account's `setEmpire` as it already does.
 - The `commands` table holds the same history durably.
 
 ## 12. Deploy
@@ -404,7 +423,7 @@ runtime schema before it touches the engine.
 
 | Thing | Format |
 |---|---|
-| Time | Server epoch milliseconds (`Ms`). Game date is derived: 1 game day = 1000 ms from season start |
+| Time | Server epoch milliseconds (`Ms`). Game date is derived: 1 game day = 1000 ms from world start |
 | Ids | Short strings: `n_…` nation, `r_…` region, `f_…` fleet, `w_…` war, `o_…` trade offer |
 | Bodies and techs | Stable ids from `rules/data/` (`mars`, `europa`, `voidcraft.2`) |
 | Resources | `E M V A R Mt` (Energy, Metals, Volatiles, Alloys, Research, Materiel — game-design.md §5) |
@@ -429,16 +448,18 @@ so they work without JavaScript. The same routes accept JSON and answer JSON.
 | POST | `/api/logout` | | Cookie cleared; `→ /` | |
 | GET | `/api/me` | | `{username, empire?}` | `401` |
 | POST | `/api/empire` | `name, primary, secondary` | `{empire}` | `400 {field, reason}`, `409` name taken or colour clash |
-| GET | `/api/season` | | `{season, hallOfFame}` (public; shown on login) | |
+| GET | `/api/season` | | `{season, stage, hallOfFame}` (public; shown on login): hall of fame is past stage rankings | |
+| POST | `/api/admin/reset` | | `{ok: true}`; resets the world (§11) | `404` for non-admins |
 | GET | `/healthz` | | `200 ok` | |
 
-Joining a season and everything in play happens over the socket.
+Joining the world and everything in play happens over the socket.
 
 ### 14.3 WebSocket `/ws`
 
 - **Auth:** the session cookie on upgrade. `Origin` must match the site.
 - **Close codes:** `4001` not signed in, `4002` session expired,
-  `4003` server restarting (client reconnects).
+  `4003` server restarting, `4004` world reset (client reconnects to the
+  start screen).
 - Several tabs per account are allowed; each gets its own stream.
 
 #### Server → client
@@ -454,7 +475,7 @@ Joining a season and everything in play happens over the socket.
   tick: number,
   season: Season,
   world: VisibleWorld,    // vision-filtered per your nation (§6's visibility filter), plus everything globally public
-  you: PrivateState | null // null until you join the season
+  you: PrivateState | null // null until you join the world
 }
 ```
 
@@ -481,7 +502,7 @@ other than `t`, `n`, `at` and `you.stocks` appear only when they changed.
   scores?: Record<Id, Score>,     // when any total changed
   presence?: Id[],                // online nation ids, when it changed
   news?: News[],
-  season?: Season,                // when status changed (ending, ended)
+  season?: Season,                // when the stage changed
   you?: Partial<PrivateState>     // stocks every tick; the rest when changed
 }
 ```
@@ -515,18 +536,23 @@ Limit: 10 commands per client per tick; the rest are rejected `RATE_LIMIT`.
 ### 14.4 State shapes
 
 ```ts
-interface Season {
-  id: Id; startedAt: Ms; endsAt: Ms;     // endsAt = startedAt + 60 min
-  threshold: number;
-  status: "running" | "ended";
-  winner?: Id;
+interface Season {         // one world, from creation to an admin reset
+  id: Id; startedAt: Ms;
+  status: "running" | "ended"; // "ended" only by a reset
+  stage: number;             // 1-based; stage n began at startedAt + (n − 1) × 20 min
+  stageEndsAt: Ms;
+  base: Record<Id, number>;  // each nation's score at this stage's start (or its join)
+  winners: { stage: number; ranking: { nation: Id; gain: number }[] }[]; // past stages, top three
 }
+
+interface Alliance { id: Id; members: Id[]; sanctions: Id[]; invites: Id[] } // public
 
 interface VisibleWorld {
   nations: NationPublic[];
   regions: Region[];       // all 74, but owner/buildings/armies populated only where you have vision
   fleets: Fleet[];         // only fleets you have vision on (sensor, or an Envoy on their owner)
   wars: War[];
+  alliances: Alliance[];
   battles: Battle[];       // ground battles on regions you have vision on
   marches: March[];        // Armies on the move between regions you have vision on
   scores: Record<Id, Score>;
@@ -560,7 +586,11 @@ interface War { id: Id; a: Id; b: Id; declaredAt: Ms; activeAt: Ms; peaceFrom?: 
 
 // game-design.md §7: counts at `at`; the client draws them to endsAt with
 // rules' battleCounts(battle, now), the same analytic solution the server uses
-interface Battle { region: Id; attacker: Id; defender: Id; atk: number; def: number; bonus: boolean; at: Ms; endsAt: Ms }
+interface Battle {
+  region: Id; attacker: Id; defender: Id; at: Ms; endsAt: Ms;
+  atk: Record<Id, number>; def: Record<Id, number>; // per nation on each side, as of `at`
+  home: Record<Id, Id>;    // allied nations' Armies return here after
+}
 
 interface March { owner: Id; from: Id; to: Id; count: number; departAt: Ms; arriveAt: Ms }
 
@@ -611,6 +641,12 @@ type Command =
   | { type: "declareWar"; nation: Id }
   | { type: "offerPeace"; nation: Id }
   | { type: "acceptPeace"; war: Id }
+  | { type: "inviteAlly"; nation: Id }
+  | { type: "acceptAlly"; alliance: Id }
+  | { type: "declineAlly"; alliance: Id }
+  | { type: "leaveAlliance" }
+  | { type: "sanction"; nation: Id }
+  | { type: "liftSanction"; nation: Id }
   // trade
   | { type: "offerTrade"; to: Id; give: Goods; get: Goods }
   | { type: "acceptTrade"; offer: Id }
@@ -638,7 +674,7 @@ function; the server's answer is still the one that counts.
 | Code | Example `reason` |
 |---|---|
 | `INVALID` | "Unknown building type" |
-| `NOT_JOINED` | "Join the season first" |
+| `NOT_JOINED` | "Join the world first" |
 | `NOT_OWNER` | "You don't control Mars North" |
 | `INSUFFICIENT` | "Needs 20 more Metals" |
 | `LOCKED` | "Needs Ion Drives" |
@@ -648,8 +684,10 @@ function; the server's answer is still the one that counts.
 | `PROTECTED` | "Nova Terra is protected for 40 more seconds" |
 | `NOT_AT_WAR` | "You aren't at war with Nova Terra" |
 | `TAKEN` | "US West was claimed this tick" |
+| `ALLIED` | "You can't declare war on an ally" |
+| `SANCTIONED` | "Your alliance sanctions Nova Terra" |
 | `EARTH_FULL` | "Every Earth start region is held; joining reopens when one frees up" |
-| `SEASON_OVER` | "The season has ended" |
+| `SEASON_OVER` | "The world was reset" |
 | `RATE_LIMIT` | "Too many commands; wait a moment" |
 
 There is deliberately no "destination out of reach" code: every zone is

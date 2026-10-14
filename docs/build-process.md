@@ -200,6 +200,39 @@ active. Sim balance suite rerun and logged (respawn and conqueror targets).
 All existing tests still green; screenshots judged as a player would.
 **Serves:** P2, P4, P5, P6, P10.
 
+### D4. A world that keeps going: stages, alliances, admin reset (`game-design.md` §7, §9, §10, §11; system-design.md §4, §11, §14)
+
+The user's playtest: the game just stopped at the season's end, there was
+no way to reset the server, and no diplomacy beyond war and trade. Builds
+on D3 (battles become per-nation sides here):
+
+- **Stages:** the world never ends; a `stageEnd` event every 20 min ranks
+  score gained, writes a `stages` row, and adds the next global modifier
+  (`STAGES` in `rules/data/victory.ts`, read by the same `mods()` path tech
+  uses). The 40% category cap, the threshold, the 60 min end and the minute
+  50 join cutoff go. Top bar shows the stage; Empires shows gains and past
+  winners.
+- **Alliances:** invite, accept, decline, leave; forced peace; fleets and
+  Armies of allies at war with the same nation fight as one side; sanctions
+  block offers, accepts and gifts. All in Empires.
+- **Admin reset:** the hardcoded `admin` / `platypus` account; `/admin`'s
+  Reset world button; sockets closed with 4004.
+
+**Exit criteria:** rules tests: at 20 min the stage advances, the ranking is
+by gain, and a stage modifier changes the matching output, cost or time
+(Mines +25% at stage 2, Spaceport cost and time at stage 3); nothing ends
+the world at 60 min; joining an alliance ends wars between members and
+`declareWar` on an ally is refused `ALLIED`; two allies' fleets beat a fleet
+neither beats alone; an ally's Armies join an attack and survivors return
+home; a sanction refuses offers, accepts and gifts both ways with
+`SANCTIONED`. Server test: `admin` / `platypus` logs in on a fresh database;
+`/api/admin/reset` is 404 for others, and for admin closes sockets with
+4004, empties the world, and every account still logs in. Spec: replay
+reproduces a world with an alliance, a sanction and a stage change. e2e:
+the top bar shows the stage; Empires invites and accepts an ally. Sim:
+stage win rates per strategy logged, P3 and P6 targets measured.
+**Serves:** P3, P6, P9, S5, S7, P10.
+
 ### E. Visual fidelity and budgets (`game-design.md` §12, system-design.md §8)
 
 Polish on top of the map client, not a separate client: textures,
@@ -268,6 +301,7 @@ be hit eventually; it just slips to the next one.
 | **Crit 8 — "It's alive!"** | Next week | Stage A done. Stage B: harness running and reporting real numbers — they don't need to be tuned yet. Stage C: full exit criteria, no slipping this one — "backend polished" means the server, persistence and protocol are actually right. Stage D: the map-first slice — the solar system as the main screen, navigable, bodies and regions clickable, the core loop playable through it. First `README.md` (400–600 words) live at `/readme/`. First `PROCESS.md`. | A, B (partial), **C (full)**, D (map-first slice) |
 | **Crit 9 — "All at once"** | Week 10 | Real-time fully wired end to end, not just the protocol — the client reflects it live. Stage D's full exit criteria: both viewports, keyboard-only. Stage D2 done (the playtest HUD revision). One documented decision on multi-user contention behaviour (system-design.md §5's ordering rule already is that decision — cite it, don't re-decide it). | **D (full)**, **D2** |
 | **Crit 10 — "Fly by instruments"** | Week 11 | Stage F done: logging, `/admin` live view. Stage E (visual fidelity) substantially in, and Stage E2 (real worlds, command console) done. Stage D3 (visible war, three-dropdown menu) done. | E, **E2**, **F**, **D3** |
+| **Target: done** prerequisite | Week 12 | Stage D4 (stages, alliances, admin reset) done before the final pass. | **D4** |
 | **Target: done** | End of week 12 | Self-imposed, ahead of the real deadline (noon Mon 9 Nov 2026) on purpose — a buffer, not a guess at the actual due date. Stage G's numbers in a reasonable place (never "finished" — that's the point of a loop). Final `README.md`/`PROCESS.md` pass, everything deployed and green. | G, polish |
 
 The map is the game from the first client on (goals.md P10): Stage E adds
