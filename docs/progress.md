@@ -25,7 +25,10 @@ earlier players aren't late joiners), `pnpm sim:test` green.
 and War rules, §12 Empire menu, Selection panel, The mechanics on screen;
 system-design.md §14.3 tick, §14.4 (Battle, March), §6 Visibility filter.
 Data edits pending: `WAR.protectionS` 300 → 60; new `MILITARY.groundRate`
-0.025 (Armies destroyed per Army per second). Open for the user: a real-phone fps check and
+0.025 (Armies destroyed per Army per second); Spaceport cost
+`{ M: 60, A: 20 }` → `{ M: 100, A: 40 }`, `timeS` 75 → 240; remove
+`startKit.offEarthPower`. Update the off-Earth join test in
+`rules/economy.test.ts` to the new refusal. Open for the user: a real-phone fps check and
 the Fly secret `ADMIN_USERS` before Crit 10. Optional G work: bot wars and
 Envoy-led trade for conqueror and researcher win rates. F detail:
 `server/log.ts` lines and stats; `/admin` for `ADMIN_USERS` (set the Fly
@@ -37,6 +40,11 @@ combat only; space combat stays instant with its orbit flash. Battle speed
 0.025/s is a first guess so a typical fight lasts 15 to 30 s. Marches leave
 `PrivateState` for `VisibleWorld` so rivals see Armies coming. Research
 dropdown shows each ladder's next rung; the full tree stays an overlay.
+"A little more expensive" alone can't hold a 5 min floor (the Exchange
+converts starting Energy into Alloys), so the Spaceport's build time is
+the floor and its cost makes a Foundry worth building first. With
+Earth-only starts, a full Earth means no new joins or respawns until a
+start region frees up (rare: 24 start regions, at most 24 nations).
 E2: Psyche and Ceres stay procedural, no
 usable global albedo map; Titania, Oberon and Triton gaps are filled from
 mirrors and column blends and look smeared up close; Triton's map keeps
@@ -57,8 +65,6 @@ Numbers missing from `game-design.md`, all in
 - Colour clash = RGB distance < 60 (`victory.ts`).
 - Cancelling a build or research refunds in full (only demolish is 50%).
 - "Late join" boost goes to anyone joining 5+ min into the season.
-- An off-Earth start's kit Power Plant runs Fission where 15 E/min beats
-  the local sun (G loop 3; game-design.md §6 records it).
 - Launching needs no Spaceport at the origin, only ships in orbit there.
 - Armies launched off a body come from your garrisons there, in region-id
   order.

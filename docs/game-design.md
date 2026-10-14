@@ -211,7 +211,12 @@ as one command. Slots: Earth 4, large bodies 3, small bodies 2.
 | Foundry | 50 M | 30 s | 4 M → 3 A | 4 E |
 | Lab | 40 M, 10 V | 30 s | 5 R | 3 E |
 | Factory | 60 M, 10 V | 30 s | 2 A + 1 V → 3 Materiel | 5 E |
-| Spaceport | 60 M, 20 A | 75 s | Builds ships and Armies; launches from this body | 2 E |
+| Spaceport | 100 M, 40 A | 240 s | Builds ships and Armies; launches from this body | 2 E |
+
+The Spaceport is the gate off Earth. Its 240 s build plus a Colony Ship
+(45 s) and the hop to Luna (30 s) put the earliest off-Earth claim at
+5 min 15 s; its cost (with a Colony Ship's, 80 A against the kit's 60)
+means running a Foundry or using the Exchange first.
 
 Each off-Earth region costs **1 Materiel/min** colony upkeep; a shortfall
 halves its output. Society tech (§8) reduces both this and building Energy
@@ -219,9 +224,7 @@ upkeep.
 
 **Starting kit:** capital with Power Plant, Mine, Refinery, Lab (as many as
 the region has slots); 2 Armies; 200 M, 100 V, 60 A, 50 Materiel, 30 R,
-500 E. Off Earth (a late join or respawn), the Power Plant arrives in
-Fission mode (15 E/min) wherever that beats the local sun, so a lone start
-on Mars or beyond isn't starved of Energy.
+500 E. Every start is on Earth (§11).
 
 ## 7. Military
 
@@ -307,7 +310,7 @@ the same square law played out as it happens, so a player can watch it:
 | Declaration | Public; active 1 min later |
 | Protection | New and respawned nations: untouchable for 1 min, cannot declare |
 | Conquest | Full; capitals can fall. Capital moves to largest remaining region |
-| Elimination | Losing every region. Respawn on a free Earth region, or a single off-Earth colony if Earth is full, with ×2 production for 5 min |
+| Elimination | Losing every region. Respawn on a free Earth start region, with ×2 production for 5 min; while none is free, respawn waits |
 | Peace | Both sides agree |
 
 ## 8. Tech: 4 ladders × 6 rungs
@@ -424,9 +427,10 @@ two of three can).
   default. Editable any time.
 - **World size:** at most 24 nations (one per Earth start region).
 - **Late joining:** allowed until minute 50, with ×2 production for the first
-  5 min so a late start isn't hopeless. If every Earth start region is
-  taken by then, a newcomer starts on one free off-Earth region instead,
-  as a respawn does.
+  5 min so a late start isn't hopeless. **Every start is on Earth**: a
+  newcomer or respawn picks a free Earth start region, never an off-Earth
+  one. While none is free, joining is refused with that reason and the
+  start screen says so; it opens again when a region frees up.
 - **Presence:** online nations glow; a live news ticker reports launches,
   claims, declarations, battles, trades.
 - **Concurrency:** commands are serialised and validated against current state.
@@ -849,7 +853,7 @@ includes `spec/`).
 | Target | Value |
 |---|---|
 | Voidcraft's Thrust Vectoring researched | ~2 min |
-| First off-Earth colony | 4 to 7 min |
+| First off-Earth colony | 5 to 8 min (never before 5 min) |
 | First Mars colony | 12 to 25 min |
 | Dead time (decision points with no useful action), first 30 min | < 20% |
 | Deadlock | none: from any start, a sensible bot always reaches Voidcraft 2 |

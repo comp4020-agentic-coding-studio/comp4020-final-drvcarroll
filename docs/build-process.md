@@ -173,7 +173,9 @@ by keyboard; screenshots judged as a player would before calling it done.
 Playtest feedback: war was opaque, the left menu cluttered, and new-player
 protection too long. Revises the rules and the D2 client in place:
 
-- **Rules:** protection 1 min (`WAR.protectionS` 60). Ground combat becomes a
+- **Rules:** protection 1 min (`WAR.protectionS` 60). Spaceport 100 M,
+  40 A, 240 s (§6). Starts on Earth only: off-Earth joins and the
+  `offEarthPower` kit rule go, a full Earth refuses with `EARTH_FULL`. Ground combat becomes a
   timed battle (§7): a `battle` per region with analytic counts, a scheduled
   end, reinforcements joining; `battleCounts(battle, t)` exported for the
   client. Marches and battles go in `VisibleWorld`, vision-gated like
@@ -188,7 +190,9 @@ protection too long. Revises the rules and the D2 client in place:
 **Exit criteria:** rules tests: a 10 vs 10 garrison battle lasts 21 ± 1 s
 and its survivors equal the old instant result for the same forces;
 reinforcements extend a battle; a second attacker is turned back; protection
-ends at 60 s. A client without vision on a region never receives its battle
+ends at 60 s; a join or respawn on an off-Earth region is refused, and on a
+full Earth gets `EARTH_FULL`. Sim: no bot claims off Earth before 5 min, and
+first colony lands in 5 to 8 min. A client without vision on a region never receives its battle
 or marches (P5 spec). e2e: the Empire menu has exactly three dropdowns; a
 march into a garrison shows a battle whose counts fall between two ticks; a
 rival's region at peace offers Declare war, and Attack once the war is

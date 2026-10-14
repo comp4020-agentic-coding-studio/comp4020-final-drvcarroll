@@ -648,6 +648,7 @@ function; the server's answer is still the one that counts.
 | `PROTECTED` | "Nova Terra is protected for 40 more seconds" |
 | `NOT_AT_WAR` | "You aren't at war with Nova Terra" |
 | `TAKEN` | "US West was claimed this tick" |
+| `EARTH_FULL` | "Every Earth start region is held; joining reopens when one frees up" |
 | `SEASON_OVER` | "The season has ended" |
 | `RATE_LIMIT` | "Too many commands; wait a moment" |
 
