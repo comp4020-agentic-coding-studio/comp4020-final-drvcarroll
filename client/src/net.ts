@@ -71,6 +71,8 @@ function receive(m: Msg): void {
         regions: upsert(w.regions, c.regions, undefined),
         fleets: upsert(w.fleets, c.fleets, c.removed?.fleets),
         wars: upsert(w.wars, c.wars, c.removed?.wars),
+        battles: upsert(w.battles, c.battles, c.removed?.battles),
+        marches: upsert(w.marches, c.marches, c.removed?.marches),
         scores: m.scores ?? w.scores,
         presence: m.presence ?? w.presence,
         news: m.news ? [...w.news, ...m.news].slice(-50) : w.news,

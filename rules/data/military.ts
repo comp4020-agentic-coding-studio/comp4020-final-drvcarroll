@@ -69,6 +69,8 @@ export const MILITARY = {
   transportCapacity: 4, // Armies per Troop Transport
   freighterCapacity: 500,
   garrisonBonus: 0.5,
+  groundRate: 0.025, // Armies destroyed per Army per second (game-design.md §7)
+  groundLast: 0.5, // a side below this many Armies is wiped out
   maxTrainCount: 20,
   maxBuildCount: 20,
 };

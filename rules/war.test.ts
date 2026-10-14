@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { addUnits, orbitFleet } from "./fleets.ts";
 import { advanceTo, observe, validate, type State } from "./index.ts";
 import { S, T0, ok, world } from "./test-helpers.ts";
-import { survivors } from "./war.ts";
+import { battleCounts, survivors } from "./war.ts";
 
 const PROTECTED = 60 * S;
 
@@ -68,11 +68,58 @@ describe("space combat (game-design.md §7)", () => {
 });
 
 describe("ground combat and conquest (game-design.md §7)", () => {
-  it("holds with the +50% garrison bonus", () => {
+  it("holds with the +50% garrison bonus, after a battle in time", () => {
     let s = war("r_canada", "r_us_west");
     s = ok(s, "n_1", { type: "march", from: "r_canada", to: "r_us_west", count: 2 });
     s = advanceTo(s, s.t + 30 * S);
+    const b = s.battles.r_us_west;
+    expect(b).toMatchObject({ attacker: "n_1", defender: "n_2", atk: 2, def: 2 });
+    expect(s.regions.r_us_west.armies).toBe(0);
+    const [a1, d1] = battleCounts(b, b.at + 2 * S);
+    expect(a1).toBeLessThan(2);
+    expect(d1).toBeLessThan(2);
+    s = advanceTo(s, b.endsAt);
+    expect(s.battles).toEqual({});
     expect(s.regions.r_us_west).toMatchObject({ owner: "n_2", armies: 1 }); // 20 vs 30
+  });
+
+  it("lasts about 21 s at 10 vs 10, leaving the instant result's survivors", () => {
+    let s = war("r_canada", "r_us_west");
+    s.regions.r_canada.armies = 20;
+    s.regions.r_us_west.armies = 10;
+    s = ok(s, "n_1", { type: "march", from: "r_canada", to: "r_us_west", count: 10 });
+    s = advanceTo(s, s.t + 30 * S);
+    const b = s.battles.r_us_west;
+    expect((b.endsAt - b.at) / S).toBeGreaterThan(20);
+    expect((b.endsAt - b.at) / S).toBeLessThan(22);
+    s = advanceTo(s, b.endsAt);
+    expect(s.regions.r_us_west).toMatchObject({ owner: "n_2", armies: survivors(10, 150, 100) });
+
+    s.regions.r_canada.armies = 20; // 20 vs 10: the attacker takes it
+    s = ok(s, "n_1", { type: "march", from: "r_canada", to: "r_us_west", count: 20 });
+    s.regions.r_us_west.armies = 10;
+    s = advanceTo(s, s.t + 30 * S);
+    s = advanceTo(s, s.battles.r_us_west.endsAt);
+    expect(s.regions.r_us_west).toMatchObject({ owner: "n_1", armies: survivors(20, 200, 150) });
+  });
+
+  it("extends a battle with reinforcements and turns back a second attacker", () => {
+    let s = war("r_canada", "r_us_west", "r_us_east");
+    s = ok(s, "n_3", { type: "declareWar", nation: "n_2" });
+    s = advanceTo(s, s.t + 60 * S);
+    s.regions.r_us_west.armies = 10;
+    s.regions.r_canada.armies = 10;
+    s = ok(s, "n_1", { type: "march", from: "r_canada", to: "r_us_west", count: 10 });
+    s = advanceTo(s, s.t + 30 * S);
+    const end = s.battles.r_us_west.endsAt;
+    s = ok(s, "n_2", { type: "train", region: "r_us_west", count: 1 });
+    s = advanceTo(s, s.t + 15 * S);
+    const b = s.battles.r_us_west;
+    expect(b.at).toBe(s.t);
+    expect(b.endsAt).toBeLessThan(end); // more defenders: it ends sooner
+    expect(s.regions.r_us_west.armies).toBe(0);
+    expect(validate(s, "n_3", { type: "march", from: "r_us_east", to: "r_us_west", count: 1 }))
+      .toMatchObject({ reason: "Nation 1 is already attacking US West" });
   });
 
   it("invades from orbit, takes the buildings, moves the capital, eliminates", () => {

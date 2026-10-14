@@ -3,7 +3,7 @@ import { ADJACENT, BODIES, MILITARY, REGIONS, TRAVEL, UNITS, WAR, type Unit } fr
 import { isInt, isRejection, no, ownRegion, regionName, type Handler } from "./check.ts";
 import { isEarth, owned, slotsOf } from "./economy.ts";
 import { claim, removeUnits } from "./fleets.ts";
-import type { Id, Rejection } from "./protocol.ts";
+import type { Battle, Id, Ms, Rejection } from "./protocol.ts";
 import { newId, news, schedule, touch, type FleetState, type NationState, type State } from "./state.ts";
 
 const warBetween = (s: State, a: Id, b: Id) =>
@@ -63,20 +63,78 @@ export function resolveAll(s: State): void {
   for (const b of [...bodies].sort()) resolveSpace(s, b);
 }
 
-// Ground combat; the garrison gets +50% holding a region it owns.
+// Ground battles play the square law out in time (game-design.md §7):
+// dA/dt = −rate·k²·D, dD/dt = −rate·A, k the garrison's +50%.
+const K = 1 + MILITARY.garrisonBonus;
+const GAMMA = MILITARY.groundRate * K; // per second
+const LAST = MILITARY.groundLast;
+
+export function battleCounts(b: Battle, t: Ms): [number, number] {
+  const x = (GAMMA * Math.max(0, Math.min(t, b.endsAt) - b.at)) / 1000;
+  const [c, sh] = [Math.cosh(x), Math.sinh(x)];
+  return [Math.max(0, b.atk * c - K * b.def * sh), Math.max(0, b.def * c - (b.atk / K) * sh)];
+}
+
+// Smallest x ≥ 0 with p·cosh x − q·sinh x = LAST, for the losing side (p ≤ q).
+function toLast(p: number, q: number): number {
+  if (p <= LAST) return 0;
+  if (Math.abs(p - q) < 1e-9) return Math.log(p / LAST);
+  return Math.log((LAST - Math.sqrt(LAST ** 2 + q ** 2 - p ** 2)) / (p - q));
+}
+
+function schedBattle(s: State, b: Battle): void {
+  const x = b.atk < K * b.def ? toLast(b.atk, K * b.def) : toLast(b.def, b.atk / K);
+  b.endsAt = b.at + (x / GAMMA) * 1000;
+  schedule(s, { kind: "battle", at: b.endsAt, region: b.id });
+}
+
+// Brings a battle's counts to now, adds to one side, and reschedules its end.
+function reinforce(s: State, b: Battle, side: "atk" | "def", armies: number): void {
+  [b.atk, b.def] = battleCounts(b, s.t);
+  b.at = s.t;
+  b[side] += armies;
+  schedBattle(s, b);
+}
+
+// Armies arriving at, or trained in, a region its owner is defending.
+export function joinDefence(s: State, region: Id, armies: number): boolean {
+  const b = s.battles[region];
+  if (b) reinforce(s, b, "def", armies);
+  return !!b;
+}
+
+// Ground combat. An undefended region falls at once; otherwise a battle starts.
 export function ground(s: State, nation: Id, region: Id, armies: number): void {
   const r = s.regions[region];
-  const atk = armies * UNITS.army.strength;
-  const def = r.armies * UNITS.army.strength * (1 + MILITARY.garrisonBonus);
-  const defender = r.owner!;
-  if (atk > def) {
-    conquer(s, nation, region, survivors(armies, atk, def));
-  } else {
-    r.armies = survivors(r.armies, def, atk);
-    touch(r);
-    news(s, "battle", `${s.nations[defender].name} holds ${regionName(region)} against ${s.nations[nation].name}`, [nation, defender, region]);
-  }
+  const b = s.battles[region];
+  if (b) return reinforce(s, b, "atk", armies);
+  if (!r.armies) return conquer(s, nation, region, armies);
+  const battle: Battle = { id: region, attacker: nation, defender: r.owner!, atk: armies, def: r.armies, at: s.t, endsAt: s.t };
+  r.armies = 0;
+  touch(r);
+  s.battles[region] = battle;
+  schedBattle(s, battle);
+  news(s, "assault", `${s.nations[nation].name} attacks ${regionName(region)}`, [nation, battle.defender, region]);
 }
+
+// Survivors from the square law's invariant, exactly as an instant fight.
+export function battleEnd(s: State, region: Id, at: Ms): void {
+  const b = s.battles[region];
+  if (b?.endsAt !== at) return;
+  delete s.battles[region];
+  const r = s.regions[region];
+  const [atk, def] = [b.atk * UNITS.army.strength, b.def * UNITS.army.strength * K];
+  const [an, dn] = [s.nations[b.attacker].name, s.nations[b.defender].name];
+  if (atk > def) return conquer(s, b.attacker, region, survivors(b.atk, atk, def));
+  r.armies += survivors(b.def, def, atk);
+  touch(r);
+  news(s, "battle", `${dn} holds ${regionName(region)} against ${an}`, [b.attacker, b.defender, region]);
+}
+
+const otherAttacker = (s: State, nation: Id, region: Id) => {
+  const b = s.battles[region];
+  return b && b.attacker !== nation ? no("INVALID", `${s.nations[b.attacker].name} is already attacking ${regionName(region)}`) : null;
+};
 
 function conquer(s: State, nation: Id, region: Id, armies: number): void {
   const r = s.regions[region];
@@ -146,6 +204,8 @@ export const invade: Handler<"invade"> = (s, n, c) => {
   if (bar) return bar;
   const hostile = Object.values(s.fleets).some((x) => x.at === f.at && spaceStrength(x.units) > 0 && atWar(s, n.id, x.owner));
   if (hostile) return no("INVALID", "Win orbital superiority first");
+  const busy = otherAttacker(s, n.id, r.id);
+  if (busy) return busy;
   return () => {
     const armies = f.units.army!;
     removeUnits(s, f, { army: armies });
@@ -165,7 +225,7 @@ export const march: Handler<"march"> = (s, n, c) => {
   if (!to || !isEarth(to.id) || !isEarth(from.id)) return no("INVALID", "Armies march only between Earth regions");
   if (!ADJACENT[from.id]?.includes(to.id)) return no("NOT_ADJACENT", `${regionName(from.id)} doesn't border ${regionName(to.id)}`);
   if (!isInt(c.count, 1, from.armies)) return no("INSUFFICIENT", `${regionName(from.id)} has ${from.armies} Armies`);
-  const bar = to.owner && to.owner !== n.id ? canAttack(s, n, to.owner) : null;
+  const bar = to.owner && to.owner !== n.id ? canAttack(s, n, to.owner) ?? otherAttacker(s, n.id, to.id) : null;
   if (bar) return bar;
   return () => {
     from.armies -= c.count;
@@ -180,10 +240,11 @@ export function marchArrive(s: State, nation: Id, from: Id, to: Id, count: numbe
   const n = s.nations[nation];
   if (!r.owner) return claim(s, nation, to, count);
   if (r.owner === nation) {
+    if (joinDefence(s, to, count)) return;
     r.armies += count;
     return touch(r);
   }
-  if (!canAttack(s, n, r.owner)) return ground(s, nation, to, count);
+  if (!canAttack(s, n, r.owner) && !otherAttacker(s, nation, to)) return ground(s, nation, to, count);
   const back = s.regions[from];
   if (back.owner === nation) {
     back.armies += count;

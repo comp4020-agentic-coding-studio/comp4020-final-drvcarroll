@@ -1,4 +1,5 @@
 import { describe, expect, inject, it } from "vitest";
+import { REGIONS } from "../rules/data/index.ts";
 import { api, Client, unique, type Msg } from "./helpers.ts";
 
 // system-design.md §13: the promises checked against the running app.
@@ -75,6 +76,7 @@ describe("privacy and fog of war", () => {
       }
       const fleets: Msg[] = [...(m.world?.fleets ?? []), ...(m.changes?.fleets ?? [])];
       for (const f of fleets) expect(f.owner === a.client.welcome.you.nation || f.at === "earth").toBe(true);
+      for (const b of [...(m.world?.battles ?? []), ...(m.changes?.battles ?? [])]) expect(REGIONS[b.id].body, b.id).toBe("earth");
     }
     a.client.close();
   });

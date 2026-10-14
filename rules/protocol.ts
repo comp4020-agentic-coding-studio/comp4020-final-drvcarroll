@@ -78,6 +78,12 @@ export interface Fleet {
 
 export interface War { id: Id; a: Id; b: Id; declaredAt: Ms; activeAt: Ms; peaceFrom?: Id }
 
+// A ground battle; id is its region. Counts are as of `at` (battleCounts).
+export interface Battle { id: Id; attacker: Id; defender: Id; atk: number; def: number; at: Ms; endsAt: Ms }
+
+// id: `${from}>${to}@${departAt}`
+export interface March { id: string; owner: Id; from: Id; to: Id; count: number; departAt: Ms; arriveAt: Ms }
+
 export interface Score { territory: number; economy: number; tech: number; total: number }
 
 export interface News { at: Ms; kind: string; text: string; refs: Id[] }
@@ -95,7 +101,6 @@ export interface PrivateState {
   queues: Record<Id, QueueEntry[]>;
   trades: TradeOffer[];
   envoys: { nation: Id; since: Ms }[];
-  marches: { from: Id; to: Id; count: number; arriveAt: Ms }[]; // your Armies on the move
 }
 
 export interface VisibleWorld {
@@ -103,6 +108,8 @@ export interface VisibleWorld {
   regions: Region[];
   fleets: Fleet[];
   wars: War[];
+  battles: Battle[];
+  marches: March[];
   scores: Record<Id, Score>;
   presence: Id[];
   news: News[];

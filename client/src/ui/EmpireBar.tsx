@@ -24,7 +24,8 @@ export function EmpireBar() {
   for (const r of mine) (byBody[r.body] ??= []).push(r);
   const fleets = w.fleets.filter((f) => f.owner === me.value);
   const garrisons = mine.filter((r) => r.armies);
-  const armies = garrisons.reduce((a, r) => a + r.armies!, 0) + y.marches.reduce((a, m) => a + m.count, 0);
+  const marches = w.marches.filter((m) => m.owner === me.value);
+  const armies = garrisons.reduce((a, r) => a + r.armies!, 0) + marches.reduce((a, m) => a + m.count, 0);
   const tech = drawer.value === "tech";
   return (
     <nav class={`hud empire ${open ? "" : "closed"}`} aria-label="Your empire">
@@ -51,8 +52,8 @@ export function EmpireBar() {
                   </button>
                 </li>
               ))}
-              {y.marches.map((m) => (
-                <li key={`${m.from}${m.to}${m.arriveAt}`}>
+              {marches.map((m) => (
+                <li key={m.id}>
                   <button class="row" onClick={() => focusOn(REGIONS[m.to].body, m.to)}>
                     <span>→ {regionName(m.to)}</span><small>{m.count}<UnitIcon unit="army" /> {dur(m.arriveAt - t)}</small>
                   </button>

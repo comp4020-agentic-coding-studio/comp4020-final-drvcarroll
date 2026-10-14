@@ -32,6 +32,7 @@ export class World {
       "SELECT seq, rules_version, state FROM snapshots WHERE season_id = ? ORDER BY seq DESC LIMIT 1",
     ).get(season.id) as { seq: number; rules_version: string; state: string } | undefined;
     const s = snap ? (JSON.parse(snap.state) as State) : newSeason(season.id, season.started_at);
+    s.battles ??= {}; // rules 1 snapshots predate ground battles
     this.lastSeq = snap?.seq ?? 0;
     const rows = this.db.prepare(
       "SELECT seq, nation_id, at, payload FROM commands WHERE season_id = ? AND seq > ? ORDER BY seq",

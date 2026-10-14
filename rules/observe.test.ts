@@ -18,10 +18,14 @@ describe("observe: sensors, Envoys and fog (game-design.md §11)", () => {
     expect(w.fleets).toEqual([]);
   });
 
-  it("lists your own marches, never a rival's", () => {
-    const s = ok(setup(), "n_1", { type: "march", from: "r_canada", to: "r_us_east", count: 1 });
-    expect(observe(s, "n_1").you!.marches).toEqual([{ from: "r_canada", to: "r_us_east", count: 1, arriveAt: s.t + 30_000 }]);
-    expect(observe(s, "n_2").you!.marches).toEqual([]);
+  it("shows marches and battles only where you have vision", () => {
+    let s = ok(setup(), "n_1", { type: "march", from: "r_canada", to: "r_us_east", count: 1 });
+    const m = { owner: "n_1", from: "r_canada", to: "r_us_east", count: 1, departAt: s.t, arriveAt: s.t + 30_000 };
+    expect(observe(s, "n_1").world.marches).toEqual([{ id: `r_canada>r_us_east@${s.t}`, ...m }]);
+    expect(observe(s, "n_2").world.marches).toHaveLength(1); // n_2 senses Earth
+    s.battles.r_mars_tharsis = { id: "r_mars_tharsis", attacker: "n_9", defender: "n_2", atk: 2, def: 3, at: s.t, endsAt: s.t + 1 };
+    expect(observe(s, "n_1").world.battles).toEqual([]);
+    expect(observe(s, "n_2").world.battles).toHaveLength(1);
   });
 
   it("gives an Envoy territory and fleets, never buildings", () => {

@@ -8,7 +8,8 @@ import { isRejection } from "./check.ts";
 import { settled } from "./advance.ts";
 import { check } from "./commands.ts";
 import { capOf, economy, owned } from "./economy.ts";
-import type { Command, Fleet, Id, NationPublic, PrivateState, Region, Score, VisibleWorld } from "./protocol.ts";
+import type { Command, Fleet, Id, March, NationPublic, PrivateState, Region, Score, VisibleWorld } from "./protocol.ts";
+import { TRAVEL } from "./data/index.ts";
 import { scores } from "./score.ts";
 import type { FleetState, NationState, State } from "./state.ts";
 
@@ -55,6 +56,17 @@ export function observe(state: State, nation: Id | null, cache?: ViewCache): { w
     if (r.owner && choosing && REGIONS[r.id].start) return part(`r:${r.id}:start`, () => ({ ...base(), owner: r.owner! }));
     return part(`r:${r.id}`, base);
   });
+  // Sensor on the body, or an Envoy on the region's owner (or the marcher's).
+  const sees = (region: Id, who?: Id) => {
+    const owner = s.regions[region].owner;
+    return sensors.has(REGIONS[region].body) || (!!owner && envoys.has(owner)) || (!!who && (who === nation || envoys.has(who)));
+  };
+  const battles = Object.values(s.battles).filter((b) => sees(b.id)).map((b) => part(`b:${b.id}:${b.at}`, () => ({ ...b })));
+  const marches = s.events.flatMap((e): March[] => {
+    if (e.kind !== "march" || !(sees(e.from, e.nation) || sees(e.to))) return [];
+    const departAt = e.at - TRAVEL.marchHopS * 1000;
+    return [{ id: `${e.from}>${e.to}@${departAt}`, owner: e.nation, from: e.from, to: e.to, count: e.count, departAt, arriveAt: e.at }];
+  });
   const fleets = Object.values(s.fleets)
     .filter((f) => f.owner === nation || (f.at && sensors.has(f.at)) || envoys.has(f.owner))
     .map((f) => part(`f:${f.id}`, () => publicFleet(f)));
@@ -63,6 +75,8 @@ export function observe(state: State, nation: Id | null, cache?: ViewCache): { w
     regions,
     fleets,
     wars: Object.values(s.wars).map((w) => part(`w:${w.id}`, () => ({ ...w }))),
+    battles,
+    marches,
     scores: cache ? (cache.scores ??= scores(s)) : scores(s),
     presence: [],
     news: [...s.news],
@@ -84,7 +98,6 @@ function privateState(s: State, n: NationState): PrivateState {
       .map((r) => [r.id, r.queue.map(({ item, startAt, finishAt, slot }) => ({ item, startAt, finishAt, ...(slot === undefined ? {} : { slot }) }))])),
     trades: Object.values(s.offers).filter((o) => o.from === n.id || o.to === n.id).map((o) => ({ ...o })),
     envoys: n.envoys.map((x) => ({ ...x })),
-    marches: s.events.flatMap((e) => (e.kind === "march" && e.nation === n.id ? [{ from: e.from, to: e.to, count: e.count, arriveAt: e.at }] : [])),
   };
 }
 

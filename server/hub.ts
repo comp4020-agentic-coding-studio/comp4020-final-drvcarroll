@@ -13,6 +13,7 @@ import { parseMessage } from "./schema.ts";
 import { nationOf, type World } from "./world.ts";
 
 export const TICK_MS = 500;
+const KINDS = ["nations", "regions", "fleets", "wars", "battles", "marches"] as const;
 const MAX_CMDS_PER_TICK = 10;
 
 interface Sent {
@@ -183,7 +184,7 @@ export class Hub {
     if (c.results.length) msg.results = c.results;
     const changes: Record<string, unknown[]> = {};
     const ents = new Map<string, string>();
-    for (const kind of ["nations", "regions", "fleets", "wars"] as const) {
+    for (const kind of KINDS) {
       for (const e of world[kind] as { id: string }[]) {
         const key = `${kind}:${e.id}`;
         const j = sh.json(e);
@@ -244,7 +245,7 @@ function blank(): Sent {
 
 function remember(s: Sent, world: VisibleWorld, you: PrivateState | null, season?: unknown): void {
   s.ents.clear();
-  for (const kind of ["nations", "regions", "fleets", "wars"] as const) {
+  for (const kind of KINDS) {
     for (const e of world[kind] as { id: string }[]) s.ents.set(`${kind}:${e.id}`, json(e));
   }
   s.scores = json(world.scores);

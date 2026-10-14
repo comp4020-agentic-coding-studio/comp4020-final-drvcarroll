@@ -43,6 +43,7 @@ export const mirror = computed<State | null>(() => {
     }])),
     fleets: Object.fromEntries(w.fleets.map((f) => [f.id, { ...f }])),
     wars: Object.fromEntries(w.wars.map((x) => [x.id, x])),
+    battles: Object.fromEntries(w.battles.map((b) => [b.id, b])),
     offers: Object.fromEntries((y?.trades ?? []).map((o) => [o.id, o])),
     events: [],
     news: w.news,
