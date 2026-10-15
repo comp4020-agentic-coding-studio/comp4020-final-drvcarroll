@@ -3,7 +3,7 @@ import { LADDERS, RUNGS, TECH, type Ladder } from "../../../rules/data/index.ts"
 import { techCost } from "../../../rules/commands.ts";
 import { dur } from "../format.ts";
 import { mirror } from "../mirror.ts";
-import { clock, me, you } from "../store.ts";
+import { clock, me, stage, you } from "../store.ts";
 import { Action, Progress } from "./common.tsx";
 import { Amt } from "./icons.tsx";
 
@@ -38,7 +38,7 @@ export function TechPanel() {
                 const held = y.techs.includes(rung.id);
                 const active = r?.tech === rung.id;
                 const next = i === rungs.findIndex((x) => !y.techs.includes(x.id));
-                const cost = <Amt res="R" v={n ? techCost(n, rung.id) : TECH.costs[i]} />;
+                const cost = <Amt res="R" v={n ? techCost(n, rung.id, stage.value) : TECH.costs[i]} />;
                 return (
                   <li key={rung.id} class={held ? "held" : active ? "active" : next ? "next" : "locked"}>
                     <b>{i + 1}. {rung.name}</b>

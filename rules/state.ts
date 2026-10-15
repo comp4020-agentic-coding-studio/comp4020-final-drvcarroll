@@ -1,5 +1,5 @@
 // Internal world state: plain JSON, so a snapshot is JSON.stringify.
-import { REGIONS, RESOURCES, SCORE, SEASON, type Goods, type Resource, type Unit } from "./data/index.ts";
+import { REGIONS, RESOURCES, SEASON, type Goods, type Resource, type Unit } from "./data/index.ts";
 import type {
   Battle, Id, Ms, NationPublic, News, PlacedBuilding, Season, TradeOffer, Transit, War,
 } from "./protocol.ts";
@@ -52,7 +52,7 @@ export type GameEvent = { id: number; at: Ms } & (
   | { kind: "deliver"; to: Id; goods: Goods }
   | { kind: "offerExpire"; offer: Id }
   | { kind: "rateChange" }
-  | { kind: "seasonEnd" }
+  | { kind: "stageEnd" }
 );
 
 export interface State {
@@ -75,7 +75,7 @@ export const emptyStocks = (): Record<Resource, number> =>
 
 export function newSeason(id: Id, startedAt: Ms): State {
   const s: State = {
-    season: { id, startedAt, endsAt: startedAt + SEASON.lengthS * 1000, threshold: SCORE.threshold, status: "running" },
+    season: { id, startedAt, status: "running", stage: 1, stageEndsAt: startedAt + SEASON.stageS * 1000, base: {}, winners: [] },
     t: startedAt,
     stocksAt: startedAt,
     nextId: 1,
@@ -90,7 +90,7 @@ export function newSeason(id: Id, startedAt: Ms): State {
     events: [],
     news: [],
   };
-  schedule(s, { kind: "seasonEnd", at: s.season.endsAt });
+  schedule(s, { kind: "stageEnd", at: s.season.stageEndsAt });
   return s;
 }
 

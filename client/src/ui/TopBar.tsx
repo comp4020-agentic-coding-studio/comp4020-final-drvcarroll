@@ -1,7 +1,7 @@
 // The HUD's top strip: empire totals with per-day gains and their
 // breakdowns, date, timers, Empires and the Guide (game-design.md §12).
 import { useEffect, useState } from "preact/hooks";
-import { RESOURCES, RESOURCE_NAMES, type Resource } from "../../../rules/data/index.ts";
+import { RESOURCES, RESOURCE_NAMES, STAGES, type Resource } from "../../../rules/data/index.ts";
 import { dur, gameDate, num, perDay, signed, sourceName } from "../format.ts";
 import { eco } from "../mirror.ts";
 import { clock, conn, cycleGraphics, drawer, graphics, joined, myNation, season, stockNow, tier, you, type Drawer } from "../store.ts";
@@ -73,7 +73,7 @@ export function TopBar({ user }: { user: string }) {
         {sz && <span class="date">{gameDate(sz.startedAt, t)}</span>}
         {n && n.protectedUntil > t && <span class="badge" title="Nobody can declare war on you (and you can't declare)">🛡 {dur(n.protectedUntil - t)}</span>}
         {n && n.boostUntil > t && <span class="badge">×2 {dur(n.boostUntil - t)}</span>}
-        {sz && <span class="badge" title="Season end">{sz.status === "ended" ? "Season over" : `⏳ ${dur(sz.endsAt - t)}`}</span>}
+        {sz && <StageBadge />}
         <span class={`conn ${conn.value}`} role="status" title={STATUS[conn.value]}>●</span>
       </span>
       <details class="menu">
@@ -113,5 +113,17 @@ function Breakdown({ res }: { res: Resource }) {
         </table>
       )}
     </div>
+  );
+}
+
+// game-design.md §12: the stage, its time left, and every modifier so far.
+function StageBadge() {
+  const sz = season.value!, t = clock.value;
+  const st = (n: number) => STAGES[Math.min(n, STAGES.length) - 1];
+  const all = STAGES.slice(1, Math.min(sz.stage, STAGES.length)).map((x) => `${x.name}: ${x.desc}`).join("\n");
+  return (
+    <span class="badge stage" title={all || "No stage modifiers yet"}>
+      Stage {sz.stage} · {st(sz.stage).name} · {dur(sz.stageEndsAt - t)}
+    </span>
   );
 }

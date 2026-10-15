@@ -7,7 +7,7 @@ import { mods } from "../../../rules/economy.ts";
 import type { Fleet } from "../../../rules/index.ts";
 import { travelMs } from "../../../rules/orbit.ts";
 import { mirror } from "../mirror.ts";
-import { launchTo, me, nations, selFleet, world } from "../store.ts";
+import { launchTo, me, nations, selFleet, stage, world } from "../store.ts";
 import { position, SIZE, sphereOf } from "./layout.ts";
 
 interface Mark { marker: THREE.Mesh; arc?: THREE.Line; key: string }
@@ -127,7 +127,7 @@ export class FleetLayer {
     }
     if (!key || !f || !to || !n || !BODIES[to]) return;
     const ships = Object.fromEntries(Object.entries(f.units).filter(([u]) => u !== "army"));
-    const arrive = now + travelMs(f.at!, to, ships, mods(n));
+    const arrive = now + travelMs(f.at!, to, ships, mods(n, stage.value));
     const a = new THREE.Vector3(...position(f.at!, now, start));
     const b = new THREE.Vector3(...position(to, arrive, start));
     this.preview = dashed(arcPoints(a, b), "#7be3d4", 0.95);

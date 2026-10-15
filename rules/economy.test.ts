@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { ECONOMY, REGIONS, RESOURCES } from "./data/index.ts";
-import { capOf, economy } from "./economy.ts";
+import { BUILDINGS, ECONOMY, REGIONS, RESOURCES, UNITS } from "./data/index.ts";
+import { buildingCost, buildingMs, capOf, economy, mods, shipMs } from "./economy.ts";
+import { score, stageRanking } from "./score.ts";
 import { advanceTo, apply, settled, validate, type Command } from "./index.ts";
 import { S, T0, ok, rng, world } from "./test-helpers.ts";
 
@@ -208,10 +209,44 @@ describe("invariants", () => {
     expect(live).toEqual(replay);
   });
 
-  it("ends the season at 60 minutes and refuses commands after", () => {
-    const s = advanceTo(world("r_canada"), T0 + 3600 * S);
-    expect(s.season.status).toBe("ended");
-    expect(s.season.winner).toBe("n_1");
-    expect(validate(s, "n_1", { type: "cancelResearch" })).toMatchObject({ code: "SEASON_OVER" });
+});
+
+describe("stages: a world that keeps going (game-design.md §10)", () => {
+  it("advances every 20 min, ranks gain this stage, and never ends", () => {
+    const end = score(advanceTo(world("r_canada", "r_us_west"), T0 + 1199 * S), "n_1").total;
+    let s = advanceTo(world("r_canada", "r_us_west"), T0 + 1200 * S);
+    expect(s.season).toMatchObject({ stage: 2, stageEndsAt: T0 + 2400 * S, status: "running" });
+    expect(s.season.winners[0].stage).toBe(1);
+    expect(s.season.winners[0].ranking.map((r) => r.nation)).toHaveLength(2);
+    expect(s.news.at(-1)).toMatchObject({ kind: "stage" });
+    expect(s.news.at(-1)!.text).toMatch(/Stage 2: Industrial Age/);
+    expect(s.season.base.n_1).toBeCloseTo(end); // gains count from here, boost included
+    s = advanceTo(s, T0 + 3700 * S);
+    expect(s.season).toMatchObject({ stage: 4, status: "running" });
+    expect(validate(s, "n_1", { type: "train", region: "r_canada", count: 1 })).toBeNull();
+  });
+
+  it("ranks by gain, not size: a late joiner can top a stage", () => {
+    let s = world("r_canada");
+    s.nations.n_1.techs = ["science.1"]; // n_1 is ahead, then stands still
+    s.season.base.n_1 = score(s, "n_1").total;
+    s = ok(s, "n_2", { type: "setEmpire", name: "Late", primary: "#123456", secondary: "#ffffff" });
+    s = ok(s, "n_2", { type: "join", region: "r_us_west" });
+    s.nations.n_2.techs = ["industry.1"];
+    expect(stageRanking(s)[0].nation).toBe("n_2");
+  });
+
+  it("applies each stage's modifier to everyone (Industrial Age, Space Age)", () => {
+    let s = world("r_canada");
+    const mine = () => economy(s, "n_1").lines.find((l) => l.source === "mine" && l.res === "M")!.amt;
+    const before = mine();
+    s = advanceTo(s, T0 + 1200 * S);
+    expect(mine()).toBeCloseTo(before * 1.25);
+    const m1 = mods(s.nations.n_1, 1), m3 = mods(s.nations.n_1, 3);
+    expect(buildingCost("spaceport", m1)).toEqual(BUILDINGS.spaceport.cost);
+    expect(buildingCost("spaceport", m3)).toEqual({ M: Math.ceil(BUILDINGS.spaceport.cost.M! * 0.75), A: Math.ceil(BUILDINGS.spaceport.cost.A! * 0.75) });
+    expect(buildingMs("spaceport", m3)).toBe(BUILDINGS.spaceport.timeS * 500);
+    expect(shipMs("corvette", m3)).toBe(UNITS.corvette.timeS * 750);
+    expect(shipMs("army", m3)).toBe(UNITS.army.timeS * 1000);
   });
 });

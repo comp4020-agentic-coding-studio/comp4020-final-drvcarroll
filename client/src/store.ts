@@ -11,6 +11,7 @@ export type Graphics = "auto" | Quality;
 export const world = signal<VisibleWorld | null>(null);
 export const you = signal<PrivateState | null>(null);
 export const season = signal<Season | null>(null);
+export const stage = computed(() => season.value?.stage ?? 1);
 export const tickAt = signal(0); // server time the last tick was computed for
 export const offset = signal(0); // server clock − local clock
 export const conn = signal<Conn>("connecting");

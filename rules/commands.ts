@@ -1,12 +1,13 @@
 // system-design.md §14.5: each handler validates, then returns its executor.
 // The same check drives apply, legalActions and the client's disabled reasons.
 import {
-  BUILDINGS, ECONOMY, EMPIRE, MILITARY, POWER_MODES, REGIONS, RUNGS, SEASON, TECH, UNITS, WAR, type PowerMode, type Resource,
+  BUILDINGS, ECONOMY, EMPIRE, MILITARY, POWER_MODES, REGIONS, RUNGS, TECH, UNITS, WAR, type PowerMode, type Resource,
 } from "./data/index.ts";
 import {
   enqueue, isInt, isRejection, needs, no, ownRegion, regionName, type Cmd, type Handler, type Plan,
 } from "./check.ts";
-import { credit, mods, scale, slotsOf, spend } from "./economy.ts";
+import { score } from "./score.ts";
+import { buildingCost, buildingMs, credit, mods, scale, slotsOf, spend } from "./economy.ts";
 import { buildShip, colonise, launch } from "./fleets.ts";
 import {
   acceptTrade, cancelTrade, declineTrade, exchange, gift, offerTrade, recallEnvoy, sendEnvoy,
@@ -54,9 +55,6 @@ const setEmpire = (s: State, id: Id, c: Cmd<"setEmpire">): Plan => {
 const join: Handler<"join"> = (s, n, c) => {
   const respawn = n.joined && n.eliminated;
   if (n.joined && !respawn) return no("INVALID", "You have already joined");
-  if (!respawn && s.t - s.season.startedAt > SEASON.lateJoinCutoffS * 1000) {
-    return no("SEASON_OVER", `Joining closes at minute ${SEASON.lateJoinCutoffS / 60}`);
-  }
   const r = s.regions[c.region];
   if (!r) return no("INVALID", "Unknown region");
   if (r.owner) return no("TAKEN", `${regionName(r.id)} is taken`);
@@ -78,6 +76,7 @@ const join: Handler<"join"> = (s, n, c) => {
       boostUntil: respawn || late ? s.t + WAR.boostS * 1000 : 0,
     });
     if (n.boostUntil) schedule(s, { kind: "rateChange", at: n.boostUntil });
+    s.season.base[n.id] = score(s, n.id).total; // a stage ranks gains from joining
     news(s, "join", `${n.name} ${respawn ? "returns" : "joins"} at ${regionName(r.id)}`, [n.id, r.id]);
   };
 };
@@ -89,9 +88,10 @@ const build: Handler<"build"> = (s, n, c) => {
   if (!d) return no("INVALID", "Unknown building type");
   const used = r.buildings.length + r.queue.filter((q) => q.item in BUILDINGS).length;
   if (used >= slotsOf(s, r.id)) return no("NO_SLOT", `No free slot in ${regionName(r.id)}`);
-  return needs(n, d.cost) ?? (() => {
-    spend(n, d.cost);
-    enqueue(s, r, c.building, d.timeS * 1000, d.cost);
+  const m = mods(n, s.season.stage), cost = buildingCost(c.building, m);
+  return needs(n, cost) ?? (() => {
+    spend(n, cost);
+    enqueue(s, r, c.building, buildingMs(c.building, m), cost);
   });
 };
 
@@ -120,12 +120,13 @@ const replace: Handler<"replace"> = (s, n, c) => {
   const refund = scale(BUILDINGS[b.type].cost, ECONOMY.demolishRefund);
   const after = { ...n.stocks };
   for (const [k, v] of Object.entries(refund) as [Resource, number][]) after[k] += v;
-  return needs({ ...n, stocks: after }, d.cost) ?? (() => {
+  const m = mods(n, s.season.stage), cost = buildingCost(c.building, m);
+  return needs({ ...n, stocks: after }, cost) ?? (() => {
     r.buildings = r.buildings.filter((x) => x !== b);
     n.stocks = after;
-    spend(n, d.cost);
+    spend(n, cost);
     credit(s, n, scale(refund, 0)); // clamps the refunded stocks to the cap
-    enqueue(s, r, c.building, d.timeS * 1000, d.cost, c.slot);
+    enqueue(s, r, c.building, buildingMs(c.building, m), cost, c.slot);
   });
 };
 
@@ -162,9 +163,9 @@ const setMode: Handler<"setMode"> = (s, n, c) => {
   };
 };
 
-export function techCost(n: NationState, tech: string): number {
+export function techCost(n: NationState, tech: string, stage: number): number {
   const rung = Number(tech.split(".")[1]);
-  return TECH.costs[rung - 1] * Math.max(0, 1 + mods(n).techCost);
+  return TECH.costs[rung - 1] * Math.max(0, 1 + mods(n, stage).techCost);
 }
 
 const research: Handler<"research"> = (s, n, c) => {
@@ -175,7 +176,7 @@ const research: Handler<"research"> = (s, n, c) => {
   const prev = `${ladder}.${Number(rung) - 1}`;
   if (RUNGS[prev] && !n.techs.includes(prev)) return no("LOCKED", `Needs ${RUNGS[prev].name}`);
   if (n.research) return no("INVALID", `Already researching ${RUNGS[n.research.tech].name}`);
-  const cost = { R: techCost(n, c.tech) };
+  const cost = { R: techCost(n, c.tech, s.season.stage) };
   return needs(n, cost) ?? (() => {
     spend(n, cost);
     const finishAt = s.t + Number(rung) * TECH.researchSPerRung * 1000;
@@ -213,7 +214,7 @@ const handlers: { [T in Exclude<Command["type"], "setEmpire">]: Handler<T> } = {
 };
 
 export function check(s: State, nation: Id, c: Command): Plan {
-  if (s.season.status !== "running") return no("SEASON_OVER", "The season has ended");
+  if (s.season.status !== "running") return no("SEASON_OVER", "The world was reset");
   if (c.type === "setEmpire") return setEmpire(s, nation, c);
   const n = s.nations[nation];
   if (!n?.joined && c.type !== "join") return no("NOT_JOINED", "Join the season first");

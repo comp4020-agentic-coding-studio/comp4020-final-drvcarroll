@@ -43,12 +43,17 @@ export interface Rejection { ok: false; code: RejectCode; reason: string }
 
 export type CommandResult = { id: string; ok: true } | ({ id: string } & Rejection);
 
+// One world, from creation to an admin reset; time cut into 20 min stages.
 export interface Season {
-  id: Id; startedAt: Ms; endsAt: Ms;
-  threshold: number;
-  status: "running" | "ended";
-  winner?: Id;
+  id: Id; startedAt: Ms;
+  status: "running" | "ended"; // "ended" only by a reset
+  stage: number; // 1-based
+  stageEndsAt: Ms;
+  base: Record<Id, number>; // each nation's score at this stage's start, or its join
+  winners: StageResult[];
 }
+
+export interface StageResult { stage: number; endedAt: Ms; ranking: { nation: Id; gain: number }[] }
 
 export interface NationPublic {
   id: Id; name: string; primary: string; secondary: string;

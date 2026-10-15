@@ -1,6 +1,6 @@
 // game-design.md §3, §5, §6: rates, caps and the shortfall rule.
 import {
-  BODIES, BUILDINGS, ECONOMY, MAP, MODS, POWER_MODES, REGIONS, RESOURCES, RUNGS, UNITS,
+  BODIES, BUILDINGS, ECONOMY, MAP, MODS, POWER_MODES, REGIONS, RESOURCES, RUNGS, STAGES, UNITS,
   type Building, type Goods, type Mod, type PowerMode, type Resource, type Unit,
 } from "./data/index.ts";
 import type { Id } from "./protocol.ts";
@@ -9,11 +9,24 @@ import type { NationState, RegionState, State } from "./state.ts";
 export const EPS = 1e-9;
 export const MS_PER_MIN = 60_000;
 
-export function mods(n: NationState): Record<Mod, number> {
+// Tech rungs plus every stage reached so far, all additive (§8, §10).
+export function mods(n: NationState, stage: number): Record<Mod, number> {
   const m = Object.fromEntries(MODS.map((k) => [k, 0])) as Record<Mod, number>;
   for (const t of n.techs) for (const [k, v] of Object.entries(RUNGS[t].mods)) m[k as Mod] += v;
+  for (const st of STAGES.slice(0, stage)) for (const [k, v] of Object.entries(st.mods)) m[k as Mod] += v;
   return m;
 }
+
+const scaled = (g: Goods, k: number): Goods =>
+  Object.fromEntries(Object.entries(g).map(([r, v]) => [r, Math.ceil(v! * Math.max(0, 1 + k))]));
+
+// A building's cost and build time after modifiers (Space Age: Spaceports).
+export const buildingCost = (b: Building, m: Record<Mod, number>): Goods =>
+  b === "spaceport" ? scaled(BUILDINGS[b].cost, m.spaceportCost) : BUILDINGS[b].cost;
+export const buildingMs = (b: Building, m: Record<Mod, number>): number =>
+  BUILDINGS[b].timeS * 1000 * (b === "spaceport" ? Math.max(0, 1 + m.spaceportTime) : 1);
+export const shipMs = (u: Unit, m: Record<Mod, number>): number =>
+  UNITS[u].timeS * 1000 * (UNITS[u].atSpaceport ? Math.max(0, 1 + m.shipTime) : 1);
 
 export const isEarth = (regionId: Id) => BODIES[REGIONS[regionId].body].zone === "terrestrial";
 
@@ -24,7 +37,7 @@ export function slotsOf(s: State, regionId: Id): number {
   const r = s.regions[regionId];
   const base = BODIES[REGIONS[regionId].body].slots;
   if (!r.owner) return base;
-  const m = mods(s.nations[r.owner]);
+  const m = mods(s.nations[r.owner], s.season.stage);
   return base + (isEarth(regionId) ? m.slotsEarth : m.slotsOffEarth);
 }
 
@@ -70,12 +83,13 @@ function buildingFlow(b: Building, mode: PowerMode, regionId: Id, bonus: number,
       amt = flat;
       if (mode === "fusion" && BODIES[rd.body].fusionBonus) extra = ECONOMY.fusionBodyBonus;
     }
+    extra += m.powerOutput;
   }
   return { out: { res: d.output.res, amt: amt * (1 + bonus + extra) }, needs, ...tag };
 }
 
 function flows(s: State, n: NationState): Flow[] {
-  const m = mods(n);
+  const m = mods(n, s.season.stage);
   const boost = s.t < n.boostUntil ? ECONOMY.boostMultiplier : 1;
   const out: Flow[] = [];
   const unitE = (units: Partial<Record<Unit, number>>) =>

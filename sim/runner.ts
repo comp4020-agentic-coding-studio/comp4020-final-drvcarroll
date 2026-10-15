@@ -6,7 +6,7 @@ import { BUILDINGS, UNITS, type Building, type Unit } from "../rules/data/index.
 import {
   advanceTo, apply, legalActions, newSeason, observe, settled, validate, type Command, type Id, type Score, type State,
 } from "../rules/index.ts";
-import { leader, scores } from "../rules/score.ts";
+import { scores } from "../rules/score.ts";
 import { decide, startRegions, appeal, type Archetype } from "./bots.ts";
 
 export const T0 = 1_800_000_000_000;
@@ -51,9 +51,7 @@ export interface Respawn {
 export interface RunResult {
   seed: number;
   minutes: number;
-  endedAtMin?: number; // threshold reached
-  winner?: Id;
-  winnerKind?: Archetype;
+  stageWinners: { stage: number; nation: Id; kind: Archetype }[];
   leaderShareAt30?: number;
   nations: NationMetrics[];
   respawns: Respawn[];
@@ -85,7 +83,6 @@ export function run(o: RunOptions): RunResult {
   const m = new Map<Id, NationMetrics>();
   const respawns: Respawn[] = [];
   let leaderShareAt30: number | undefined;
-  let endedAtMin: number | undefined;
 
   const step = (id: Id, c: Command) => {
     const res = apply(s, id, c, s.t);
@@ -131,10 +128,6 @@ export function run(o: RunOptions): RunResult {
       leaderShareAt30 = sum ? Math.max(...totals) / sum : 0;
       for (const [id, x] of Object.entries(sc)) m.get(id)!.scoreAt30 = x.total;
     }
-    if (s.season.status === "ended") {
-      endedAtMin = now;
-      break;
-    }
 
     const order = [...m.values()];
     for (let k = 0; k < order.length; k++) {
@@ -158,14 +151,11 @@ export function run(o: RunOptions): RunResult {
 
   const sc = scores(s);
   for (const [id, x] of Object.entries(sc)) m.get(id)!.final = x;
-  const winner = s.season.winner ?? leader(sc);
   const late = o.lateJoin && m.get(players.at(-1)!.id);
   return {
     seed: o.seed,
     minutes: o.minutes,
-    endedAtMin,
-    winner,
-    winnerKind: winner ? m.get(winner)?.kind : undefined,
+    stageWinners: s.season.winners.map((w) => ({ stage: w.stage, nation: w.ranking[0].nation, kind: m.get(w.ranking[0].nation)!.kind })),
     leaderShareAt30,
     nations: [...m.values()],
     respawns,

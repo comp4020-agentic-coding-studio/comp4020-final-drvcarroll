@@ -1,4 +1,5 @@
-// game-design.md §9–11: trade, scoring, seasons, players.
+// game-design.md §9–11: trade, scoring, stages, players.
+import type { Mod } from "./tech.ts";
 
 export const TRADE = {
   envoyMultiplierPerScience: 0.15,
@@ -10,15 +11,28 @@ export const SCORE = {
   perRegion: 5,
   perBody: 20,
   economyPer: 5, // 1 point per 5 production/min
-  categoryCap: 0.4, // of the threshold
-  threshold: 300, // flagged first guess; the sim tunes it (§10)
+  stageRanked: 3, // top N per stage in the hall of fame
 };
 
 export const SEASON = {
-  lengthS: 3600,
-  lateJoinCutoffS: 3000,
+  stageS: 1200, // a stage is 20 min; the world itself never ends
   newsKept: 50,
 };
+
+// game-design.md §10: each stage from the second adds a modifier for all.
+// Stages past the last repeat it with no new effect. First guesses.
+export const STAGES: { name: string; desc: string; mods: Partial<Record<Mod, number>> }[] = [
+  { name: "Founding", desc: "No modifier", mods: {} },
+  { name: "Industrial Age", desc: "Mines and Refineries +25% output", mods: { mineOutput: 0.25, refineryOutput: 0.25 } },
+  {
+    name: "Space Age", desc: "Spaceports −25% cost, −50% build time; ships build 25% faster; warships +20% strength",
+    mods: { spaceportCost: -0.25, spaceportTime: -0.5, shipTime: -0.25, warshipStrength: 0.2 },
+  },
+  { name: "Information Age", desc: "Research +25%; tech costs −10%", mods: { labOutput: 0.25, techCost: -0.1 } },
+  { name: "Expansion Age", desc: "Launch energy −25%; colony Materiel upkeep −50%", mods: { launchCost: -0.25, colonyUpkeep: -0.5 } },
+  { name: "Fusion Age", desc: "Power Plant output +25%", mods: { powerOutput: 0.25 } },
+  { name: "Golden Age", desc: "No new modifier", mods: {} },
+];
 
 export const EMPIRE = {
   nameMin: 3,

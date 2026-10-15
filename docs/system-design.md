@@ -74,7 +74,7 @@ append-only log of commands, with periodic snapshots to keep replay short.
 users      (id, username UNIQUE, password_hash, created_at)
 sessions   (token_hash PRIMARY KEY, user_id, created_at, expires_at)
 seasons    (id, started_at, ended_at, winner_nation_id, rules_version)  -- one row per world
-stages     (season_id, n, started_at, ended_at, ranking JSON)  -- top three by gain
+stages     (season_id, n, ended_at, ranking JSON)  -- top three by gain, names
 nations    (id, season_id, user_id, name, colour_primary, colour_secondary,
             UNIQUE(season_id, name), UNIQUE(season_id, user_id))
 commands   (seq PRIMARY KEY, season_id, nation_id, at, type, payload JSON,
@@ -103,8 +103,12 @@ records the ranking, resets `base` and applies the next stage modifier from
 
 ### Boot path
 
-Load the latest snapshot, replay later commands through `rules.apply`, then
-`advanceTo(now)`. Replay is deterministic because the rules are pure.
+Load the running world's latest snapshot, replay later commands through
+`rules.apply`, then `advanceTo(now)`. Replay is deterministic because the
+rules are pure. A world whose `rules_version` isn't the current one is
+closed instead (`ended_at` set, no winner) and the next arrival starts a
+fresh one, empire names and colours carried over: commands never replay
+under rules they weren't accepted by.
 
 ### Snapshots
 

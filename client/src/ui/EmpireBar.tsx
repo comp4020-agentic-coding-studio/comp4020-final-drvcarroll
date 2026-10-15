@@ -10,7 +10,7 @@ import { slotsOf } from "../../../rules/economy.ts";
 import type { Battle, Region } from "../../../rules/index.ts";
 import { bodyName, dur, perDay, regionName } from "../format.ts";
 import { eco, mirror } from "../mirror.ts";
-import { clock, drawer, me, selFleet, selRegion, world, you } from "../store.ts";
+import { clock, drawer, me, selFleet, selRegion, stage, world, you } from "../store.ts";
 import { Action, Progress } from "./common.tsx";
 import { Amt, BattleIcon, BuildingIcon, ResIcon, UnitIcon, Units } from "./icons.tsx";
 import { GuideLink } from "./Guide.tsx";
@@ -115,7 +115,7 @@ function NextRungs() {
           return (
             <li key={next.id} class="item">
               <div><b>{next.name}</b><small>{next.desc}</small></div>
-              <Action kind="quiet" cmd={{ type: "research", tech: next.id }}><Amt res="R" v={n ? techCost(n, next.id) : 0} /></Action>
+              <Action kind="quiet" cmd={{ type: "research", tech: next.id }}><Amt res="R" v={n ? techCost(n, next.id, stage.value) : 0} /></Action>
             </li>
           );
         })}

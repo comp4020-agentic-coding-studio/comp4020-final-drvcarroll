@@ -5,13 +5,13 @@ import {
   ADJACENT, BODIES, BUILDINGS, MAP, MILITARY, POWER_MODES, REGIONS, RUNGS, UNITS, ZONE_LAUNCH_COST,
   type Building, type BuildingData, type Mod, type PowerMode, type Resource, type Unit,
 } from "../../../rules/data/index.ts";
-import { mods, slotsOf } from "../../../rules/economy.ts";
+import { buildingCost, buildingMs, mods, shipMs, slotsOf } from "../../../rules/economy.ts";
 import { battleCounts } from "../../../rules/war.ts";
 import type { Battle, Command, Fleet, QueueEntry, Region } from "../../../rules/index.ts";
 import { isLocal, launchEnergy, travelMs, windowPenalty } from "../../../rules/orbit.ts";
 import { bodyName, dur, num, regionName, toDay } from "../format.ts";
 import { eco, mirror } from "../mirror.ts";
-import { clock, launchTo, me, nations, season, selBody, selFleet, selRegion, stockNow, world, you } from "../store.ts";
+import { clock, launchTo, me, nations, season, selBody, selFleet, selRegion, stage, stockNow, world, you } from "../store.ts";
 import { Action, Chip, Cost, Count, Progress } from "./common.tsx";
 import { Amt, BattleIcon, BuildingIcon, ResIcon, SolarIcon, UnitIcon, Units } from "./icons.tsx";
 import { GuideLink } from "./Guide.tsx";
@@ -149,7 +149,7 @@ const boostRung = (b: Building) => Object.values(RUNGS).find((x) => BOOST[b] && 
 function boosted(b: Building, mode?: string): boolean {
   const n = mirror.value?.nations[me.value!];
   if (!n || b === "spaceport" || (b === "powerPlant" && (mode ?? "solar") !== "solar")) return false;
-  const m = mods(n);
+  const m = mods(n, stage.value);
   return m[BOOST[b]!] > 0 || m.allProduction > 0;
 }
 
@@ -239,14 +239,15 @@ function TileMenu({ r, t, onDone }: { r: Region; t: Tile; onDone: () => void }) 
 
 // Every building with what it costs and would make and use here.
 function Picker({ r, cmd, skip, after }: { r: Region; cmd: (b: Building) => Command; skip?: Building; after?: () => void }) {
+  const m = mods(mirror.value!.nations[me.value!], stage.value);
   return (
     <ul class="list picker">
       {(Object.entries(BUILDINGS) as [Building, BuildingData][]).filter(([b]) => b !== skip).map(([b, d]) => (
         <li key={b} class="item">
           <BuildingIcon type={b} size={32} />
-          <div><b>{d.name}</b> <small class="inline-small">{d.timeS}s</small>
+          <div><b>{d.name}</b> <small class="inline-small">{dur(buildingMs(b, m))}</small>
             <small>{b === "spaceport" ? <>Builds ships and Armies <Flows items={nominal(b, r.id)} /></> : <Flows items={nominal(b, r.id)} />}<span class="muted"> /day</span></small>
-            <Cost cost={d.cost} /></div>
+            <Cost cost={buildingCost(b, m)} /></div>
           <span onClick={after}><Action cmd={cmd(b)}>{skip ? "Replace" : "Build"}</Action></span>
         </li>
       ))}
@@ -256,6 +257,7 @@ function Picker({ r, cmd, skip, after }: { r: Region; cmd: (b: Building) => Comm
 
 function Shipyard({ r }: { r: Region }) {
   const [counts, setCounts] = useState<Partial<Record<Unit, number>>>({});
+  const m = mods(mirror.value!.nations[me.value!], stage.value);
   return (
     <>
       <h3>Shipyard</h3>
@@ -268,7 +270,7 @@ function Shipyard({ r }: { r: Region }) {
           return (
             <li key={u} class="item">
               <UnitIcon unit={u} size={26} />
-              <div><b>{d.name}</b> <small class="inline-small">{d.timeS}s</small>
+              <div><b>{d.name}</b> <small class="inline-small">{dur(shipMs(u, m))}</small>
                 <small>{role}{d.unlock ? ` · needs ${RUNGS[d.unlock].name}` : ""}</small>
                 <Cost cost={Object.fromEntries(Object.entries(d.cost).map(([k, v]) => [k, v! * c]))} /></div>
               <Count value={c} max={d.atSpaceport ? MILITARY.maxBuildCount : MILITARY.maxTrainCount} onInput={(x) => setCounts({ ...counts, [u]: x })} label={`${d.name} count`} />
@@ -459,7 +461,7 @@ function FleetView({ f }: { f: Fleet }) {
 function Planner({ f }: { f: Fleet }) {
   const s = mirror.value!;
   const sz = season.value!;
-  const m = mods(s.nations[me.value!]);
+  const m = mods(s.nations[me.value!], stage.value);
   const from = f.at!;
   const to = launchTo.value;
   const ships = (Object.entries(f.units) as [Unit, number][]).filter(([u]) => u !== "army");

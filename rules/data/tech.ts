@@ -7,6 +7,7 @@ export const MODS = [
   "mineOutput", "refineryOutput", "foundryOutput", "factoryOutput", "solarOutput",
   "allProduction", "labOutput", "labOffEarth", "techCost",
   "colonyUpkeep", "buildingUpkeepE", "slotsOffEarth", "slotsEarth", "envoySlots",
+  "spaceportCost", "spaceportTime", "shipTime", "warshipStrength", "powerOutput",
 ] as const;
 export type Mod = (typeof MODS)[number];
 

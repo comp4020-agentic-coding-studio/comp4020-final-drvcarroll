@@ -2,7 +2,7 @@
 // number is read from rules/data/, so the Guide can't drift from the rules.
 import type { ComponentChildren } from "preact";
 import {
-  BUILDINGS, ECONOMY, MILITARY, RESOURCES, RESOURCE_NAMES, SCORE, SEASON, TECH, TRADE, TRAVEL, UNITS, WAR,
+  BUILDINGS, ECONOMY, MILITARY, RESOURCES, RESOURCE_NAMES, SCORE, SEASON, STAGES, TECH, TRADE, TRAVEL, UNITS, WAR,
   type Building, type Resource,
 } from "../../../rules/data/index.ts";
 import { drawer, guidePage } from "../store.ts";
@@ -133,12 +133,13 @@ const PAGES: Record<Page, { title: string; body: () => ComponentChildren }> = {
     </>,
   },
   winning: {
-    title: "Winning",
+    title: "Stages",
     body: () => <>
       <ol>
         <li>Score has three parts: Territory ({SCORE.perRegion} per region, +{SCORE.perBody} per whole body), Economy (1 per {SCORE.economyPer} production a minute) and Tech (rung numbers added up).</li>
-        <li>Each part counts for at most {pct(SCORE.categoryCap)} of the threshold, so you need at least two.</li>
-        <li>First to the threshold wins; otherwise the best score after {min(SEASON.lengthS)}. Standings are in Empires.</li>
+        <li>The world never ends. Every {min(SEASON.stageS)} a stage ends: whoever gained the most score during it wins, and the top {SCORE.stageRanked} go in the hall of fame.</li>
+        <li>Each new stage adds a modifier for everyone, kept from then on: {STAGES.slice(1, -1).map((x) => `${x.name} (${x.desc})`).join("; ")}.</li>
+        <li>Standings, gains and past winners are in Empires; the current stage is in the top bar.</li>
       </ol>
     </>,
   },

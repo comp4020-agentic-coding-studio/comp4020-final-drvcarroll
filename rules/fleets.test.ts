@@ -5,7 +5,7 @@ import { advanceTo, validate } from "./index.ts";
 import { launchEnergy, travelMs, windowPenalty } from "./orbit.ts";
 import { S, T0, ok, world } from "./test-helpers.ts";
 
-const noMods = mods({ techs: [] } as never);
+const noMods = mods({ techs: [] } as never, 1);
 
 describe("orbits and travel (game-design.md §7)", () => {
   it("takes the Hohmann time Earth→Mars, 30 s locally", () => {

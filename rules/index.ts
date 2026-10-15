@@ -11,7 +11,7 @@ export { newSeason, type State } from "./state.ts";
 export type * from "./protocol.ts";
 
 // Bump when rule logic changes, so commands never replay under other rules.
-export const RULES_VERSION = "2";
+export const RULES_VERSION = "3";
 
 export type ApplyResult = { ok: true; state: State } | Rejection;
 

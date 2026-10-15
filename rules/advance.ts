@@ -1,9 +1,9 @@
 // game-design.md §3: snapshot + rates + scheduled events. No loop needed.
-import { BUILDINGS, REGIONS, RESOURCES, UNITS, type Building, type Resource, type Unit } from "./data/index.ts";
+import { BUILDINGS, REGIONS, RESOURCES, SCORE, SEASON, STAGES, UNITS, type Building, type Resource, type Unit } from "./data/index.ts";
 import { EPS, MS_PER_MIN, capOf, economy, type Economy } from "./economy.ts";
 import { arrive, shipDone } from "./fleets.ts";
 import type { Id, Ms } from "./protocol.ts";
-import { leader, scores } from "./score.ts";
+import { scores, stageRanking } from "./score.ts";
 import { deliver, expire } from "./trade.ts";
 import { battleEnd, joinDefence, marchArrive, resolveSpace, warActive } from "./war.ts";
 import { news, schedule, touch, type GameEvent, type RegionState, type State } from "./state.ts";
@@ -52,7 +52,6 @@ export function advance(s: State, t: Ms): void {
     } else {
       s.events.splice(s.events.indexOf(next!), 1);
       handle(s, next!);
-      checkThreshold(s);
     }
   }
 }
@@ -120,9 +119,8 @@ function handle(s: State, e: GameEvent): void {
       return marchArrive(s, e.nation, e.from, e.to, e.count);
     case "rateChange":
       return;
-    case "seasonEnd":
-      endSeason(s);
-      return;
+    case "stageEnd":
+      return endStage(s);
   }
 }
 
@@ -143,21 +141,19 @@ function complete(s: State, r: RegionState, item: string, pinned?: number): void
   }
 }
 
-function endSeason(s: State): void {
-  s.season.status = "ended";
-  s.season.winner = leader(scores(s));
-  const w = s.season.winner && s.nations[s.season.winner];
-  news(s, "season", w ? `${w.name} wins the season` : "The season ended", w ? [w.id] : []);
-}
-
-function checkThreshold(s: State): void {
-  if (s.season.status !== "running") return;
+// Ranks the stage by gain, then the next stage's modifier applies to all.
+function endStage(s: State): void {
   const sc = scores(s);
-  const id = leader(sc);
-  if (!id || sc[id].total < s.season.threshold) return;
-  s.season.status = "ended";
-  s.season.winner = id;
-  news(s, "season", `${s.nations[id].name} reached the threshold and wins`, [id]);
+  const ranking = stageRanking(s, sc).slice(0, SCORE.stageRanked);
+  const sz = s.season;
+  if (ranking.length) sz.winners.push({ stage: sz.stage, endedAt: s.t, ranking });
+  sz.stage++;
+  sz.stageEndsAt = s.t + SEASON.stageS * 1000;
+  sz.base = Object.fromEntries(Object.entries(sc).map(([id, x]) => [id, x.total]));
+  schedule(s, { kind: "stageEnd", at: sz.stageEndsAt });
+  const w = ranking[0] && s.nations[ranking[0].nation];
+  const next = STAGES[Math.min(sz.stage, STAGES.length) - 1];
+  news(s, "stage", `${w ? `${w.name} wins stage ${sz.stage - 1}. ` : ""}Stage ${sz.stage}: ${next.name}. ${next.desc}`, w ? [w.id] : []);
 }
 
 // Stocks brought up to state.t, for reading only: no copy if already there.

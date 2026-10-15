@@ -1,6 +1,7 @@
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { afterEach, describe, expect, it } from "vitest";
 import { Client, api, type Msg } from "../spec/helpers.ts";
 import { start, type Running } from "./app.ts";
@@ -54,6 +55,26 @@ describe("server: the brief's three requirements at the protocol level", () => {
     expect(w.world.regions.find((r: Msg) => r.id === "r_siberia").owner).toBe(w.you.nation);
     expect(w.you.queues.r_siberia).toHaveLength(2);
     expect(w.you.stocks.Mt.v).toBeCloseTo(30, 0);
+  });
+
+  it("starts a fresh world rather than replay under other rules, keeping empires", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "grow-"));
+    await boot(dir);
+    const a = await open(await account("alice", "Aurora"));
+    a.send("c1", { type: "join", region: "r_siberia" });
+    expect(await a.result("c1")).toMatchObject({ ok: true });
+    const old = running!.world.state!.season.id;
+    await running!.close();
+    const db = new DatabaseSync(join(dir, "game.db"));
+    db.prepare("UPDATE seasons SET rules_version = 'old'").run();
+    db.close();
+
+    await boot(dir);
+    const again = await open(await account("alice"));
+    const w = again.msgs[0];
+    expect(w.season.id).not.toBe(old);
+    expect(w.world.regions.find((r: Msg) => r.id === "r_siberia").owner).toBeUndefined();
+    expect(running!.world.state!.nations[w.you.nation].name).toBe("Aurora");
   });
 });
 
@@ -137,7 +158,7 @@ describe("logging and the live view (system-design.md §11; goals.md S4, S7)", (
 });
 
 describe("seasons (game-design.md §10)", () => {
-  it("starts a new season for the first arrival after one ran out while nobody was connected", async () => {
+  it("keeps the world going while nobody is connected, catching up its stages (game-design.md §10)", async () => {
     let t = Date.now();
     running = await start({ port: 0, dataDir: mkdtempSync(join(tmpdir(), "grow-")), now: () => t, log: new Log(() => {}) });
     const a = await open(await account("alice", "Aurora"));
@@ -148,7 +169,10 @@ describe("seasons (game-design.md §10)", () => {
     await new Promise((r) => setTimeout(r, 100));
     t += 61 * 60_000;
     await account("bob", "Borealis");
-    expect(running.world.state!.season.id).not.toBe(first);
-    expect(running.world.state!.season.status).toBe("running");
+    expect(running.world.state!.season).toMatchObject({ id: first, status: "running", stage: 4 });
+    const res = await fetch(`http://127.0.0.1:${running.port}/api/season`);
+    const { hallOfFame } = await res.json();
+    expect(hallOfFame.map((h: { stage: number }) => h.stage)).toEqual([3, 2, 1]);
+    expect(hallOfFame[0].ranking[0].name).toBe("Aurora");
   });
 });

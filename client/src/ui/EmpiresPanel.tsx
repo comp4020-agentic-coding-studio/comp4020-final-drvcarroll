@@ -1,7 +1,7 @@
 // game-design.md §12 Empires: one row per nation with rank, score, war
 // status, your Envoy and your trade deals with them; the Earth Exchange last.
 import { useState } from "preact/hooks";
-import { ECONOMY, RESOURCES, SCORE, TRADE, WAR, type Goods, type Resource } from "../../../rules/data/index.ts";
+import { ECONOMY, RESOURCES, STAGES, TRADE, WAR, type Goods, type Resource } from "../../../rules/data/index.ts";
 import { mods } from "../../../rules/economy.ts";
 import type { NationPublic, TradeOffer } from "../../../rules/index.ts";
 import { tradeMultiplier } from "../../../rules/trade.ts";
@@ -13,28 +13,51 @@ import { Amt, Goodsline, ResIcon } from "./icons.tsx";
 
 export function EmpiresPanel() {
   const w = world.value!, y = you.value!, sz = season.value!;
-  const ranked = [...w.nations].sort((a, b) => (w.scores[b.id]?.total ?? 0) - (w.scores[a.id]?.total ?? 0));
-  const slots = mods(mirror.value!.nations[me.value!]).envoySlots;
+  const gain = (id: string) => (w.scores[id]?.total ?? 0) - (sz.base[id] ?? 0);
+  const ranked = [...w.nations].sort((a, b) => gain(b.id) - gain(a.id) || (w.scores[b.id]?.total ?? 0) - (w.scores[a.id]?.total ?? 0));
+  const slots = mods(mirror.value!.nations[me.value!], sz.stage).envoySlots;
+  const st = STAGES[Math.min(sz.stage, STAGES.length) - 1];
   return (
     <div class="panel">
       <p class="hint">
-        First to {sz.threshold} wins; Territory, Economy and Tech each count for at most {num(SCORE.categoryCap * sz.threshold)}.
+        <b>Stage {sz.stage}: {st.name}</b> ({st.desc}), {dur(sz.stageEndsAt - clock.value)} left. Ranked by score gained this stage.
         {" "}Envoys: {y.envoys.length} of {slots}{slots ? "" : " (research Signals Intelligence)"}.
       </p>
       <p class="legend"><i class="ter" /> Territory <i class="eco" /> Economy <i class="tec" /> Tech</p>
       <ol class="nations">
-        {ranked.map((n, i) => <NationRow key={n.id} n={n} rank={i + 1} />)}
+        {ranked.map((n, i) => <NationRow key={n.id} n={n} rank={i + 1} gain={gain(n.id)} />)}
         <Exchange />
       </ol>
+      <PastStages />
     </div>
   );
 }
 
-function NationRow({ n, rank }: { n: NationPublic; rank: number }) {
+// game-design.md §10: past stage winners, newest first.
+function PastStages() {
+  const sz = season.value!;
+  if (!sz.winners.length) return null;
+  return (
+    <section class="stages" aria-label="Past stages">
+      <h3>Stages</h3>
+      <ol class="list tight">
+        {[...sz.winners].reverse().map((x) => (
+          <li key={x.stage} class="item">
+            <div><b>Stage {x.stage}</b> <small>{STAGES[Math.min(x.stage, STAGES.length) - 1].name}</small></div>
+            {x.ranking.map((r, i) => <span key={r.nation}>{["🥇", "🥈", "🥉"][i]} <Chip id={r.nation} /> +{num(r.gain)}</span>)}
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+function NationRow({ n, rank, gain }: { n: NationPublic; rank: number; gain: number }) {
   const w = world.value!, y = you.value!, sz = season.value!, t = clock.value;
   const [trading, setTrading] = useState(false);
   const self = n.id === me.value;
   const s = w.scores[n.id] ?? { territory: 0, economy: 0, tech: 0, total: 0 };
+  const top = Math.max(1, ...Object.values(w.scores).map((x) => x.total)); // bars scale to the leader
   const war = w.wars.find((x) => (x.a === n.id && x.b === me.value) || (x.b === n.id && x.a === me.value));
   const envoy = y.envoys.some((e) => e.nation === n.id);
   const deals = y.trades.filter((o) => o.from === n.id || o.to === n.id);
@@ -45,14 +68,14 @@ function NationRow({ n, rank }: { n: NationPublic; rank: number }) {
     <li class={`nation ${self ? "me" : ""} ${war && war.activeAt <= t ? "war" : ""}`}>
       <div class="n-head">
         <span class="rank">{rank}</span>
-        <span><Chip id={n.id} />{w.presence.includes(n.id) && <span class="online" title="Online"> ●</span>}{sz.winner === n.id && " 🏆"}</span>
+        <span><Chip id={n.id} />{w.presence.includes(n.id) && <span class="online" title="Online"> ●</span>}{sz.winners.at(-1)?.ranking[0]?.nation === n.id && <span title="Won the last stage"> 🏆</span>}</span>
         <span class={`status ${war ? "war" : ""}`}>{status}</span>
-        <b>{num(s.total)}</b>
+        <b title="Gained this stage">+{num(gain)}</b>
       </div>
-      <div class="bars" title={`Territory ${num(s.territory)} · Economy ${num(s.economy)} · Tech ${num(s.tech)}`}>
-        <i class="ter" style={{ width: `${(s.territory / sz.threshold) * 100}%` }} />
-        <i class="eco" style={{ width: `${(s.economy / sz.threshold) * 100}%` }} />
-        <i class="tec" style={{ width: `${(s.tech / sz.threshold) * 100}%` }} />
+      <div class="bars" title={`Score ${num(s.total)}: Territory ${num(s.territory)} · Economy ${num(s.economy)} · Tech ${num(s.tech)}`}>
+        <i class="ter" style={{ width: `${(s.territory / top) * 100}%` }} />
+        <i class="eco" style={{ width: `${(s.economy / top) * 100}%` }} />
+        <i class="tec" style={{ width: `${(s.tech / top) * 100}%` }} />
       </div>
       {!self && !n.eliminated && (
         <div class="n-actions">

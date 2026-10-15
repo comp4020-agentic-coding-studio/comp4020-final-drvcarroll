@@ -8,7 +8,8 @@ import type { Db } from "./db.ts";
 
 export const nationOf = (userId: number): Id => `n_${userId}`;
 
-export interface HallEntry { season: Id; endedAt: Ms; winner: string | null }
+// A past stage's top three by gain (game-design.md §10).
+export interface HallEntry { season: Id; stage: number; endedAt: Ms; ranking: { name: string; gain: number }[] }
 
 export class World {
   appends: number[] = []; // recent command-log insert times, ms (S4)
@@ -25,14 +26,15 @@ export class World {
   }
 
   boot(now: Ms): void {
-    const season = this.db.prepare("SELECT id, started_at FROM seasons ORDER BY started_at DESC LIMIT 1").get() as
-      { id: string; started_at: number } | undefined;
+    const season = this.db.prepare("SELECT id, started_at, rules_version FROM seasons WHERE ended_at IS NULL ORDER BY started_at DESC LIMIT 1").get() as
+      { id: string; started_at: number; rules_version: string } | undefined;
     if (!season) return;
+    // A world never replays under other rules: a rules change starts a fresh one.
+    if (season.rules_version !== RULES_VERSION) return this.close(season.id, now);
     const snap = this.db.prepare(
       "SELECT seq, rules_version, state FROM snapshots WHERE season_id = ? ORDER BY seq DESC LIMIT 1",
     ).get(season.id) as { seq: number; rules_version: string; state: string } | undefined;
     const s = snap ? (JSON.parse(snap.state) as State) : newSeason(season.id, season.started_at);
-    s.battles ??= {}; // rules 1 snapshots predate ground battles
     this.lastSeq = snap?.seq ?? 0;
     const rows = this.db.prepare(
       "SELECT seq, nation_id, at, payload FROM commands WHERE season_id = ? AND seq > ? ORDER BY seq",
@@ -46,7 +48,13 @@ export class World {
     this.advance(now);
   }
 
-  // A new season starts when someone arrives after the last one ended.
+  // Ends a world for good (an admin reset, or a rules change); no winner.
+  close(id: Id, now: Ms): void {
+    this.db.prepare("UPDATE seasons SET ended_at = ? WHERE id = ?").run(Math.round(now), id);
+    this.state = null;
+  }
+
+  // A world starts when someone arrives and none is running.
   ensureSeason(now: Ms): State {
     this.advance(now); // an idle server hasn't ticked: the season may have run out
     if (this.state?.season.status === "running") return this.state;
@@ -60,12 +68,13 @@ export class World {
 
   advance(now: Ms): void {
     if (!this.state) return;
-    const wasRunning = this.state.season.status === "running";
+    const had = this.state.season.winners.length;
     advance(this.state, now); // the server owns its state: no copy (S2)
     const s = this.state.season;
-    if (wasRunning && s.status === "ended") {
-      this.db.prepare("UPDATE seasons SET ended_at = ?, winner_nation_id = ? WHERE id = ?")
-        .run(Math.round(this.state.t), s.winner ?? null, s.id);
+    for (const w of s.winners.slice(had)) {
+      const ranking = w.ranking.map((r) => ({ name: this.state!.nations[r.nation]?.name ?? r.nation, gain: Math.round(r.gain) }));
+      this.db.prepare("INSERT OR IGNORE INTO stages (season_id, n, ended_at, ranking) VALUES (?, ?, ?, ?)")
+        .run(s.id, w.stage, Math.round(w.endedAt), JSON.stringify(ranking));
       this.dirty = true;
     }
   }
@@ -147,10 +156,8 @@ export class World {
   }
 
   hallOfFame(): HallEntry[] {
-    return (this.db.prepare(`
-      SELECT s.id AS season, s.ended_at AS endedAt, n.name AS winner FROM seasons s
-      LEFT JOIN nations n ON n.season_id = s.id AND n.id = s.winner_nation_id
-      WHERE s.ended_at IS NOT NULL ORDER BY s.ended_at DESC LIMIT 20
-    `).all() as unknown as HallEntry[]);
+    const rows = this.db.prepare("SELECT season_id, n, ended_at, ranking FROM stages ORDER BY ended_at DESC LIMIT 20")
+      .all() as { season_id: string; n: number; ended_at: number; ranking: string }[];
+    return rows.map((r) => ({ season: r.season_id, stage: r.n, endedAt: r.ended_at, ranking: JSON.parse(r.ranking) }));
   }
 }

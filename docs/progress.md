@@ -1,6 +1,6 @@
 # Progress
 
-**Stage:** D3 done; D4 next. Every earlier stage met its exit criteria
+**Stage:** D4 in progress (unit 1 of 3, stages, done). Every earlier stage met its exit criteria
 (G loop 4 logged in docs/balance-log.md).
 **Last verified checkpoint:** E2 per game-design.md §4, §12:
 - `pnpm worlds` (`scripts/worlds.ts`) builds `client/public/worlds/`:
@@ -27,12 +27,25 @@ with draining bars; Declare war in place; Empire menu as Territory,
 Military, Research. `pnpm test` 77, `pnpm test:e2e` 14 (on an idle
 machine; under load single tests stall), `pnpm sim:test` green.
 Screenshots judged: battle bars and swords icon fixed after the first look.
-**Next:** Stage D4 (build-process.md D4). Read game-design.md §7 Combat, §9 Alliances and sanctions, §10, §11 Admin reset, §12 Top bar and
+**D4 unit 1, stages, done:** `stageEnd` every `SEASON.stageS` (1200 s)
+ranks gain since `season.base`, writes `season.winners` and a `stages`
+row (migration 002), applies `STAGES[n]` through `mods(n, stage)`; new
+mods `spaceportCost`, `spaceportTime`, `shipTime`, `warshipStrength`
+(not wired yet: unit 2's combined fleets), `powerOutput`; score uncapped;
+threshold, 60 min end and join cutoff gone; top-bar stage badge; Empires
+ranks by gain with past stages; Guide "Stages" page; sim ranks stage wins
+(trader 58%, 8/24 sweeps). Rules v3; a rules change at boot starts a
+fresh world. `pnpm test` 80 green.
+**Next:** D4 unit 2, alliances and sanctions, then unit 3, admin reset.
+Read game-design.md §7 Combat, §9 Alliances and sanctions, §10, §11 Admin reset, §12 Top bar and
 Empires; system-design.md §4 (stages), §9 Admin, §11 reset, §14.2, §14.4,
 §14.5. Data edits pending: `SEASON.lengthS` and `lateJoinCutoffS` go,
 new `SEASON.stageS` 1200; `SCORE.categoryCap` and `threshold` go; new
 `STAGES` table (game-design.md §10); new `ALLIANCE.maxMembers` 4.
-**Flagged assumptions** (D4: stage length 20 min, ranking by gain, and
+**Flagged assumptions** (D4: a stage's base score is taken at its end,
+before the next modifier applies, so the boost counts as gain for all
+alike. A rules version change at boot closes the world rather than patch
+old snapshots. Stage length 20 min, ranking by gain, and
 allies keep their own wars, all chosen by the user. Stage modifiers and
 their numbers are first guesses for the sim to tune. "Combine forces" =
 one side per orbit and per ground battle, losses shared in proportion.
@@ -89,7 +102,7 @@ Numbers missing from `game-design.md`, all in
 - Respawn resets stocks to the starting kit.
 - Asteroid J2000 longitudes are approximate (`map.ts`). Off-Earth region
   names are IAU features; E2 replaces invented ones and their placement.
-**Last updated:** 2026-10-15 (D3 done and verified; D4 next).
+**Last updated:** 2026-10-15 (D4 unit 1, stages, done).
 Earlier: 2026-10-14 (D3 staged: visible war, 1 min protection,
 three-dropdown menu).
 Earlier: 2026-10-10 (D, E done; G loop 3).

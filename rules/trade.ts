@@ -28,7 +28,7 @@ const overEarth = (a: NationState, b: NationState) =>
 
 function deliveryMs(s: State, from: NationState, to: NationState): Ms {
   if (overEarth(from, to)) return TRADE.earthDeliveryS * 1000;
-  return travelMs(capitalBody(from), capitalBody(to), { freighter: 1 }, mods(from));
+  return travelMs(capitalBody(from), capitalBody(to), { freighter: 1 }, mods(from, s.season.stage));
 }
 
 const total = (g: Goods) => Object.values(g).reduce((a, v) => a + (v ?? 0), 0);
@@ -127,7 +127,7 @@ export const sendEnvoy: Handler<"sendEnvoy"> = (s, n, c) => {
   const t = partner(s, n, c.nation);
   if (isRejection(t)) return t;
   if (hasEnvoy(n, t)) return no("INVALID", `You already have an Envoy with ${t.name}`);
-  if (n.envoys.length >= mods(n).envoySlots) return no("NO_ENVOY_SLOT", "All your Envoy slots are in use");
+  if (n.envoys.length >= mods(n, s.season.stage).envoySlots) return no("NO_ENVOY_SLOT", "All your Envoy slots are in use");
   if (n.stocks.E <= 0) return no("INSUFFICIENT", `Envoys cost ${ECONOMY.envoyUpkeepE} ${RESOURCE_NAMES.E}/min`);
   return () => void n.envoys.push({ nation: t.id, since: s.t });
 };

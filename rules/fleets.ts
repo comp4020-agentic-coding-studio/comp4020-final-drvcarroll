@@ -1,7 +1,7 @@
 // game-design.md §4, §7, §11: ships, launches, arrival, colonising, marching.
 import { BODIES, MILITARY, REGIONS, RUNGS, UNITS, type Unit } from "./data/index.ts";
 import { enqueue, isInt, isRejection, needs, no, ownRegion, regionName, type Handler } from "./check.ts";
-import { isEarth, mods, scale, spend } from "./economy.ts";
+import { isEarth, mods, scale, shipMs, spend } from "./economy.ts";
 import { launchEnergy, travelMs } from "./orbit.ts";
 import type { Id } from "./protocol.ts";
 import { newId, news, schedule, touch, type FleetState, type State } from "./state.ts";
@@ -52,7 +52,7 @@ export const buildShip: Handler<"buildShip"> = (s, n, c) => {
   return needs(n, scale(u.cost, c.count)) ?? (() => {
     for (let i = 0; i < c.count; i++) {
       spend(n, u.cost);
-      enqueue(s, r, c.unit, u.timeS * 1000, u.cost);
+      enqueue(s, r, c.unit, shipMs(c.unit, mods(n, s.season.stage)), u.cost);
     }
   });
 };
@@ -73,7 +73,7 @@ export const launch: Handler<"launch"> = (s, n, c) => {
   if (armies > (c.units.troopTransport ?? 0) * MILITARY.transportCapacity) {
     return no("INSUFFICIENT", `Each Troop Transport carries ${MILITARY.transportCapacity} Armies`);
   }
-  const m = mods(n);
+  const m = mods(n, s.season.stage);
   const cost = { E: launchEnergy(c.from, c.to, c.units, s.t, s.season.startedAt, m) };
   return needs(n, cost) ?? (() => {
     spend(n, cost);
