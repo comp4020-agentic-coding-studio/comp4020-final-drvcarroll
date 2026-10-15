@@ -1,6 +1,6 @@
 # Progress
 
-**Stage:** D4 in progress (unit 1 of 3, stages, done). Every earlier stage met its exit criteria
+**Stage:** D4 in progress (units 1 and 2 of 3 done). Every earlier stage met its exit criteria
 (G loop 4 logged in docs/balance-log.md).
 **Last verified checkpoint:** E2 per game-design.md §4, §12:
 - `pnpm worlds` (`scripts/worlds.ts`) builds `client/public/worlds/`:
@@ -36,7 +36,16 @@ threshold, 60 min end and join cutoff gone; top-bar stage badge; Empires
 ranks by gain with past stages; Guide "Stages" page; sim ranks stage wins
 (trader 58%, 8/24 sweeps). Rules v3; a rules change at boot starts a
 fresh world. `pnpm test` 80 green.
-**Next:** D4 unit 2, alliances and sanctions, then unit 3, admin reset.
+**D4 unit 2, alliances and sanctions, done:** `rules/alliance.ts`
+(invite, accept, decline, leave, sanction, lift; `ALLIED`,
+`SANCTIONED`); joining ends wars between members; space fights group
+allies at war with the same foe (`fight`, `warshipStrength` wired);
+ground battles keep `atkBy`/`defBy` shares and `home`, allies join an
+attack or defence, survivors split with the remainder to the lead and
+allies march home; Empires alliance row, invite/sanction actions; Guide
+"Alliances" page. Alliances diff to clients (hub `KINDS`). `pnpm test`
+87, alliance e2e green.
+**Next:** D4 unit 3, admin reset.
 Read game-design.md §7 Combat, §9 Alliances and sanctions, §10, §11 Admin reset, §12 Top bar and
 Empires; system-design.md §4 (stages), §9 Admin, §11 reset, §14.2, §14.4,
 §14.5. Data edits pending: `SEASON.lengthS` and `lateJoinCutoffS` go,
@@ -102,7 +111,7 @@ Numbers missing from `game-design.md`, all in
 - Respawn resets stocks to the starting kit.
 - Asteroid J2000 longitudes are approximate (`map.ts`). Off-Earth region
   names are IAU features; E2 replaces invented ones and their placement.
-**Last updated:** 2026-10-15 (D4 unit 1, stages, done).
+**Last updated:** 2026-10-15 (D4 units 1 and 2 done).
 Earlier: 2026-10-14 (D3 staged: visible war, 1 min protection,
 three-dropdown menu).
 Earlier: 2026-10-10 (D, E done; G loop 3).

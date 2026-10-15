@@ -13,7 +13,7 @@ import { parseMessage } from "./schema.ts";
 import { nationOf, type World } from "./world.ts";
 
 export const TICK_MS = 500;
-const KINDS = ["nations", "regions", "fleets", "wars", "battles", "marches"] as const;
+const KINDS = ["nations", "regions", "fleets", "wars", "alliances", "battles", "marches"] as const;
 const MAX_CMDS_PER_TICK = 10;
 
 interface Sent {

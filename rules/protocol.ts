@@ -25,6 +25,12 @@ export type Command =
   | { type: "declareWar"; nation: Id }
   | { type: "offerPeace"; nation: Id }
   | { type: "acceptPeace"; war: Id }
+  | { type: "inviteAlly"; nation: Id }
+  | { type: "acceptAlly"; alliance: Id }
+  | { type: "declineAlly"; alliance: Id }
+  | { type: "leaveAlliance" }
+  | { type: "sanction"; nation: Id }
+  | { type: "liftSanction"; nation: Id }
   | { type: "offerTrade"; to: Id; give: Goods; get: Goods }
   | { type: "acceptTrade"; offer: Id }
   | { type: "declineTrade"; offer: Id }
@@ -36,7 +42,7 @@ export type Command =
 
 export type RejectCode =
   | "INVALID" | "NOT_JOINED" | "NOT_OWNER" | "INSUFFICIENT" | "LOCKED" | "NO_SLOT"
-  | "NO_ENVOY_SLOT" | "NOT_ADJACENT" | "PROTECTED" | "NOT_AT_WAR" | "TAKEN"
+  | "NO_ENVOY_SLOT" | "NOT_ADJACENT" | "PROTECTED" | "NOT_AT_WAR" | "TAKEN" | "ALLIED" | "SANCTIONED"
   | "EARTH_FULL" | "SEASON_OVER" | "RATE_LIMIT";
 
 export interface Rejection { ok: false; code: RejectCode; reason: string }
@@ -83,8 +89,16 @@ export interface Fleet {
 
 export interface War { id: Id; a: Id; b: Id; declaredAt: Ms; activeAt: Ms; peaceFrom?: Id }
 
-// A ground battle; id is its region. Counts are as of `at` (battleCounts).
-export interface Battle { id: Id; attacker: Id; defender: Id; atk: number; def: number; at: Ms; endsAt: Ms }
+// A ground battle; id is its region. Totals are as of `at` (battleCounts);
+// atkBy/defBy split each side by nation, allies included; home: where an
+// ally's Armies return after.
+export interface Battle {
+  id: Id; attacker: Id; defender: Id; atk: number; def: number; at: Ms; endsAt: Ms;
+  atkBy: Record<Id, number>; defBy: Record<Id, number>; home: Record<Id, Id>;
+}
+
+// game-design.md §9: public. invites: nations invited, not yet joined.
+export interface Alliance { id: Id; members: Id[]; sanctions: Id[]; invites: Id[] }
 
 // id: `${from}>${to}@${departAt}`
 export interface March { id: string; owner: Id; from: Id; to: Id; count: number; departAt: Ms; arriveAt: Ms }
@@ -113,6 +127,7 @@ export interface VisibleWorld {
   regions: Region[];
   fleets: Fleet[];
   wars: War[];
+  alliances: Alliance[];
   battles: Battle[];
   marches: March[];
   scores: Record<Id, Score>;

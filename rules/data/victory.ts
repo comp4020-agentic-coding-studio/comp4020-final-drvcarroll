@@ -34,6 +34,10 @@ export const STAGES: { name: string; desc: string; mods: Partial<Record<Mod, num
   { name: "Golden Age", desc: "No new modifier", mods: {} },
 ];
 
+export const ALLIANCE = {
+  maxMembers: 4, // game-design.md §9
+};
+
 export const EMPIRE = {
   nameMin: 3,
   nameMax: 24,

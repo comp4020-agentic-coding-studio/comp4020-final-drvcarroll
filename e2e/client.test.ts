@@ -269,6 +269,18 @@ describe("the map is the screen (goals.md P10)", () => {
     await p.close();
   });
 
+  it("invites an ally from Empires, and the ally joins (build-process.md D4)", async () => {
+    const a = await player("romeo", "Iran & Central Asia");
+    const b = await player("sierra", "South China");
+    await a.locator(".drawers button", { hasText: "Empires" }).click();
+    await a.locator("li.nation", { hasText: "sierra" }).locator("button", { hasText: "Invite to alliance" }).click();
+    await b.locator(".drawers button", { hasText: "Empires" }).click();
+    await b.locator(".alliance .invite button", { hasText: "Join" }).click();
+    await expect.poll(() => a.locator("li.nation", { hasText: "sierra" }).locator(".status").innerText()).toMatch(/allied/i);
+    await a.close();
+    await b.close();
+  }, 120_000);
+
   it("pins an Envoy beacon on the host's capital, for the sender only", async () => {
     const a = await player("november", "North China");
     const b = await player("mike", "West Africa");

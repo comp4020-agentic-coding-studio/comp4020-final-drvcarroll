@@ -78,6 +78,25 @@ describe("server: the brief's three requirements at the protocol level", () => {
   });
 });
 
+describe("server: alliances reach every client live (game-design.md §9)", () => {
+  it("sends an invite to its target and the formed alliance to everyone", async () => {
+    await boot(mkdtempSync(join(tmpdir(), "grow-")));
+    const [a, b] = [await open(await account("alice", "Aurora")), await open(await account("bob", "Borealis"))];
+    a.send("j1", { type: "join", region: "r_canada" });
+    b.send("j2", { type: "join", region: "r_brazil" });
+    await a.result("j1");
+    await b.result("j2");
+    a.send("i", { type: "inviteAlly", nation: b.msgs[0].you.nation });
+    expect(await a.result("i")).toMatchObject({ ok: true });
+    const inv = await b.until((m) => m.changes?.alliances?.length);
+    const id = inv.changes.alliances[0].id;
+    b.send("y", { type: "acceptAlly", alliance: id });
+    expect(await b.result("y")).toMatchObject({ ok: true });
+    const formed = await a.until((m) => m.changes?.alliances?.some((x: Msg) => x.members.length === 2));
+    expect(formed.changes.alliances[0].members).toHaveLength(2);
+  });
+});
+
 describe("server: commands", () => {
   it("applies a repeated client id once, and explains every rejection", async () => {
     await boot(mkdtempSync(join(tmpdir(), "grow-")));

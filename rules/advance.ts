@@ -5,7 +5,7 @@ import { arrive, shipDone } from "./fleets.ts";
 import type { Id, Ms } from "./protocol.ts";
 import { scores, stageRanking } from "./score.ts";
 import { deliver, expire } from "./trade.ts";
-import { battleEnd, joinDefence, marchArrive, resolveSpace, warActive } from "./war.ts";
+import { battleEnd, joinBattle, marchArrive, resolveSpace, warActive } from "./war.ts";
 import { news, schedule, touch, type GameEvent, type RegionState, type State } from "./state.ts";
 
 const earliest = (es: GameEvent[]) =>
@@ -127,7 +127,7 @@ function handle(s: State, e: GameEvent): void {
 function complete(s: State, r: RegionState, item: string, pinned?: number): void {
   touch(r);
   if (item === "army") {
-    if (!joinDefence(s, r.id, 1)) r.armies++;
+    if (!r.owner || !joinBattle(s, r.id, r.owner, 1)) r.armies++;
   } else if (item in UNITS) {
     if (!r.owner) return;
     shipDone(s, r.owner, r.id, item as Unit);

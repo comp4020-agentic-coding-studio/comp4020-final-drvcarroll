@@ -1,7 +1,7 @@
 // Internal world state: plain JSON, so a snapshot is JSON.stringify.
 import { REGIONS, RESOURCES, SEASON, type Goods, type Resource, type Unit } from "./data/index.ts";
 import type {
-  Battle, Id, Ms, NationPublic, News, PlacedBuilding, Season, TradeOffer, Transit, War,
+  Alliance, Battle, Id, Ms, NationPublic, News, PlacedBuilding, Season, TradeOffer, Transit, War,
 } from "./protocol.ts";
 
 export interface NationState extends NationPublic {
@@ -65,6 +65,7 @@ export interface State {
   fleets: Record<Id, FleetState>;
   wars: Record<Id, WarState>;
   battles: Record<Id, Battle>; // by region
+  alliances: Record<Id, Alliance>;
   offers: Record<Id, TradeOffer>;
   events: GameEvent[];
   news: News[];
@@ -86,6 +87,7 @@ export function newSeason(id: Id, startedAt: Ms): State {
     fleets: {},
     wars: {},
     battles: {},
+    alliances: {},
     offers: {},
     events: [],
     news: [],

@@ -2,14 +2,14 @@
 // number is read from rules/data/, so the Guide can't drift from the rules.
 import type { ComponentChildren } from "preact";
 import {
-  BUILDINGS, ECONOMY, MILITARY, RESOURCES, RESOURCE_NAMES, SCORE, SEASON, STAGES, TECH, TRADE, TRAVEL, UNITS, WAR,
+  ALLIANCE, BUILDINGS, ECONOMY, MILITARY, RESOURCES, RESOURCE_NAMES, SCORE, SEASON, STAGES, TECH, TRADE, TRAVEL, UNITS, WAR,
   type Building, type Resource,
 } from "../../../rules/data/index.ts";
 import { drawer, guidePage } from "../store.ts";
 import { Cost } from "./common.tsx";
 import { BuildingIcon, ResIcon, UnitIcon } from "./icons.tsx";
 
-export type Page = "resources" | "building" | "armies" | "research" | "colonising" | "ships" | "war" | "trade" | "winning";
+export type Page = "resources" | "building" | "armies" | "research" | "colonising" | "ships" | "war" | "alliances" | "trade" | "winning";
 
 export function openGuide(page: Page): void {
   guidePage.value = page;
@@ -118,6 +118,17 @@ const PAGES: Record<Page, { title: string; body: () => ComponentChildren }> = {
         <li>Armies attacking a defended region start a battle, marked ⚔ on the map. Click the region to watch both sides drain; reinforcements join on arrival.</li>
         <li>Launch Troop Transports with Armies aboard. Once no enemy warships are left in orbit, open an enemy region there and <b>Invade</b>.</li>
         <li>Peace takes both sides: offer it in Empires.</li>
+      </ol>
+    </>,
+  },
+  alliances: {
+    title: "Alliances",
+    body: () => <>
+      <ol>
+        <li>Open <b>Empires</b> and <b>Invite to alliance</b>; the other nation joins from its Empires panel. An alliance holds up to {ALLIANCE.maxMembers}.</li>
+        <li>Joining makes peace with every member, and members can't declare war on each other.</li>
+        <li>Each member declares its own wars. Allies at war with the same nation fight as one side: fleets in one orbit add up, and Armies can join an ally's attack or march in to defend an ally's region.</li>
+        <li><b>Sanction</b> a nation and no trade or gift passes between it and anyone in your alliance. The Earth Exchange still works.</li>
       </ol>
     </>,
   },

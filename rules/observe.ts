@@ -75,6 +75,7 @@ export function observe(state: State, nation: Id | null, cache?: ViewCache): { w
     regions,
     fleets,
     wars: Object.values(s.wars).map((w) => part(`w:${w.id}`, () => ({ ...w }))),
+    alliances: Object.values(s.alliances).map((a) => structuredClone(a)),
     battles,
     marches,
     scores: cache ? (cache.scores ??= scores(s)) : scores(s),

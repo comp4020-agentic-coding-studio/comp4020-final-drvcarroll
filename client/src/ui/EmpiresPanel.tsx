@@ -23,6 +23,7 @@ export function EmpiresPanel() {
         <b>Stage {sz.stage}: {st.name}</b> ({st.desc}), {dur(sz.stageEndsAt - clock.value)} left. Ranked by score gained this stage.
         {" "}Envoys: {y.envoys.length} of {slots}{slots ? "" : " (research Signals Intelligence)"}.
       </p>
+      <AllianceRow />
       <p class="legend"><i class="ter" /> Territory <i class="eco" /> Economy <i class="tec" /> Tech</p>
       <ol class="nations">
         {ranked.map((n, i) => <NationRow key={n.id} n={n} rank={i + 1} gain={gain(n.id)} />)}
@@ -30,6 +31,34 @@ export function EmpiresPanel() {
       </ol>
       <PastStages />
     </div>
+  );
+}
+
+// game-design.md §9: your alliance, its sanctions, and invites to you.
+function AllianceRow() {
+  const w = world.value!;
+  const mine = w.alliances.find((a) => a.members.includes(me.value!));
+  const invites = w.alliances.filter((a) => a.invites.includes(me.value!));
+  if (!mine && !invites.length) return null;
+  return (
+    <section class="alliance" aria-label="Alliance">
+      {mine && mine.members.length > 1 && (
+        <div class="item">
+          <div><b>Your alliance</b> {mine.members.map((m) => <Chip key={m} id={m} />)}
+            {mine.invites.length > 0 && <small>Invited: {mine.invites.map((m) => <Chip key={m} id={m} />)}</small>}
+            {mine.sanctions.length > 0 && <small>Sanctions: {mine.sanctions.map((m) => <Chip key={m} id={m} />)}</small>}</div>
+          <Action kind="quiet" confirm="Leave your alliance?" cmd={{ type: "leaveAlliance" }}>Leave</Action>
+        </div>
+      )}
+      {invites.map((a) => (
+        <div key={a.id} class="item invite">
+          <div><b>Alliance invitation</b> {a.members.map((m) => <Chip key={m} id={m} />)}
+            <small>Joining makes peace with every member.</small></div>
+          <Action cmd={{ type: "acceptAlly", alliance: a.id }}>Join</Action>
+          <Action kind="quiet" cmd={{ type: "declineAlly", alliance: a.id }}>Decline</Action>
+        </div>
+      ))}
+    </section>
   );
 }
 
@@ -61,7 +90,10 @@ function NationRow({ n, rank, gain }: { n: NationPublic; rank: number; gain: num
   const war = w.wars.find((x) => (x.a === n.id && x.b === me.value) || (x.b === n.id && x.a === me.value));
   const envoy = y.envoys.some((e) => e.nation === n.id);
   const deals = y.trades.filter((o) => o.from === n.id || o.to === n.id);
-  const status = self ? "you" : n.eliminated ? "eliminated" : !war ? (n.protectedUntil > t ? `protected ${dur(n.protectedUntil - t)}` : "at peace")
+  const ally = w.alliances.find((a) => a.members.includes(me.value!));
+  const allied = !!ally?.members.includes(n.id);
+  const sanctioned = !!ally?.sanctions.includes(n.id) || w.alliances.some((a) => a.members.includes(n.id) && a.sanctions.includes(me.value!));
+  const status = self ? "you" : n.eliminated ? "eliminated" : allied ? "allied" : !war ? (n.protectedUntil > t ? `protected ${dur(n.protectedUntil - t)}` : "at peace")
     : war.peaceFrom === n.id ? "offers peace" : war.peaceFrom === me.value ? "you offered peace"
     : war.activeAt > t ? `war in ${dur(war.activeAt - t)}` : "at war";
   return (
@@ -79,13 +111,18 @@ function NationRow({ n, rank, gain }: { n: NationPublic; rank: number; gain: num
       </div>
       {!self && !n.eliminated && (
         <div class="n-actions">
-          {!war && <Action kind="danger" confirm={`Declare war on ${n.name}? Everyone sees it, and it goes active in ${WAR.activationS / 60} min.`} cmd={{ type: "declareWar", nation: n.id }}>Declare war</Action>}
+          {!allied && !ally?.invites.includes(n.id) && <Action kind="quiet" cmd={{ type: "inviteAlly", nation: n.id }}>Invite to alliance</Action>}
+          {ally && !allied && (ally.sanctions.includes(n.id)
+            ? <Action kind="quiet" cmd={{ type: "liftSanction", nation: n.id }}>Lift sanction</Action>
+            : <Action kind="danger" confirm={`Sanction ${n.name}? No trade between your alliance and them.`} cmd={{ type: "sanction", nation: n.id }}>Sanction</Action>)}
+          {!war && !allied && <Action kind="danger" confirm={`Declare war on ${n.name}? Everyone sees it, and it goes active in ${WAR.activationS / 60} min.`} cmd={{ type: "declareWar", nation: n.id }}>Declare war</Action>}
           {war && war.peaceFrom !== n.id && <Action kind="quiet" cmd={{ type: "offerPeace", nation: n.id }}>Offer peace</Action>}
           {war?.peaceFrom === n.id && <Action cmd={{ type: "acceptPeace", war: war.id }}>Accept peace</Action>}
           {envoy
             ? <Action kind="quiet" cmd={{ type: "recallEnvoy", nation: n.id }}>Recall Envoy</Action>
             : <Action kind="quiet" cmd={{ type: "sendEnvoy", nation: n.id }}>Send Envoy <Amt res="E" v={ECONOMY.envoyUpkeepE} />/min</Action>}
-          <span class="action"><button class={`quiet ${trading ? "on" : ""}`} aria-expanded={trading} onClick={() => setTrading(!trading)}>Trade</button></span>
+          {!sanctioned && <span class="action"><button class={`quiet ${trading ? "on" : ""}`} aria-expanded={trading} onClick={() => setTrading(!trading)}>Trade</button></span>}
+          {sanctioned && <small class="warn">Under sanction: no trade</small>}
         </div>
       )}
       {deals.length > 0 && <ul class="list deals">{deals.map((o) => <Deal key={o.id} o={o} />)}</ul>}

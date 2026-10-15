@@ -1,6 +1,7 @@
 // game-design.md §9, §11: trade, gifts, the Earth Exchange, Envoys.
 import { BODIES, ECONOMY, MILITARY, REGIONS, RESOURCES, RESOURCE_NAMES, RUNGS, TRADE, type Goods, type Resource } from "./data/index.ts";
 import { isRejection, needs, no, type Handler } from "./check.ts";
+import { sanctioned } from "./alliance.ts";
 import { credit, mods, scale, spend } from "./economy.ts";
 import { travelMs } from "./orbit.ts";
 import type { Id, Ms, Rejection } from "./protocol.ts";
@@ -57,7 +58,7 @@ function send(s: State, from: NationState, to: NationState, goods: Goods): void 
 export const offerTrade: Handler<"offerTrade"> = (s, n, c) => {
   const t = partner(s, n, c.to);
   if (isRejection(t)) return t;
-  const bad = goodsError(c.give, "give") ?? goodsError(c.get, "ask for") ?? needs(n, c.give);
+  const bad = sanctioned(s, n.id, t.id) ?? goodsError(c.give, "give") ?? goodsError(c.get, "ask for") ?? needs(n, c.give);
   if (bad) return bad;
   return () => {
     const id = newId(s, "o");
@@ -72,6 +73,8 @@ export const acceptTrade: Handler<"acceptTrade"> = (s, n, c) => {
   if (o?.to !== n.id) return no("INVALID", "Unknown offer");
   const from = s.nations[o.from];
   if (from.eliminated) return no("INVALID", `${from.name} has been eliminated`);
+  const barred = sanctioned(s, from.id, n.id);
+  if (barred) return barred;
   const short = needs(from, o.give);
   if (short) return no("INSUFFICIENT", `${from.name} can no longer cover this`);
   const bar = needs(n, o.get) ?? freighters(s, from, n, o.give) ?? freighters(s, n, from, o.get);
@@ -102,7 +105,7 @@ export const cancelTrade: Handler<"cancelTrade"> = (s, n, c) => {
 export const gift: Handler<"gift"> = (s, n, c) => {
   const t = partner(s, n, c.to);
   if (isRejection(t)) return t;
-  const bar = goodsError(c.goods, "give") ?? needs(n, c.goods) ?? freighters(s, n, t, c.goods);
+  const bar = sanctioned(s, n.id, t.id) ?? goodsError(c.goods, "give") ?? needs(n, c.goods) ?? freighters(s, n, t, c.goods);
   if (bar) return bar;
   return () => {
     spend(n, c.goods);

@@ -13,6 +13,7 @@ import {
   acceptTrade, cancelTrade, declineTrade, exchange, gift, offerTrade, recallEnvoy, sendEnvoy,
 } from "./trade.ts";
 import { acceptPeace, declareWar, invade, march, offerPeace } from "./war.ts";
+import { acceptAlly, declineAlly, inviteAlly, leaveAlliance, liftSanction, sanction } from "./alliance.ts";
 import type { Command, Id } from "./protocol.ts";
 import { emptyStocks, news, schedule, touch, type NationState, type State } from "./state.ts";
 
@@ -210,6 +211,7 @@ const train: Handler<"train"> = (s, n, c) => {
 const handlers: { [T in Exclude<Command["type"], "setEmpire">]: Handler<T> } = {
   join, build, demolish, replace, cancelBuild, setMode, research, cancelResearch, train,
   buildShip, launch, colonise, march, invade, declareWar, offerPeace, acceptPeace,
+  inviteAlly, acceptAlly, declineAlly, leaveAlliance, sanction, liftSanction,
   offerTrade, acceptTrade, declineTrade, cancelTrade, gift, exchange, sendEnvoy, recallEnvoy,
 };
 

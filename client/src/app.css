@@ -379,3 +379,8 @@ button.small { min-height: 26px; padding: 2px 8px; font-size: 0.76rem; }
 .battle-now .bar div { position: absolute; inset: 0 auto 0 0; transition: width 0.25s linear; box-shadow: 0 0 8px currentColor; }
 .war-here { margin: 8px 0; }
 .battle-ico { color: var(--error); }
+.alliance { display: grid; gap: 6px; margin: 8px 0; }
+.alliance .item { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px; background: var(--well); border: 1px solid var(--line); }
+.alliance .item > div { flex: 1 1 12rem; }
+.alliance .invite { border-color: var(--line-strong); }
+.alliance small { display: block; margin-top: 4px; }
