@@ -1,7 +1,7 @@
 # Progress
 
-**Stage:** D3 code complete, e2e verification open; D4 next. Before D3,
-every stage met its exit criteria (G loop 4 logged in docs/balance-log.md).
+**Stage:** D3 done; D4 next. Every earlier stage met its exit criteria
+(G loop 4 logged in docs/balance-log.md).
 **Last verified checkpoint:** E2 per game-design.md §4, §12:
 - `pnpm worlds` (`scripts/worlds.ts`) builds `client/public/worlds/`:
   region maps (Earth from Natural Earth countries and admin-1 per
@@ -17,25 +17,17 @@ every stage met its exit criteria (G loop 4 logged in docs/balance-log.md).
 `pnpm test` (71, needs a server on a fresh `DATA_DIR`), `pnpm test:e2e`
 (13, incl. first render < 3 MB and the keyboard loop, which runs last so
 earlier players aren't late joiners), `pnpm sim:test` green.
-**D3 done so far** (commits b9258ae, 974a928, 1ac5713 and the client
-commit after them): 1 min protection; Earth-only starts with `EARTH_FULL`;
-Spaceport 70 M, 25 A, 240 s (loop 4: first colony 7.3 min, never before 5);
-timed ground battles (`battleCounts`, `battle` event, reinforcements, one
-attacker per region), rules v2; battles and marches in `VisibleWorld`,
-vision-gated (rules and spec tests); map army badges, march markers and ⚔
-on battles (`GameScene.force`, `marches`); Battle panel with draining bars
-and Declare war in place (`Selection.tsx`); Empire menu as Territory,
-Military, Research (`EmpireBar.tsx`). `pnpm test` 77 green, `pnpm
-sim:test` green, typecheck clean.
-**Next:** re-run `pnpm test:e2e` on an idle machine. The last runs stalled:
-single tests took 650 to 1000 s against 30 s timeouts, so failures there
-are not verdicts. One earlier full run on this code passed 13 of 14,
-both core loops included; the new war test ("three dropdowns ... battle
-drain live") passed alone once and has not yet passed in a full run. If
-it still fails idle, its likely weak point is `shift()` (reload to resync
-the client clock after the e2e server's clock skew). Then Stage D4.
-**Then:** Stage D4 (build-process.md D4). Read game-design.md §7
-Combat, §9 Alliances and sanctions, §10, §11 Admin reset, §12 Top bar and
+**D3 done** (b9258ae, 974a928, 1ac5713, 099ba6e and the fix after): 1 min
+protection; Earth-only starts with `EARTH_FULL`; Spaceport 70 M, 25 A,
+240 s (loop 4: first colony 7.3 min, never before 5); timed ground battles
+(`battleCounts`, `battle` event, reinforcements, one attacker per region),
+rules v2; battles and marches in `VisibleWorld`, vision-gated; map army
+badges, march markers and an SVG swords marker on battles; Battle panel
+with draining bars; Declare war in place; Empire menu as Territory,
+Military, Research. `pnpm test` 77, `pnpm test:e2e` 14 (on an idle
+machine; under load single tests stall), `pnpm sim:test` green.
+Screenshots judged: battle bars and swords icon fixed after the first look.
+**Next:** Stage D4 (build-process.md D4). Read game-design.md §7 Combat, §9 Alliances and sanctions, §10, §11 Admin reset, §12 Top bar and
 Empires; system-design.md §4 (stages), §9 Admin, §11 reset, §14.2, §14.4,
 §14.5. Data edits pending: `SEASON.lengthS` and `lateJoinCutoffS` go,
 new `SEASON.stageS` 1200; `SCORE.categoryCap` and `threshold` go; new
@@ -97,8 +89,7 @@ Numbers missing from `game-design.md`, all in
 - Respawn resets stocks to the starting kit.
 - Asteroid J2000 longitudes are approximate (`map.ts`). Off-Earth region
   names are IAU features; E2 replaces invented ones and their placement.
-**Last updated:** 2026-10-14 (D3 built, e2e verification blocked by a
-stalling machine; D4 staged, not started).
+**Last updated:** 2026-10-15 (D3 done and verified; D4 next).
 Earlier: 2026-10-14 (D3 staged: visible war, 1 min protection,
 three-dropdown menu).
 Earlier: 2026-10-10 (D, E done; G loop 3).

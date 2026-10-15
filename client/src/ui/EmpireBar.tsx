@@ -12,7 +12,7 @@ import { bodyName, dur, perDay, regionName } from "../format.ts";
 import { eco, mirror } from "../mirror.ts";
 import { clock, drawer, me, selFleet, selRegion, world, you } from "../store.ts";
 import { Action, Progress } from "./common.tsx";
-import { Amt, BuildingIcon, ResIcon, UnitIcon, Units } from "./icons.tsx";
+import { Amt, BattleIcon, BuildingIcon, ResIcon, UnitIcon, Units } from "./icons.tsx";
 import { GuideLink } from "./Guide.tsx";
 import { focusOn, picked, selectFleet } from "./SceneHost.tsx";
 import { Tutorial } from "./Side.tsx";
@@ -46,7 +46,7 @@ export function EmpireBar() {
             </ul>
             <AllBodies />
           </Sec>
-          <Sec label="Military" count={`${battles.length ? "⚔ " : ""}${armies} · ${fleets.length}`}>
+          <Sec label="Military" count={`${battles.length ? "in battle · " : ""}${armies} · ${fleets.length}`}>
             <h4>Armies <small>{armies}</small></h4>
             {armies === 0 && !battles.length && <p class="hint">None. Train them in any region you hold. <GuideLink page="armies" /></p>}
             <ul class="list tight">
@@ -96,7 +96,7 @@ function BattleRow({ b }: { b: Battle }) {
   return (
     <li>
       <button class="row battle" onClick={() => focusOn(REGIONS[b.id].body, b.id)}>
-        <span>⚔ {regionName(b.id)}</span><small>{us.toFixed(0)} vs {them.toFixed(0)}</small>
+        <span><BattleIcon /> {regionName(b.id)}</span><small>{us.toFixed(0)} vs {them.toFixed(0)}</small>
       </button>
     </li>
   );

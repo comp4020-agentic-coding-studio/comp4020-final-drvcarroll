@@ -13,7 +13,7 @@ import { bodyName, dur, num, regionName, toDay } from "../format.ts";
 import { eco, mirror } from "../mirror.ts";
 import { clock, launchTo, me, nations, season, selBody, selFleet, selRegion, stockNow, world, you } from "../store.ts";
 import { Action, Chip, Cost, Count, Progress } from "./common.tsx";
-import { Amt, BuildingIcon, ResIcon, SolarIcon, UnitIcon, Units } from "./icons.tsx";
+import { Amt, BattleIcon, BuildingIcon, ResIcon, SolarIcon, UnitIcon, Units } from "./icons.tsx";
 import { GuideLink } from "./Guide.tsx";
 import { focusOn, selectFleet } from "./SceneHost.tsx";
 
@@ -375,7 +375,7 @@ function BattleView({ b }: { b: Battle }) {
   );
   return (
     <section class="battle-now" aria-label="Battle" aria-live="polite">
-      <h3>⚔ Battle <small>{dur(b.endsAt - t)} left</small></h3>
+      <h3><BattleIcon size={18} /> Battle <small>{dur(b.endsAt - t)} left</small></h3>
       <ul class="list">{side(b.attacker, atk, "Attacker")}{side(b.defender, def, "Defender")}</ul>
     </section>
   );

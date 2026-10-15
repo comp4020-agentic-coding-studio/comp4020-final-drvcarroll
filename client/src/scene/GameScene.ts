@@ -671,13 +671,15 @@ export class GameScene {
 
 const ARMY_SVG = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 13a7 7 0 0 1 14 0v2H5v-2Z" fill="currentColor" fill-opacity="0.2"/><path d="M3 15h18M8 15v4h8v-4M12 6V3"/></svg>';
 
+const SWORDS_SVG = '<svg class="swords" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" role="img" aria-label="Battle"><path d="M4 4l11 11M15 15l2.5-1M15 15l-1 2.5M17 17l3 3M20 4L9 15M9 15l-2.5-1M9 15l1 2.5M7 17l-3 3"/></svg>';
+
 // A garrison badge: army icon and count in the owner's colour, ⚔ in battle.
 function force(el: HTMLElement, armies: number, owner: string | undefined, battle: boolean): void {
   const key = `${armies}|${owner}|${battle}`;
   if (el.dataset.k === key) return;
   el.dataset.k = key;
   el.style.color = (owner && nations.value[owner]?.primary) || "";
-  el.innerHTML = (armies ? `${ARMY_SVG}${armies}` : "") + (battle ? '<b class="swords" aria-label="Battle">⚔</b>' : "");
+  el.innerHTML = (armies ? `${ARMY_SVG}${armies}` : "") + (battle ? SWORDS_SVG : "");
 }
 
 function ring(r: number, color: number, opacity: number): THREE.LineLoop {

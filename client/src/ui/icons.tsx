@@ -132,6 +132,12 @@ const UNIT_ART: Record<Unit, ComponentChildren> = {
   dreadnought: <><path d="M1.5 12 6 5h12l4.5 7-4.5 7H6l-4.5-7Z" fill="currentColor" fill-opacity="0.3" /><path d="M6 12h12M9 8.5h6M9 15.5h6M12 5v14" /></>,
 };
 
+export const SWORDS = "M4 4l11 11M15 15l2.5-1M15 15l-1 2.5M17 17l3 3M20 4L9 15M9 15l-2.5-1M9 15l1 2.5M7 17l-3 3";
+
+export function BattleIcon({ size = 16 }: { size?: number }) {
+  return <span class="u-ico battle-ico"><Svg label="Battle" size={size}><path d={SWORDS} /></Svg></span>;
+}
+
 export function UnitIcon({ unit, size = 16 }: { unit: Unit; size?: number }) {
   return <span class="u-ico"><Svg label={UNITS[unit].name} size={size}>{UNIT_ART[unit]}</Svg></span>;
 }
