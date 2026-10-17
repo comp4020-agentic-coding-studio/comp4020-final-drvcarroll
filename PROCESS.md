@@ -2,7 +2,7 @@
 
 Opus 5.5 is making me question my future as a programmer. I decided to give it more freedom and a less constrictive harness, as I've seen other projects in the crits where a literal three line prompt to Opus 5.5 one-shots an extremely polished web app.
 
-# Week 8
+# Week 8 / 9
 
 ## 1. Planning 
 
@@ -22,7 +22,7 @@ While the backend and functionality were great, I find it faster to prototype it
 
 A clear example of this was the UI. The initial client was just a bunch of dropdown menus for the different planets ([8b7f4ae](https://github.com/comp4020-agentic-coding-studio/comp4020-final-drvcarroll/commit/8b7f4ae)), so I changed it to make the interactive solar system view the main interface, and had that decision recorded across all three design docs so later sessions wouldn't drift back ([604d19c](https://github.com/comp4020-agentic-coding-studio/comp4020-final-drvcarroll/commit/604d19c)). That led to the 3D solar system with a Stellaris-style HUD ([ed41d5a](https://github.com/comp4020-agentic-coding-studio/comp4020-final-drvcarroll/commit/ed41d5a)), with subtle side menus that I'm still working on designing.
 
-# Week 9 
+# Week 9 / 10
 
 ## 4. Integrating Feedback
 
@@ -35,3 +35,11 @@ I also had to modify `comp4020_resume` so it no longer waits for user input betw
 ## 5. A Note on Bot Testing
 
 Bot testing is proving really valuable for balancing a more complex game such as this one. Opus dispatches subagents to playtest the game headlessly and measures the speed of progression through different playstyles, to ensure the viability of different options. Each round of this balance loop found a real problem, from a stalled early game, where fixing the costs took the met balance targets from 6 of 12 to 9 ([379d005](https://github.com/comp4020-agentic-coding-studio/comp4020-final-drvcarroll/commit/379d005)), to bots saving for costs they could never reach ([3d6f4fa](https://github.com/comp4020-agentic-coding-studio/comp4020-final-drvcarroll/commit/3d6f4fa)) and off-Earth starts falling behind ([c174080](https://github.com/comp4020-agentic-coding-studio/comp4020-final-drvcarroll/commit/c174080)). It's not even that expensive, maybe $30 of credits, as the subagents are quite cheap now and the game is easy to interact with headlessly.
+
+# Week 10 / 11
+
+cleaning up 
+
+## 6. Better workflows and testing
+
+## 7. Formalising design decisions to help with the above
