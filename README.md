@@ -1,4 +1,4 @@
-# Solar system empire game
+# Interstellar Expansion
 
 A real-time multiplayer strategy game set across our solar system. You start with a foothold on Earth and grow an empire however you like, whether that's as a conqueror, a trader, a builder, a researcher or some mix of all four. Everyone plays in the same shared system at the same time, and your empire is still there when you come back.
 

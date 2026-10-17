@@ -17,7 +17,7 @@ written against the goals below.
 
 ## The game
 
-Grow is the core drive. The player builds an empire across the solar system
+Interstellar Expansion is a game about growth: growth is the core drive. The player builds an empire across the solar system
 however they choose — conqueror, trader, builder, researcher, any mix.
 Growth is measured three ways: **Territory**, **Economy**, **Tech**. Military
 and trade are instruments toward those three, never scores themselves. Part

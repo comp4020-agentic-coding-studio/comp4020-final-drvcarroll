@@ -37,7 +37,7 @@ export function TopBar({ user }: { user: string }) {
   };
   return (
     <header class="hud topbar">
-      <button class="brand" title="Whole system (Esc)" onClick={() => scene.value?.toSystem()}>GROW</button>
+      <button class="brand" title="Whole system (Esc)" onClick={() => scene.value?.toSystem()}><span>INTERSTELLAR</span> <span>EXPANSION</span></button>
       {y && joined.value && (
         <ul class="stocks" aria-label="Stocks" onKeyDown={esc}>
           {RESOURCES.map((r) => {

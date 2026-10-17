@@ -1,6 +1,6 @@
 # Goals: what good means
 
-**The core idea: grow.** Growth is the drive, and the player is dropped into a
+**The core idea: Interstellar Expansion.** Growth is the drive, and the player is dropped into a
 solar system to chase it however they see fit: conqueror, trader, builder,
 researcher, or any mix. The solar system is the theatre; the game mechanics
 are the mechanisms. Growth is measured three ways, not one: **Territory**,

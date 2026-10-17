@@ -31,9 +31,9 @@ export function loginPage(msg?: string): string {
   <label>Password <input name="password" type="password" required minlength="8" autocomplete="${auto}"></label>
   <button>${label}</button>
 </form>`;
-  return page("Grow", `
+  return page("Interstellar Expansion", `
 <main class="narrow">
-  <h1>Grow</h1>
+  <h1>Interstellar Expansion</h1>
   <p>Build an empire across the solar system: Territory, Economy, Tech.</p>
   ${error(msg)}
   ${form("/api/login", "Sign in", "current-password")}
@@ -64,7 +64,7 @@ export function shellPage(username: string, assets: { js: string; css: string[] 
     ? [...assets.css.map((h) => `<link rel="stylesheet" href="${h}">`), `<script type="module" src="${assets.js}"></script>`].join("\n")
     : "";
   const fonts = ["rajdhani-600", "share-tech-mono"].map((f) => `<link rel="preload" href="/static/fonts/${f}.woff2" as="font" type="font/woff2" crossorigin>`).join("");
-  return page("Grow", `
+  return page("Interstellar Expansion", `
 <div id="app" data-user="${esc(username)}">
   <p class="narrow">${assets ? "Connecting…" : "The client isn't built: run <code>pnpm build</code>."}</p>
 </div>`, fonts + head);
@@ -72,7 +72,7 @@ export function shellPage(username: string, assets: { js: string; css: string[] 
 
 // system-design.md §11: the live view. Plain HTML fed by one SSE stream.
 export function adminPage(): string {
-  return page("Grow · admin", `
+  return page("Interstellar Expansion · admin", `
 <main class="admin">
   <h1>Live</h1>
   <p id="head">Connecting…</p>
