@@ -411,15 +411,15 @@ left standing. Why each decision was made is in `docs/adr/`.
 | Fog of war (§6) | Enforced | `spec/game.test.ts` "sends nothing about regions on bodies it has no sensor on"; `rules/observe.test.ts` |
 | No negative stocks; every rejection has a reason; repeated id applies once | Enforced | `spec/game.test.ts` "rejects overspending…"; `server/server.test.ts` "applies a repeated client id once…" |
 | Replay is deterministic (S5) | Enforced | `rules/apply.test.ts`; `rules/alliance.test.ts` "replay through alliances, sanctions and a stage change" |
-| Contention: same-tick claims, first wins, second `TAKEN` (§5, S03) | Enforced | **owed** |
-| 10 commands per client per tick, then `RATE_LIMIT` (§14.3) | Enforced | **owed** |
+| Contention: same-tick claims, first wins, second `TAKEN` (§5, S03) | Enforced | `server/server.test.ts` "gives a region claimed twice in one tick to the first…" |
+| 10 commands per client per tick, then `RATE_LIMIT` (§14.3) | Enforced | `server/server.test.ts` "accepts 10 commands per client per tick…" |
 | Who may change what: `NOT_OWNER` on another's region, others' fleets and offers refused (S07) | Enforced | `rules/authorisation.test.ts` |
-| Admin routes 404 to others; reset kicks with 4004, keeps accounts | Enforced | `server/server.test.ts` "is 404 for others…"; stream and page **owed** |
-| WebSocket `Origin` checked; expired session 4002 (§9, §14.3) | Enforced | **owed** |
-| Login rate limit 5 per name, 20 per IP, then 429 (§9) | Enforced | **owed** |
-| Cookie `HttpOnly; Secure; SameSite=Lax`; only token hashes and scrypt hashes stored (§9) | Enforced | **owed** |
-| One JSON log line per action with its user; never a password or token (§11) | Enforced | `server/server.test.ts` "writes one JSON line per action…"; secrets and login/logout lines **owed** |
-| Loop stops when the last socket closes (S2) | Enforced | **owed** (logged by `pnpm load` only) |
+| Admin routes 404 to others; reset kicks with 4004, keeps accounts | Enforced | `server/server.test.ts` "is 404 for others…", "is 404 on every admin route for a player" |
+| WebSocket `Origin` checked; expired session 4002 (§9, §14.3) | Enforced | `server/server.test.ts` "refuses a socket from a foreign Origin…" |
+| Login rate limit 5 per name, 20 per IP, then 429 (§9) | Enforced | `server/server.test.ts` "returns 429 after 5 bad logins…" |
+| Cookie `HttpOnly; Secure; SameSite=Lax`; only token hashes and scrypt hashes stored; common passwords refused (§9) | Enforced | `server/server.test.ts` "refuses a common password; sets a Secure HttpOnly Lax cookie…" |
+| One JSON log line per action with its user; never a password or token (§11) | Enforced | `server/server.test.ts` "writes one JSON line per action…", "logs login, logout, connect and disconnect…" |
+| Loop stops when the last socket closes (S2) | Enforced | `server/server.test.ts` "logs login, logout… and idle when the last socket closes" |
 | The world keeps going with nobody connected (§5) | Enforced | `server/server.test.ts` "keeps the world going while nobody is connected" |
 | Message sizes: quiet 500 B, busy 3 KB, welcome 60 KB (S3) | Measured | `docs/measurements.md`; a spec bound **owed** |
 | Latency, tick time, RSS, append, boot (S1, S2, S4, S5) | Measured | `docs/measurements.md` (`pnpm load`) |

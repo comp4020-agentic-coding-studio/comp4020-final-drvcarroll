@@ -1,8 +1,10 @@
+import { createHash } from "node:crypto";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { afterEach, describe, expect, it } from "vitest";
+import { WebSocket } from "ws";
 import { Client, api, type Msg } from "../spec/helpers.ts";
 import { start, type Running } from "./app.ts";
 import { Log } from "./log.ts";
@@ -227,5 +229,120 @@ describe("seasons (game-design.md §10)", () => {
     const { hallOfFame } = await res.json();
     expect(hallOfFame.map((h: { stage: number }) => h.stage)).toEqual([3, 2, 1]);
     expect(hallOfFame[0].ranking[0].name).toBe("Aurora");
+  });
+});
+
+// Sends the commands right after a tick, so they share the next one.
+async function sameTick(clients: Client[], send: () => void): Promise<void> {
+  const seen = clients[0].msgs.length;
+  await clients[0].until((m) => m.t === "tick" && clients[0].msgs.indexOf(m) >= seen);
+  send();
+}
+
+describe("contention and rate limits (system-design.md §5, §14.3; S03)", () => {
+  it("gives a region claimed twice in one tick to the first; the second gets TAKEN", async () => {
+    await boot(mkdtempSync(join(tmpdir(), "grow-")));
+    const [a, b] = [await open(await account("alice", "Aurora")), await open(await account("bob", "Borealis"))];
+    await sameTick([a], () => {
+      a.send("a", { type: "join", region: "r_canada" });
+      b.send("b", { type: "join", region: "r_canada" });
+    });
+    const [ra, rb] = [await a.result("a"), await b.result("b")];
+    expect(ra).toEqual({ id: "a", ok: true });
+    expect(rb).toEqual({ id: "b", ok: false, code: "TAKEN", reason: "Canada is taken" });
+    const tickOf = (c: Client, id: string) => c.msgs.find((m) => m.results?.some((r: Msg) => r.id === id))!.n;
+    expect(tickOf(a, "a")).toBe(tickOf(b, "b"));
+  });
+
+  it("accepts 10 commands per client per tick and refuses the 11th with RATE_LIMIT", async () => {
+    await boot(mkdtempSync(join(tmpdir(), "grow-")));
+    const a = await open(await account("alice", "Aurora"));
+    await sameTick([a], () => {
+      for (let i = 1; i <= 11; i++) a.send(`c${i}`, { type: "cancelResearch" });
+    });
+    expect(await a.result("c10")).not.toMatchObject({ code: "RATE_LIMIT" });
+    expect(await a.result("c11")).toEqual({ id: "c11", ok: false, code: "RATE_LIMIT", reason: "Too many commands; wait a moment" });
+  });
+});
+
+describe("who may connect and administer (system-design.md §9, §14.3; S07)", () => {
+  const ws = (cookie: string, origin: string) =>
+    new WebSocket(`ws://127.0.0.1:${running!.port}/ws`, { headers: { cookie, origin } });
+
+  it("refuses a socket from a foreign Origin, and closes 4002 on an expired session", async () => {
+    await boot(mkdtempSync(join(tmpdir(), "grow-")));
+    const alice = await account("alice", "Aurora");
+    const foreign = ws(alice, "https://evil.example");
+    expect(await new Promise((r) => { foreign.once("open", () => r("open")); foreign.once("error", () => r("refused")); })).toBe("refused");
+
+    running!.db.prepare("UPDATE sessions SET expires_at = 0").run();
+    const stale = new Client(base(), alice);
+    await new Promise((r) => stale.ws.once("close", r));
+    expect(stale.closed).toBe(4002);
+  });
+
+  it("is 404 on every admin route for a player", async () => {
+    await boot(mkdtempSync(join(tmpdir(), "grow-")));
+    const bob = await account("bob", "Borealis");
+    for (const p of ["/admin", "/api/admin/stream"]) expect((await fetch(url(p), { headers: { cookie: bob } })).status, p).toBe(404);
+    expect((await api(base()).post("/api/admin/reset", {}, bob)).status).toBe(404);
+    expect((await fetch(url("/api/admin/stream"))).status).toBe(404);
+  });
+});
+
+describe("accounts are stored and limited safely (system-design.md §9; S07)", () => {
+  it("returns 429 after 5 bad logins per name, and 20 per IP", async () => {
+    await boot(mkdtempSync(join(tmpdir(), "grow-")));
+    await account("dave");
+    const login = (username: string, password: string, ip = "10.0.0.1") =>
+      fetch(url("/api/login"), {
+        method: "POST", headers: { "content-type": "application/json", "fly-client-ip": ip }, body: JSON.stringify({ username, password }),
+      });
+    for (let i = 0; i < 5; i++) expect((await login("dave", "wrong pass!")).status).toBe(401);
+    expect((await login("dave", "correct horse")).status).toBe(429);
+    for (let i = 0; i < 20; i++) expect((await login(`ghost${i}`, "wrong pass!", "10.0.0.2")).status).toBe(401);
+    expect((await login("ghost99", "wrong pass!", "10.0.0.2")).status).toBe(429);
+  });
+
+  it("refuses a common password; sets a Secure HttpOnly Lax cookie; stores only hashes", async () => {
+    running = await start({ port: 0, dataDir: mkdtempSync(join(tmpdir(), "grow-")), secureCookies: true, log: new Log(() => {}) });
+    const post = api(base()).post;
+    expect(await (await post("/api/signup", { username: "erin", password: "Password1" })).json())
+      .toEqual({ field: "password", reason: "That password is too common" });
+    const res = await post("/api/signup", { username: "erin", password: "correct horse" });
+    const cookie = res.headers.get("set-cookie")!;
+    expect(cookie).toMatch(/HttpOnly/);
+    expect(cookie).toMatch(/Secure/);
+    expect(cookie).toMatch(/SameSite=Lax/);
+    const token = decodeURIComponent(/session=([^;]+)/.exec(cookie)![1]);
+    const sessions = running.db.prepare("SELECT token_hash FROM sessions").all() as { token_hash: string }[];
+    expect(sessions.map((s) => s.token_hash)).toEqual([createHash("sha256").update(token).digest("hex")]);
+    const { password_hash } = running.db.prepare("SELECT password_hash FROM users WHERE username = 'erin'").get() as { password_hash: string };
+    expect(password_hash).toMatch(/^[0-9a-f]{32}:[0-9a-f]{64}$/);
+  });
+});
+
+describe("the log says who did what, never a secret (system-design.md §11; S09)", () => {
+  it("logs login, logout, connect and disconnect with the user, and idle when the last socket closes", async () => {
+    lines = [];
+    await boot(mkdtempSync(join(tmpdir(), "grow-")));
+    const post = api(base()).post;
+    const alice = await account("alice", "Aurora");
+    const login = await post("/api/login", { username: "alice", password: "correct horse" });
+    const cookie = login.headers.get("set-cookie")!.split(";")[0];
+    const a = await open(cookie);
+    a.close();
+    await new Promise((r) => a.ws.once("close", r));
+    await new Promise((r) => setTimeout(r, 50));
+    await post("/api/logout", {}, cookie);
+
+    const parsed = lines.map((l) => JSON.parse(l));
+    for (const action of ["signup", "login", "connect", "disconnect", "logout"]) {
+      expect(parsed.find((l) => l.action === action), action).toMatchObject({ user: "alice", result: "ok" });
+    }
+    const disconnect = parsed.findIndex((l) => l.action === "disconnect");
+    expect(parsed.slice(disconnect).some((l) => l.action === "idle")).toBe(true);
+    const secrets = ["correct horse", decodeURIComponent(cookie.split("=")[1]), alice.split("=")[1]];
+    for (const l of lines) for (const s of secrets) expect(l).not.toContain(s);
   });
 });

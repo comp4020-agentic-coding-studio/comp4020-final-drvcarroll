@@ -65,3 +65,9 @@ server.
   login 429, a foreign `Origin` refused, 4002 on an expired session,
   `NOT_OWNER` on another nation's region, cookie flags, or the common
   password list.
+
+**Checks added 2026-10-17 (Stage H):** every gap listed above now has a test:
+`rules/authorisation.test.ts`, and `server/server.test.ts` "refuses a socket
+from a foreign Origin…", "is 404 on every admin route for a player",
+"returns 429 after 5 bad logins…", "refuses a common password; sets a Secure
+HttpOnly Lax cookie; stores only hashes".

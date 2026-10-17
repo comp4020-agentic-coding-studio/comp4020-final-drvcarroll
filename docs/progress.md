@@ -8,14 +8,11 @@
 (playtester, analyst), `.claude/workflows/playtest.js`, `scripts/play.ts`.
 ADRs S01 to S10 and G01 to G11 in `docs/adr/`. The game is named
 Interstellar Expansion.
-**Next:** Stage H in build-process.md, Crit 10's part first: the
-~~authorisation rules test~~ (done), the contention test (two same-tick claims; `RATE_LIMIT` at 11), authorisation
-tests (`NOT_OWNER` on another's region, others' fleets and offers, admin
-404s, foreign `Origin`, 4002), accounts (429 after 5, cookie flags, hashes
-only) and logging (login/logout/connect lines carry `user`, no secrets,
-`idle`). Then purity, sizes and the client rows. Read system-design.md §13
-(the owed rows), §9, §11, §14.3, §14.5, and docs/adr/S03, S07, S09. Then
-deploy, and run `/playtest` once (build-process.md G loop rule).
+**Next:** Stage H's rest (build-process.md): authorisation, contention,
+accounts and logging are green (server.test.ts, rules/authorisation.test.ts).
+Left: purity source scan (S08), sync/sizes spec bound (S05, S3; §14.6), client
+e2e rows (reconnect < 3 s, no optimistic UI). Then every §13 row cites an
+existing check; then deploy and run `/playtest` once (G loop rule).
 **Flagged assumptions:** none open. Settled calls from earlier stages live
 in game-design.md §14; foreign fleets/offers stay `INVALID` (§14.5, S07).
 **Last updated:** 2026-10-17 (harness into the repo, ADRs, Stage H staged).
