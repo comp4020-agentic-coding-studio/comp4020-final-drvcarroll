@@ -219,7 +219,7 @@ export function check(s: State, nation: Id, c: Command): Plan {
   if (s.season.status !== "running") return no("SEASON_OVER", "The world was reset");
   if (c.type === "setEmpire") return setEmpire(s, nation, c);
   const n = s.nations[nation];
-  if (!n?.joined && c.type !== "join") return no("NOT_JOINED", "Join the season first");
+  if (!n?.joined && c.type !== "join") return no("NOT_JOINED", "Join the world first");
   if (!n) return no("NOT_JOINED", "Create your empire first");
   if (n.eliminated && c.type !== "join") return no("NOT_JOINED", "You were eliminated; pick a region to return");
   const h = handlers[c.type] as Handler<typeof c.type> | undefined;

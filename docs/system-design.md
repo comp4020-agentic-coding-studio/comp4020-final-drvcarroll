@@ -413,7 +413,7 @@ left standing. Why each decision was made is in `docs/adr/`.
 | Replay is deterministic (S5) | Enforced | `rules/apply.test.ts`; `rules/alliance.test.ts` "replay through alliances, sanctions and a stage change" |
 | Contention: same-tick claims, first wins, second `TAKEN` (§5, S03) | Enforced | **owed** |
 | 10 commands per client per tick, then `RATE_LIMIT` (§14.3) | Enforced | **owed** |
-| Who may change what: `NOT_OWNER` on another's region, others' fleets and offers refused (S07) | Enforced | **owed** |
+| Who may change what: `NOT_OWNER` on another's region, others' fleets and offers refused (S07) | Enforced | `rules/authorisation.test.ts` |
 | Admin routes 404 to others; reset kicks with 4004, keeps accounts | Enforced | `server/server.test.ts` "is 404 for others…"; stream and page **owed** |
 | WebSocket `Origin` checked; expired session 4002 (§9, §14.3) | Enforced | **owed** |
 | Login rate limit 5 per name, 20 per IP, then 429 (§9) | Enforced | **owed** |
@@ -701,7 +701,7 @@ function; the server's answer is still the one that counts.
 |---|---|
 | `INVALID` | "Unknown building type" |
 | `NOT_JOINED` | "Join the world first" |
-| `NOT_OWNER` | "You don't control Mars North" |
+| `NOT_OWNER` | "You don't control Mars North" (regions only; see below) |
 | `INSUFFICIENT` | "Needs 20 more Metals" |
 | `LOCKED` | "Needs Ion Drives" |
 | `NO_SLOT` | "No free slot in Siberia" |
@@ -715,6 +715,12 @@ function; the server's answer is still the one that counts.
 | `EARTH_FULL` | "Every Earth start region is held; joining reopens when one frees up" |
 | `SEASON_OVER` | "The world was reset" |
 | `RATE_LIMIT` | "Too many commands; wait a moment" |
+
+Another nation's fleet or trade offer is `INVALID` "Unknown fleet" or
+"Unknown offer", not `NOT_OWNER`: fleets you can't see and offers not
+addressed to you must not be confirmed to exist (S06, S07). Regions are
+public, so `NOT_OWNER` leaks nothing there. `launch` only ever draws on the
+sender's own ships at that body.
 
 There is deliberately no "destination out of reach" code: every zone is
 reachable from the start (game-design.md §7), Voidcraft only changes the
