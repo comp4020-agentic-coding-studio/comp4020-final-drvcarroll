@@ -45,3 +45,8 @@ under other rules (S02).
   purity itself (that `rules/` imports no `node:` module and calls no
   `Date.now` or `Math.random`), and none checks that every number lives in
   `rules/data/`.
+
+**Check added 2026-10-17 (Stage H):** `rules/purity.test.ts` scans every
+non-test file in `rules/` for imports outside it and for clock, randomness,
+timer or `process` use. That every number lives in `rules/data/` is still
+review-only.

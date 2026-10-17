@@ -423,7 +423,7 @@ left standing. Why each decision was made is in `docs/adr/`.
 | The world keeps going with nobody connected (§5) | Enforced | `server/server.test.ts` "keeps the world going while nobody is connected" |
 | Message sizes: quiet 500 B, busy 3 KB, welcome 60 KB (S3) | Measured | `docs/measurements.md`; a spec bound **owed** |
 | Latency, tick time, RSS, append, boot (S1, S2, S4, S5) | Measured | `docs/measurements.md` (`pnpm load`) |
-| `rules/` is pure: no I/O, clock or randomness (S08) | Enforced | **owed** (a source scan) |
+| `rules/` is pure: no I/O, clock or randomness (S08) | Enforced | `rules/purity.test.ts` (a source scan) |
 | Reconnect restores the view < 3 s; no optimistic UI (§6, P9) | Enforced | **owed** (e2e) |
 | A world's story from logs alone (S7) | Judged | `docs/checks.md` S7 |
 | Frame rate and GPU memory (§8) | Judged | `docs/checks.md` P8 |
