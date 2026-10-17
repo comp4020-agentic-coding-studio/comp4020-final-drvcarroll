@@ -286,7 +286,7 @@ Not a stage with an end: the loop in `game-design.md` §13. Two instruments:
 
 - **Scripted bots** (`pnpm sim:test`): free, seeded, run after any change to
   `rules/data/`. They measure the §13 targets.
-- **`/playtest`** (`.claude/workflows/playtest.js`): a workflow, run once
+- **`/playtest`** (`.claude/skills/playtest/SKILL.md`): a skill, run once
   after `comp4020-resume` finishes, never per unit. Six Haiku players, one per
   score path (Territory, Economy, Tech) and stance (aggressive, cooperative),
   play a fresh local server through `scripts/play.ts` over the real socket;
@@ -294,8 +294,8 @@ Not a stage with an end: the loop in `game-design.md` §13. Two instruments:
   stage 1's end or when one nation passes 50% of the score after minute 10.
   A synthesis agent returns one report: results per path, a goal-alignment
   table (P1 to P6, S7), the rubric, and at most five ranked recommendations
-  tagged ACT or LOG. The script holds the agents' output, so only the report
-  enters the main session.
+  tagged ACT or LOG. Each agent runs as a separate `Agent` tool call, so only
+  the reports (not their play-by-play) enter the main session.
 
 **Loop rule, so it ends.** A recommendation is **ACT** only if it breaks a
 numeric target in `goals.md` or §13, or is a P1, P2 or P10 confusion two or
@@ -364,7 +364,7 @@ fidelity to a map client that already plays, it never stands in for one.
 |---|---|---|
 | `comp4020-update` | `.claude/skills/` | A change (the user's, or a playtest's ACT items) into the docs, ADRs and this plan. No code |
 | `comp4020-resume` | `.claude/skills/` | Builds stage by stage from the ledger, delegating long-output work to subagents; ends with one `/playtest` |
-| `/playtest` | `.claude/workflows/playtest.js` | The script: six `playtester` agents (Haiku) and an `analyst` (Sonnet), then a synthesis |
+| `/playtest` | `.claude/skills/playtest/` | The skill: six `playtester` agents (Haiku) and an `analyst` (Sonnet), then a synthesis |
 | `playtester`, `analyst` | `.claude/agents/` | Agent definitions: model, tools, how to play and what to report |
 | `scripts/play.ts` | repo | The text client agents play through, against a real local server |
 | `docs/adr/` | repo | Why each design decision was made, and what it costs |

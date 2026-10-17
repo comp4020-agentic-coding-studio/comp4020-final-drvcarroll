@@ -6,13 +6,13 @@ G loop 4 logged in docs/balance-log.md.
 (77, incl. `scripts/claims.test.ts`), `pnpm test:server` (20), spec (9).
 e2e: 15 to 16 of 17 under load (see flagged). Every §13 row cites a check that exists (`scripts/claims.test.ts`).
 The harness is in the repo: `.claude/skills/` (comp4020_resume,
-comp4020_update), `.claude/agents/` (playtester, analyst),
-`.claude/workflows/playtest.js`, `scripts/play.ts`. ADRs S01 to S11 and G01
+comp4020_update, playtest), `.claude/agents/` (playtester, analyst),
+`scripts/play.ts`. ADRs S01 to S11 and G01
 to G11 in `docs/adr/`. The game is named Interstellar Expansion.
 **Next:** deployed fd07958 (CI check + deploy green; spec 9/9 against
-https://comp4020-final-drvcarroll.fly.dev). Run `/playtest` once (the user
-starts it: a workflow, not a skill), then apply build-process.md's G loop
-rule: ACT items via `comp4020_update`, LOG items open in docs/balance-log.md.
+https://comp4020-final-drvcarroll.fly.dev). Run `/playtest` once, then apply
+build-process.md's G loop rule: ACT items via `comp4020_update`, LOG items
+open in docs/balance-log.md.
 Then the final README.md/PROCESS.md pass (Target: done, end of week 12).
 **Flagged assumptions:** e2e onboarding times out under host CPU load
 (swiftshader WebGL; load avg 8 on 2026-10-17, VPN at 136%): every failure was
