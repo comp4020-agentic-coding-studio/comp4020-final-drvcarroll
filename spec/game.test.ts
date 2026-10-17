@@ -106,3 +106,28 @@ describe("commands", () => {
     a.client.close();
   });
 });
+
+describe("message sizes (goals.md S3; system-design.md §14.6)", () => {
+  it("keeps welcome ≤ 60 KB, quiet ticks ≤ 500 B and busy ticks ≤ 3 KB", async () => {
+    const a = await player("size");
+    const region = await a.client.join();
+    a.client.send("s1", { type: "train", region, count: 2 });
+    a.client.send("s2", { type: "build", region, building: "mine" });
+    await a.client.result("s2");
+    await new Promise((r) => setTimeout(r, 1200));
+    const bytes = (m: Msg) => Buffer.byteLength(JSON.stringify(m));
+    const ticks = a.client.msgs.filter((m) => m.t === "tick");
+    const quiet = ticks.filter((m) => !m.changes && !m.results && !m.news);
+    expect(bytes(a.client.welcome)).toBeLessThanOrEqual(60_000);
+    expect(quiet.length).toBeGreaterThan(0);
+    for (const m of quiet) expect(bytes(m)).toBeLessThanOrEqual(500);
+    // ADR S11: a tick that opens a body's vision is a partial welcome
+    const seen = new Set(a.client.welcome.world.regions.filter((r: Msg) => r.buildings).map((r: Msg) => r.body));
+    for (const m of ticks) {
+      const opened = (m.changes?.regions ?? []).filter((r: Msg) => r.buildings && !seen.has(r.body)).map((r: Msg) => r.body);
+      opened.forEach((b: string) => seen.add(b));
+      expect(bytes(m)).toBeLessThanOrEqual(opened.length ? 60_000 : 3_000);
+    }
+    a.client.close();
+  });
+});

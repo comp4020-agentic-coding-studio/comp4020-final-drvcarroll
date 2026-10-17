@@ -10,7 +10,8 @@ ADRs S01 to S10 and G01 to G11 in `docs/adr/`. The game is named
 Interstellar Expansion.
 **Next:** Stage H's rest (build-process.md): authorisation, contention,
 accounts and logging are green (server.test.ts, rules/authorisation.test.ts), and purity (rules/purity.test.ts).
-Left: sync/sizes spec bound (S05, S3; §14.6), client
+Sync and sizes are green (ADR S11: a vision-opening tick is held to the
+welcome budget). Left: client
 e2e rows (reconnect < 3 s, no optimistic UI). Then every §13 row cites an
 existing check; then deploy and run `/playtest` once (G loop rule).
 **Flagged assumptions:** none open. Settled calls from earlier stages live

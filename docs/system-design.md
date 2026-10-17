@@ -421,7 +421,8 @@ left standing. Why each decision was made is in `docs/adr/`.
 | One JSON log line per action with its user; never a password or token (§11) | Enforced | `server/server.test.ts` "writes one JSON line per action…", "logs login, logout, connect and disconnect…" |
 | Loop stops when the last socket closes (S2) | Enforced | `server/server.test.ts` "logs login, logout… and idle when the last socket closes" |
 | The world keeps going with nobody connected (§5) | Enforced | `server/server.test.ts` "keeps the world going while nobody is connected" |
-| Message sizes: quiet 500 B, busy 3 KB, welcome 60 KB (S3) | Measured | `docs/measurements.md`; a spec bound **owed** |
+| Message sizes: quiet 500 B, busy 3 KB, welcome 60 KB (S3, S11) | Enforced | `spec/game.test.ts` "keeps welcome ≤ 60 KB…"; at load, `docs/measurements.md` |
+| A region leaving vision is resent without owner; every tab streams (§6, S05) | Enforced | `server/server.test.ts` "resends a region without its owner…", "streams to every tab of one account" |
 | Latency, tick time, RSS, append, boot (S1, S2, S4, S5) | Measured | `docs/measurements.md` (`pnpm load`) |
 | `rules/` is pure: no I/O, clock or randomness (S08) | Enforced | `rules/purity.test.ts` (a source scan) |
 | Reconnect restores the view < 3 s; no optimistic UI (§6, P9) | Enforced | **owed** (e2e) |
@@ -734,6 +735,7 @@ what it costs.
 | `welcome` | 30 to 60 KB for a developed empire, much less early on (§6) |
 | `tick`, quiet | ~300 B (stocks only) |
 | `tick`, busy | 1 to 3 KB |
+| `tick` that opens a body's vision (a join, a first claim) | the `welcome` budget, ≤ 60 KB (ADR S11) |
 
 At 30 clients that is roughly 20 to 200 KB/s of egress in total, well within
 one small machine.

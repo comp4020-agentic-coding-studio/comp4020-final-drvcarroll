@@ -346,3 +346,36 @@ describe("the log says who did what, never a secret (system-design.md §11; S09)
     for (const l of lines) for (const s of secrets) expect(l).not.toContain(s);
   });
 });
+
+describe("sync (system-design.md §6; S05)", () => {
+  it("resends a region without its owner when it leaves vision", async () => {
+    await boot(mkdtempSync(join(tmpdir(), "grow-")));
+    const [a, b] = [await open(await account("alice", "Aurora")), await open(await account("bob", "Borealis"))];
+    a.send("j1", { type: "join", region: "r_canada" });
+    b.send("j2", { type: "join", region: "r_brazil" });
+    await a.result("j1");
+    await b.result("j2");
+    const s = running!.world.state!;
+    const [na, nb] = [a.msgs[0].you.nation, b.msgs[0].you.nation];
+    s.regions.r_mars_tharsis.owner = nb; // a region only an Envoy shows A
+    s.nations[na].techs.push("science.1", "science.2");
+    a.send("e", { type: "sendEnvoy", nation: nb });
+    expect(await a.result("e")).toMatchObject({ ok: true });
+    const mars = (m: Msg) => m.changes?.regions?.find((r: Msg) => r.id === "r_mars_tharsis");
+    expect(mars(await a.until((m) => mars(m)?.owner === nb))).toMatchObject({ owner: nb });
+    a.send("r", { type: "recallEnvoy", nation: nb });
+    await a.result("r");
+    expect(mars(await a.until((m) => mars(m) && !mars(m).owner))).toEqual({ id: "r_mars_tharsis", body: "mars", slots: expect.any(Number) });
+  });
+
+  it("streams to every tab of one account", async () => {
+    await boot(mkdtempSync(join(tmpdir(), "grow-")));
+    const cookie = await account("alice", "Aurora");
+    const [t1, t2] = [await open(cookie), await open(cookie)];
+    expect(t1.msgs[0].you.nation).toBe(t2.msgs[0].you.nation);
+    t1.send("j", { type: "join", region: "r_canada" });
+    await t1.result("j");
+    await t2.until((m) => m.changes?.regions?.some((r: Msg) => r.id === "r_canada" && r.owner === t1.msgs[0].you.nation));
+    expect(running!.hub.stats().sockets).toBe(2);
+  });
+});

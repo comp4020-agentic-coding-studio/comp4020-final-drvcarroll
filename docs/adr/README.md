@@ -22,6 +22,7 @@ sync, security); the G-series covers game mechanics. Goal ids refer to
 | [S08](S08-pure-rules-engine.md) | A pure rules engine shared by server, sim and client | S5, P2, P3, P6 |
 | [S09](S09-logging-and-observability.md) | Logging: one JSON line per action, an SSE live view | S7, S4 |
 | [S10](S10-hardcoded-admin.md) | A hardcoded admin account | P9, S7, S5 |
+| [S11](S11-vision-ticks-on-the-welcome-budget.md) | A tick that opens a body's vision is held to the welcome budget | S3, S1, P5 |
 
 ## Game
 
