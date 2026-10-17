@@ -9,10 +9,11 @@ The harness is in the repo: `.claude/skills/` (comp4020_resume,
 comp4020_update), `.claude/agents/` (playtester, analyst),
 `.claude/workflows/playtest.js`, `scripts/play.ts`. ADRs S01 to S11 and G01
 to G11 in `docs/adr/`. The game is named Interstellar Expansion.
-**Next:** deploy (system-design.md §12; `/comp4020:ship` checks the live
-URL), then run `/playtest` once and apply build-process.md's G loop rule:
-ACT items via `comp4020_update`, LOG items open in docs/balance-log.md. Then
-the final README.md/PROCESS.md pass (Target: done, end of week 12).
+**Next:** deployed fd07958 (CI check + deploy green; spec 9/9 against
+https://comp4020-final-drvcarroll.fly.dev). Run `/playtest` once (the user
+starts it: a workflow, not a skill), then apply build-process.md's G loop
+rule: ACT items via `comp4020_update`, LOG items open in docs/balance-log.md.
+Then the final README.md/PROCESS.md pass (Target: done, end of week 12).
 **Flagged assumptions:** e2e onboarding times out under host CPU load
 (swiftshader WebGL; load avg 8 on 2026-10-17, VPN at 136%): every failure was
 a "stable" wait at the start screen, and each test passes alone. Rerun on an
