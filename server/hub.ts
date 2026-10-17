@@ -223,6 +223,17 @@ export class Hub {
     this.stopTicking();
     for (const c of this.clients) c.ws.close(code, reason);
   }
+
+  // system-design.md §11: ends the world, starts a fresh one, kicks everyone.
+  reset(): void {
+    const now = this.now();
+    this.world.snapshot();
+    if (this.world.state) this.world.close(this.world.state.season.id, now);
+    this.world.ensureSeason(now);
+    this.queue = [];
+    this.log.write({ ts: now, action: "reset", result: "ok" });
+    this.close(4004, "World reset");
+  }
 }
 
 interface Shared { scores: string; presence: string; news: string[]; season: string; cache?: ViewCache; json: (e: object) => string }

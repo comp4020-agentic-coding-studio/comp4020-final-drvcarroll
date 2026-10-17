@@ -8,7 +8,7 @@ import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { streamSSE } from "hono/streaming";
 import { marked } from "marked";
 import {
-  SESSION_MAX_AGE_S, checkSignup, createSession, createUser, endSession, rateLimited, sessionUser, verify, type User,
+  ADMIN, SESSION_MAX_AGE_S, checkSignup, createSession, createUser, endSession, ensureAdmin, rateLimited, sessionUser, verify, type User,
 } from "./auth.ts";
 import { freeColour } from "../rules/commands.ts";
 import { openDb, type Db } from "./db.ts";
@@ -73,7 +73,7 @@ export function createApp(db: Db, world: World, hub: Hub, opts: { secureCookies:
     hub.log.write({ ts: opts.now(), ...(username ? { user: username.toLowerCase() } : {}), action, result });
   const admin = (c: Context) => {
     const u = user(c);
-    return u && opts.admins.includes(u.username) ? u : null;
+    return u && (u.username === ADMIN.username || opts.admins.includes(u.username)) ? u : null;
   };
   const empireOf = (u: User) => {
     const n = world.state?.nations[nationOf(u.id)];
@@ -174,14 +174,23 @@ export function createApp(db: Db, world: World, hub: Hub, opts: { secureCookies:
     });
   });
 
+  app.post("/api/admin/reset", (c) => {
+    const u = admin(c);
+    if (!u) return c.notFound();
+    log("reset", "ok", u.username);
+    hub.reset();
+    return c.json({ ok: true });
+  });
+
   app.get("/api/season", (c) => c.json({ season: world.state?.season ?? null, hallOfFame: world.hallOfFame() }));
 
   return app;
 }
 
-export function start(o: ServerOptions): Promise<Running> {
+export async function start(o: ServerOptions): Promise<Running> {
   const now = o.now ?? (() => Date.now());
   const db = openDb(o.dataDir);
+  await ensureAdmin(db);
   const world = new World(db);
   const t0 = performance.now();
   world.boot(now());

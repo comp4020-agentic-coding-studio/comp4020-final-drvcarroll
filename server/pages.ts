@@ -76,6 +76,7 @@ export function adminPage(): string {
 <main class="admin">
   <h1>Live</h1>
   <p id="head">Connecting…</p>
+  <p><button id="reset" class="danger">Reset world</button> <span id="reset-msg"></span></p>
   <div class="cols">
     <section><h2>Online</h2><ul id="online"></ul></section>
     <section><h2>Rejections by reason</h2><ul id="rejections"></ul></section>
@@ -85,6 +86,11 @@ export function adminPage(): string {
 </main>
 <script>
   const $ = (id) => document.getElementById(id);
+  $("reset").onclick = async () => {
+    if (!confirm("Reset the world? Every player is kicked and all progress ends. Accounts stay.")) return;
+    const r = await fetch("/api/admin/reset", { method: "POST" });
+    $("reset-msg").textContent = r.ok ? "Reset. A fresh world is running." : "Reset failed (" + r.status + ")";
+  };
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   new EventSource("/api/admin/stream").onmessage = (e) => {
     const s = JSON.parse(e.data);

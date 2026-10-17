@@ -120,6 +120,7 @@ describe("the map is the screen (goals.md P10)", () => {
     const box = await p.locator("canvas.scene").boundingBox();
     expect(box).toMatchObject({ width: 1440, height: 900 });
     await expect.poll(() => p.locator(".stocks").innerText()).toMatch(/200/);
+    expect(await p.locator(".topbar .badge.stage").innerText()).toMatch(/Stage 1 · Founding/i);
     expect(errors).toEqual([]);
     await p.close();
   });

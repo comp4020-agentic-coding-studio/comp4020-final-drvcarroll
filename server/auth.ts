@@ -12,6 +12,9 @@ const COMMON = new Set([
   "iloveyou", "sunshine", "princess", "football", "baseball", "welcome1", "admin123", "letmein1", "abcdefgh",
 ]);
 
+// system-design.md §9: the admin account, hardcoded at the user's request.
+export const ADMIN = { username: "admin", password: "platypus" };
+
 export interface User { id: number; username: string }
 export type AuthError = { field: "username" | "password"; reason: string };
 
@@ -34,6 +37,7 @@ const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
 
 export function checkSignup(username: string, password: string): AuthError | null {
   if (!/^[a-z0-9_]{3,20}$/i.test(username)) return { field: "username", reason: "3 to 20 letters, digits or _" };
+  if (username.toLowerCase() === ADMIN.username) return { field: "username", reason: "That username is reserved" };
   if (password.length < 8) return { field: "password", reason: "At least 8 characters" };
   if (COMMON.has(password.toLowerCase())) return { field: "password", reason: "That password is too common" };
   return null;
@@ -96,3 +100,8 @@ export function endSession(db: Db, token: string | undefined): void {
 }
 
 export const SESSION_MAX_AGE_S = SESSION_MS / 1000;
+
+// Boot: the admin account exists, with its fixed password.
+export async function ensureAdmin(db: Db): Promise<void> {
+  if (!db.prepare("SELECT 1 FROM users WHERE username = ?").get(ADMIN.username)) await createUser(db, ADMIN.username, ADMIN.password);
+}

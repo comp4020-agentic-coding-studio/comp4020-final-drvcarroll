@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addUnits, orbitFleet } from "./fleets.ts";
-import { advanceTo, validate, type State } from "./index.ts";
+import { advanceTo, apply, validate, type Command, type State } from "./index.ts";
 import { S, T0, ok, world } from "./test-helpers.ts";
 
 const PROTECTED = 60 * S;
@@ -105,5 +105,31 @@ describe("alliances (game-design.md §9)", () => {
     const b = s.battles.r_us_west;
     if (b) expect(b.defBy.n_1).toBeGreaterThan(0);
     else expect(s.regions.r_us_west.owner).toBe("n_2");
+  });
+});
+
+describe("replay through alliances, sanctions and a stage change (S5)", () => {
+  it("gives identical state live (every tick) and command to command", () => {
+    const cmds: [string, number, Command][] = [
+      ["n_1", 61_000, { type: "inviteAlly", nation: "n_2" }],
+      ["n_2", 62_000, { type: "acceptAlly", alliance: "a_?" }],
+      ["n_1", 63_000, { type: "sanction", nation: "n_3" }],
+      ["n_1", 1_250_000, { type: "train", region: "r_canada", count: 2 }],
+    ];
+    let replay = world("r_canada", "r_us_west", "r_us_east");
+    let live = structuredClone(replay);
+    for (const [who, dt, c0] of cmds) {
+      const c = c0.type === "acceptAlly" ? { ...c0, alliance: Object.keys(replay.alliances)[0] } : c0;
+      const res = apply(replay, who, c, T0 + dt);
+      if (!res.ok) throw new Error(res.reason);
+      replay = res.state;
+      while (live.t + 500 < T0 + dt) live = advanceTo(live, live.t + 500);
+      const l = apply(live, who, c, T0 + dt);
+      if (!l.ok) throw new Error(l.reason);
+      live = l.state;
+    }
+    expect(live).toEqual(replay);
+    expect(replay.season.stage).toBe(2);
+    expect(Object.values(replay.alliances)[0]).toMatchObject({ members: ["n_1", "n_2"], sanctions: ["n_3"] });
   });
 });

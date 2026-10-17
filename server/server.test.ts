@@ -78,6 +78,40 @@ describe("server: the brief's three requirements at the protocol level", () => {
   });
 });
 
+describe("server: the admin reset (system-design.md §9, §11)", () => {
+  it("has admin / platypus on a fresh database, reserved at sign-up", async () => {
+    await boot(mkdtempSync(join(tmpdir(), "grow-")));
+    const post = api(base()).post;
+    expect((await post("/api/login", { username: "admin", password: "platypus" })).status).toBe(200);
+    expect((await post("/api/signup", { username: "Admin", password: "correct horse" })).status).toBe(400);
+  });
+
+  it("is 404 for others; for admin it kicks everyone with 4004 and empties the world, accounts kept", async () => {
+    await boot(mkdtempSync(join(tmpdir(), "grow-")));
+    const post = api(base()).post;
+    const alice = await account("alice", "Aurora");
+    const a = await open(alice);
+    a.send("j", { type: "join", region: "r_canada" });
+    expect(await a.result("j")).toMatchObject({ ok: true });
+    const old = running!.world.state!.season.id;
+    expect((await post("/api/admin/reset", {}, alice)).status).toBe(404);
+
+    const login = await post("/api/login", { username: "admin", password: "platypus" });
+    const cookie = login.headers.get("set-cookie")!.split(";")[0];
+    expect((await post("/api/admin/reset", {}, cookie)).status).toBe(200);
+    expect(a.closed ?? (await new Promise((r) => a.ws.once("close", r)))).toBe(4004);
+    expect(running!.world.state!.season.id).not.toBe(old);
+    expect(Object.values(running!.world.state!.regions).some((r) => r.owner)).toBe(false);
+
+    expect((await post("/api/login", { username: "alice", password: "correct horse" })).status).toBe(200);
+    const again = await open(alice);
+    expect(again.msgs[0].season.id).not.toBe(old);
+    expect(again.msgs[0].world.regions.find((r: Msg) => r.id === "r_canada").owner).toBeUndefined();
+    expect(running!.world.state!.nations[again.msgs[0].you.nation].name).toBe("Aurora");
+    expect(lines.some((l) => l.includes('"action":"reset"'))).toBe(true);
+  });
+});
+
 describe("server: alliances reach every client live (game-design.md §9)", () => {
   it("sends an invite to its target and the formed alliance to everyone", async () => {
     await boot(mkdtempSync(join(tmpdir(), "grow-")));
