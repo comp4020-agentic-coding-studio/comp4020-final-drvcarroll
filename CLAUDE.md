@@ -76,3 +76,6 @@ Standing rules, every stage:
   user's own uncommitted edits out.
 - Docs and code never drift: if reality disagrees with a doc, fix the doc in
   the same commit.
+- A client change (CSS or UI) isn't done until `pnpm test:e2e` is green: a
+  wider top-bar title once pushed the user menu off-screen at 1440 px and
+  broke eight e2e tests unnoticed (P10).

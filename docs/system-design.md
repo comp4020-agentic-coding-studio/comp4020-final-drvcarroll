@@ -397,9 +397,9 @@ game-design.md §11; the Guide is a client overlay, not a route.
 
 Each promise this document makes names the check behind it. **Enforced**
 rows name a test; Measured rows live in `docs/measurements.md`, Judged rows
-in `docs/checks.md`. A row marked **owed** has no check yet and is Stage H's
-work (build-process.md); a claim that can't be checked is reworded, not
-left standing. Why each decision was made is in `docs/adr/`.
+in `docs/checks.md`. `scripts/claims.test.ts` fails if a row is
+**owed** or cites a file or test name that doesn't exist; a claim that
+can't be checked is reworded, not left standing. Why each decision was made is in `docs/adr/`.
 
 | Promise | Kind | Check |
 |---|---|---|
@@ -425,7 +425,7 @@ left standing. Why each decision was made is in `docs/adr/`.
 | A region leaving vision is resent without owner; every tab streams (§6, S05) | Enforced | `server/server.test.ts` "resends a region without its owner…", "streams to every tab of one account" |
 | Latency, tick time, RSS, append, boot (S1, S2, S4, S5) | Measured | `docs/measurements.md` (`pnpm load`) |
 | `rules/` is pure: no I/O, clock or randomness (S08) | Enforced | `rules/purity.test.ts` (a source scan) |
-| Reconnect restores the view < 3 s; no optimistic UI (§6, P9) | Enforced | **owed** (e2e) |
+| Reconnect restores the view < 3 s; no optimistic UI (§6, P9) | Enforced | `e2e/client.test.ts` "reconnects after a dropped socket…", "changes nothing for a pending command…" |
 | A world's story from logs alone (S7) | Judged | `docs/checks.md` S7 |
 | Frame rate and GPU memory (§8) | Judged | `docs/checks.md` P8 |
 

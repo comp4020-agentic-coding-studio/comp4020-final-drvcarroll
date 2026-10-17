@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium, type Browser, type Page } from "playwright-core";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { BUILDINGS, REGIONS, TRAVEL, WAR } from "../rules/data/index.ts";
 import { start, type Running } from "../server/app.ts";
 import { Log } from "../server/log.ts";
@@ -27,9 +27,15 @@ afterAll(async () => {
 });
 
 const errors: string[] = [];
+const pages: Page[] = [];
+// A failed test skips its close(); this stops it starving the next ones.
+afterEach(async () => {
+  await Promise.all(pages.splice(0).map((p) => p.close().catch(() => {})));
+});
 
 async function player(name: string, region: string, viewport = { width: 1440, height: 900 }): Promise<Page> {
   const p = await browser.newPage({ viewport });
+  pages.push(p);
   p.on("pageerror", (e) => errors.push(e.message));
   await p.goto(base);
   const f = p.locator('form[action="/api/signup"]');
@@ -55,6 +61,7 @@ const key = (l: import("playwright-core").Locator, k = "Enter") => l.press(k);
 
 async function keyboardPlayer(name: string, region: string, viewport: { width: number; height: number }): Promise<Page> {
   const p = await browser.newPage({ viewport });
+  pages.push(p);
   p.on("pageerror", (e) => errors.push(e.message));
   await p.goto(base);
   const f = p.locator('form[action="/api/signup"]');
@@ -271,7 +278,7 @@ describe("the map is the screen (goals.md P10)", () => {
   });
 
   it("invites an ally from Empires, and the ally joins (build-process.md D4)", async () => {
-    const a = await player("romeo", "Iran & Central Asia");
+    const a = await player("romeo", "Southern Cone");
     const b = await player("sierra", "South China");
     await a.locator(".drawers button", { hasText: "Empires" }).click();
     await a.locator("li.nation", { hasText: "sierra" }).locator("button", { hasText: "Invite to alliance" }).click();
@@ -332,8 +339,11 @@ async function shift(ms: number, ...pages: Page[]): Promise<void> {
 // Selects a region through the scene, once it's up, as a map click would.
 async function pick(p: Page, region: string): Promise<void> {
   await p.waitForFunction(() => (window as any).scene);
-  await p.evaluate((r) => (window as any).scene.select("earth", r), region);
-  await expect.poll(() => p.locator(".selection .sel-head h2").allTextContents()).toEqual([REGIONS[region].name]);
+  // Right after a reload the scene can drop a select: retry until it shows.
+  await expect.poll(async () => {
+    await p.evaluate((r) => (window as any).scene.select("earth", r), region);
+    return p.locator(".selection .sel-head h2").allTextContents();
+  }, { interval: 500, timeout: 15_000 }).toEqual([REGIONS[region].name]);
 }
 
 // Runs last: it moves the server clock past protection and war activation.
@@ -366,3 +376,40 @@ describe("war you can see (goals.md P10; build-process.md D3)", () => {
     await b.close();
   }, 180_000);
 });
+
+describe("the client trusts only the server (system-design.md §6; goals.md P9, S1)", () => {
+  it("reconnects after a dropped socket and restores the view in under 3 s", async () => {
+    const p = await player("tango", "Northern Europe");
+    await expect.poll(() => p.locator(".conn").getAttribute("class")).toMatch(/open/);
+    const t0 = Date.now();
+    app.hub.close(4003, "Server restarting");
+    await expect.poll(() => p.locator(".conn").getAttribute("class")).toMatch(/reconnecting/);
+    await expect.poll(() => p.locator(".conn").getAttribute("class"), { timeout: 3000, interval: 50 }).toMatch(/open/);
+    expect(Date.now() - t0).toBeLessThan(3000);
+    await expect.poll(() => p.locator(".empire .list.sub button.row", { hasText: "Northern Europe" }).count()).toBe(1);
+    await p.close();
+ }, 60_000);
+
+  it("changes nothing for a pending command until the server's result", async () => {
+    const p = await player("uniform", "Australia & New Zealand");
+    await p.locator(".empire .list.sub button.row", { hasText: "Australia & New Zealand" }).click();
+    const queued = p.locator(".selection .forces li.item", { hasText: "Army" }).filter({ hasText: /left|starts in/ });
+    expect(await queued.count()).toBe(0);
+    const tick = app.hub.tick.bind(app.hub);
+    let held = true;
+    app.hub.tick = () => { if (!held) tick(); };
+    try {
+      const train = p.locator(".selection .forces .inline .action button");
+      await train.click();
+      await expect.poll(() => train.innerText()).toBe("…");
+      await p.waitForTimeout(1200);
+      expect(await queued.count()).toBe(0);
+      held = false;
+      await expect.poll(() => queued.count()).toBe(1);
+    } finally {
+      app.hub.tick = tick;
+    }
+    await p.close();
+  }, 60_000);
+});
+

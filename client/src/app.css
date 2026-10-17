@@ -108,7 +108,7 @@ button.icon:hover { color: var(--accent); }
 .topbar::after { display: none; }
 .brand { background: none; border: 0; color: var(--accent); font: 700 1.15rem var(--font); letter-spacing: 0.2em; padding: 0 8px 0 4px; clip-path: none;
   text-shadow: 0 0 10px rgba(92, 200, 255, 0.6); }
-.stocks { display: flex; gap: 4px 12px; list-style: none; margin: 0; padding: 0; flex-wrap: nowrap; }
+.stocks { display: flex; gap: 4px 12px; list-style: none; margin: 0; padding: 0; flex-wrap: nowrap; min-width: 0; overflow-x: auto; }
 .stocks li { position: relative; display: flex; align-items: center; gap: 5px; padding: 3px 6px 3px 5px; background: var(--well); border: 1px solid rgba(0, 0, 0, 0.4); border-bottom-color: rgba(255, 255, 255, 0.05); }
 .stocks b { font: 400 1rem var(--mono); min-width: 3ch; text-align: right; }
 .stocks b.full { color: var(--warn); }
@@ -342,6 +342,12 @@ button.small { min-height: 26px; padding: 2px 8px; font-size: 0.76rem; }
 }
 
 /* phone: bottom sheets, map stays full-screen */
+@media (max-width: 1600px) {
+  .brand { display: flex; flex-direction: column; font-size: 0.8rem; line-height: 1.05; letter-spacing: 0.16em; }
+  .topbar { gap: 6px 8px; }
+  .stocks { gap: 4px 6px; }
+  .meta .date { display: none; }
+}
 @media (max-width: 720px) {
   .topbar { padding: 4px 8px; gap: 4px 10px; height: auto; flex-wrap: wrap; }
   .stocks { order: 9; width: 100%; flex-wrap: nowrap; overflow-x: auto; }
