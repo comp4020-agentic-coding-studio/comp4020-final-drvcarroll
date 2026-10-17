@@ -282,11 +282,62 @@ logs alone, per S7's judged check.
 
 ### G. Balance and playtest loop (continuous, from B onward)
 
-Not a stage with an end — the loop in `game-design.md` §13: run bots (and
-occasionally a short LLM playtest), read the numbers, change one value in
-`rules/data/`, rerun, record before/after in `docs/balance-log.md`. Runs
-short (15–20 simulated minutes by default, per §13) to stay cheap. Revisit
-after any change to `rules/data/`, not on a schedule.
+Not a stage with an end: the loop in `game-design.md` §13. Two instruments:
+
+- **Scripted bots** (`pnpm sim:test`): free, seeded, run after any change to
+  `rules/data/`. They measure the §13 targets.
+- **`/playtest`** (`.claude/workflows/playtest.js`): a workflow, run once
+  after `comp4020-resume` finishes, never per unit. Six Haiku players, one per
+  score path (Territory, Economy, Tech) and stance (aggressive, cooperative),
+  play a fresh local server through `scripts/play.ts` over the real socket;
+  a Sonnet analyst runs the bot suite, watches as admin, and stops the run at
+  stage 1's end or when one nation passes 50% of the score after minute 10.
+  A synthesis agent returns one report: results per path, a goal-alignment
+  table (P1 to P6, S7), the rubric, and at most five ranked recommendations
+  tagged ACT or LOG. The script holds the agents' output, so only the report
+  enters the main session.
+
+**Loop rule, so it ends.** A recommendation is **ACT** only if it breaks a
+numeric target in `goals.md` or §13, or is a P1, P2 or P10 confusion two or
+more players report, or touches multi-user, real-time or persistence.
+Everything else is **LOG**, recorded as open in `docs/balance-log.md`. ACT
+items go through `comp4020-update`, then `comp4020-resume`. The loop stops
+when a cycle moves no target, and after two cycles per crit regardless.
+Playability past the targets is not worth marks; the targets are.
+
+### H. Evidence: a check behind every claim (crit 10 ask)
+
+Every claim in `system-design.md` names its check (system-design.md §13):
+a test by file and name, or Measured / Judged with where the record is. The
+claims below had none when the ADRs were written (`docs/adr/`); each gets an
+Enforced test, or is reworded to say how it is measured or judged.
+
+- **Contention (S03):** two clients claim one region in the same tick; the
+  first is accepted, the second gets `TAKEN` with a reason. 11 commands in
+  one tick: the 11th is `RATE_LIMIT`.
+- **Authorisation (S07):** client B's `build`, `train`, `march` and `demolish`
+  on A's region get `NOT_OWNER`; B can't launch A's fleet or accept an offer
+  addressed to A; a non-admin gets 404 on `/admin`, `/api/admin/stream` and
+  `/api/admin/reset`; a WebSocket upgrade with a foreign `Origin` is refused;
+  an expired session closes 4002.
+- **Accounts (S07):** 5 bad logins then 429; a common password refused; the
+  cookie is `HttpOnly; SameSite=Lax` (and `Secure` in production); the DB
+  holds only the token's hash and scrypt password hashes.
+- **Logging (S09):** login, logout, connect, disconnect and every command
+  write one line with `user`; no line contains a password or token; the loop
+  logs `idle` when the last socket closes.
+- **Sync (S05):** message sizes under S3's limits in a spec run; a region
+  leaving vision is resent without owner; several tabs each get a stream.
+- **Purity (S08):** `rules/` imports no `node:` module and calls no
+  `Date.now` or `Math.random` (a test scans the source).
+- **Client:** reconnect restores the view under 3 s; a pending command
+  changes nothing until its result (e2e).
+
+**Exit criteria:** every row of system-design.md §13 cites a check that
+exists and passes; the tests above are green; `NOT_JOINED`'s reason matches
+§14.5 (or §14.5 matches the code); acting on another nation's fleet or offer
+returns `NOT_OWNER` or the doc says why `INVALID` is right.
+**Serves:** S1 to S7, P5, P9; the brief's "checks protect the promises".
 
 ## Crit calendar (hard deadlines)
 
@@ -300,12 +351,28 @@ be hit eventually; it just slips to the next one.
 |---|---|---|---|
 | **Crit 8 — "It's alive!"** | Next week | Stage A done. Stage B: harness running and reporting real numbers — they don't need to be tuned yet. Stage C: full exit criteria, no slipping this one — "backend polished" means the server, persistence and protocol are actually right. Stage D: the map-first slice — the solar system as the main screen, navigable, bodies and regions clickable, the core loop playable through it. First `README.md` (400–600 words) live at `/readme/`. First `PROCESS.md`. | A, B (partial), **C (full)**, D (map-first slice) |
 | **Crit 9 — "All at once"** | Week 10 | Real-time fully wired end to end, not just the protocol — the client reflects it live. Stage D's full exit criteria: both viewports, keyboard-only. Stage D2 done (the playtest HUD revision). One documented decision on multi-user contention behaviour (system-design.md §5's ordering rule already is that decision — cite it, don't re-decide it). | **D (full)**, **D2** |
-| **Crit 10 — "Fly by instruments"** | Week 11 | Stage F done: logging, `/admin` live view. Stage E (visual fidelity) substantially in, and Stage E2 (real worlds, command console) done. Stage D3 (visible war, three-dropdown menu) done. | E, **E2**, **F**, **D3** |
-| **Target: done** prerequisite | Week 12 | Stage D4 (stages, alliances, admin reset) done before the final pass. | **D4** |
+| **Crit 10 — "Fly by instruments"** | Week 11 | Stage F done: logging, `/admin` live view. Stage E substantially in, E2 and D3 done. **Stage H's authorisation, contention and logging tests green**, and who may see and change what written down with why (`docs/adr/S07`). Deployed, so two people in separate Chrome profiles play from the URL alone while the logs say who did what. | E, **E2**, **F**, **D3**, **H** (auth, contention, logging) |
+| **Target: done** prerequisite | Week 12 | Stage D4 (stages, alliances, admin reset) done, Stage H done, one `/playtest` cycle folded in, before the final pass. | **D4**, **H**, G |
 | **Target: done** | End of week 12 | Self-imposed, ahead of the real deadline (noon Mon 9 Nov 2026) on purpose — a buffer, not a guess at the actual due date. Stage G's numbers in a reasonable place (never "finished" — that's the point of a loop). Final `README.md`/`PROCESS.md` pass, everything deployed and green. | G, polish |
 
 The map is the game from the first client on (goals.md P10): Stage E adds
 fidelity to a map client that already plays, it never stands in for one.
+
+## The harness: what runs, and who holds the plan
+
+| Piece | Where | Holds the plan |
+|---|---|---|
+| `comp4020-update` | `.claude/skills/` | A change (the user's, or a playtest's ACT items) into the docs, ADRs and this plan. No code |
+| `comp4020-resume` | `.claude/skills/` | Builds stage by stage from the ledger, delegating long-output work to subagents; ends with one `/playtest` |
+| `/playtest` | `.claude/workflows/playtest.js` | The script: six `playtester` agents (Haiku) and an `analyst` (Sonnet), then a synthesis |
+| `playtester`, `analyst` | `.claude/agents/` | Agent definitions: model, tools, how to play and what to report |
+| `scripts/play.ts` | repo | The text client agents play through, against a real local server |
+| `docs/adr/` | repo | Why each design decision was made, and what it costs |
+
+The loop: the user plays and says what to change, `comp4020-update` writes
+it down, `comp4020-resume` builds it, `/playtest` checks it against the
+goals, and the main agent decides whether anything goes round again (the
+loop rule in G).
 
 ## The ledger: `docs/progress.md`
 

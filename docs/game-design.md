@@ -3,10 +3,12 @@
 Source of truth for mechanics, visuals and balance testing. Every number here is
 a starting value; the headless sim (§13) tunes them. Numbers live in code in
 one data module (`rules/data/`), so tuning is a data edit, never a rule edit.
+Why each major mechanic is the way it is: [docs/adr/](adr/README.md) (G01 to
+G11).
 
 ## 1. The idea
 
-**Grow is the core human drive, and the game is built to let it out in
+**Growth is the core human drive, and Interstellar Expansion is built to let it out in
 whatever shape a player wants.** The player is dropped into a solar system and
 builds an empire across it however they see fit: conqueror, trader, builder,
 researcher, or any mix. The solar system is the theatre; the game mechanics
@@ -579,7 +581,7 @@ All rendering is client-side; the server never draws.
 ### The screen
 
 ```
-┌ GROW · ⚡512 +0.25/day  ⛏210 +0.16/day  …  · date ·      Empires  Guide ┐
+┌ INTERSTELLAR EXPANSION · ⚡512 +0.25/day  ⛏210 +0.16/day  …  · date ·      Empires  Guide ┐
 │ Territory ▸│                                          │ Mars North    ✕  │
 │ Military ▾ │        full-screen 3D solar system       │ ⚔ BATTLE  0:12   │
 │  Armies    │   (zoom from the whole system to a       │ you  ███████░ 7  │
@@ -891,12 +893,12 @@ of short sessions, not a continuous loop.
 | Player | What it is | Used for |
 |---|---|---|
 | **Scripted bots** | Fixed strategies: Expander (claims aggressively), Builder (Industry-first economy), Trader (leans on the Exchange and offers), Conqueror (military build, invades), Researcher (Science rush), Random | Seeded runs: balance numbers, dominant strategies, deadlocks |
-| **LLM playtesters** | Claude agents driving a text interface: each turn gets `observe` as JSON plus `legalActions`, returns commands and one line of reasoning | Feel: early-game clarity, dead time, whether choices are interesting. Each writes a short playtest report |
-| **Mixed tables** | 1 to 2 LLM players with 4 to 6 bots | Diplomacy, war and trade under pressure |
+| **LLM playtesters** | `/playtest` (build-process.md G): six Haiku agents, one per score path (Territory, Economy, Tech) and stance (aggressive, cooperative), play a live local server through `scripts/play.ts`, each turn reading a compact view and sending commands; a Sonnet analyst watches as admin | Feel, goal alignment, whether rejections teach (P2), dominant paths. Each scores the rubric below with evidence |
+| **Mixed tables** | LLM players alongside the scripted bots' numbers from the same run | Diplomacy, war and trade under pressure |
 
-Agents decide every 15 simulated seconds, or on any event that concerns them
-(completion, arrival, declaration, attack). A **newcomer agent** joins
-mid-world to test the late-join experience.
+Scripted bots decide every 15 simulated seconds. LLM playtesters play in real
+time, so a run is one 20 min stage, capped at 25 min, or shorter if one
+nation passes 50% of the score after minute 10.
 
 ### Balance targets (enforced)
 
@@ -930,7 +932,76 @@ Each LLM playtester scores 1 to 5, with evidence from its game:
 
 ### Loop
 
-1. Run the bot suite and a few LLM playtests.
-2. Read the metrics and reports; pick one problem.
+1. Run the bot suite after any `rules/data/` change; run `/playtest` once
+   after a build run finishes.
+2. Read the metrics and the report; pick the ACT items (build-process.md G's
+   loop rule).
 3. Change one number in `rules/data/`.
 4. Rerun; record before and after in `docs/balance-log.md` with the commit.
+
+## 14. Settled calls
+
+Calls made during the build where this document was silent, kept here so
+the ledger stays short. Each is in force; numbers are in `rules/data/` and
+sim-tunable. Revisit through `comp4020-update` like any other design change.
+
+D4: a stage's base score is taken at its end,
+before the next modifier applies, so the boost counts as gain for all
+alike. A rules version change at boot closes the world rather than patch
+old snapshots. Stage length 20 min, ranking by gain, and
+allies keep their own wars, all chosen by the user. Stage modifiers and
+their numbers are first guesses for the sim to tune. "Combine forces" =
+one side per orbit and per ground battle, losses shared in proportion.
+Sanctions block player trade only, not the Exchange or Envoys. Reset ends
+the world with no winner; names and colours carry over. The admin
+password is hardcoded at the user's request. Code keeps the `Season` and
+`seasons` names for the world. D3: "safe cooldown" = protection, both new and
+respawned nations; the ×2 boost stays 5 min. "Battle going on" = ground
+combat only; space combat stays instant with its orbit flash. Battle speed
+0.025/s is a first guess so a typical fight lasts 15 to 30 s. Marches leave
+`PrivateState` for `VisibleWorld` so rivals see Armies coming. Research
+dropdown shows each ladder's next rung; the full tree stays an overlay.
+"A little more expensive" alone can't hold a 5 min floor (the Exchange
+converts starting Energy into Alloys), so the Spaceport's build time is
+the floor and its cost makes a Foundry worth building first. With
+Earth-only starts, a full Earth means no new joins or respawns until a
+start region frees up (rare: 24 start regions, at most 24 nations).
+E2: Psyche and Ceres stay procedural, no
+usable global albedo map; Titania, Oberon and Triton gaps are filled from
+mirrors and column blends and look smeared up close; Triton's map keeps
+USGS's own fill; GPU memory with Earth focused is ~175 MB by arithmetic,
+not measured; borderline countries assigned in `EARTH_MEMBERS`; Triton
+feature coordinates approximate. D2: the user's "garrison" building = the Spaceport;
+"upgrade" = Power Plant modes, other buildings upgrade via Industry rungs;
+single-slot produce/consume = the region's flows for that type ÷ its count.
+Numbers missing from `game-design.md`, all in
+`rules/data/`, sim-tunable):
+- Envoy upkeep 3 E/min (`economy.ts`).
+- Research takes 15 s × rung after paying its cost (`tech.ts`).
+- Trade offers expire after 5 min (`victory.ts`).
+- Launch to a Terrestrial body costs 10 E/mass, like Cislunar (`military.ts`).
+- Torch Ships' "almost none" window penalty = coefficient 0.2 (`tech.ts`).
+- Tech bonuses stack additively (`tech.ts`).
+- Colour clash = RGB distance < 60 (`victory.ts`).
+- Cancelling a build or research refunds in full (only demolish is 50%).
+- "Late join" boost goes to anyone joining 5+ min into the season.
+- Launching needs no Spaceport at the origin, only ships in orbit there.
+- Armies launched off a body come from your garrisons there, in region-id
+  order.
+- A march onto a region no longer valid on arrival returns home (or is lost
+  if home fell).
+- Combat with 3+ nations in one orbit resolves pairwise, lowest owner ids
+  first. Army cargo has no space strength.
+- A capital moves to the remaining region with the most buildings, then
+  slots, then lowest id. A conquered region's build queue is lost.
+- Off-Earth trades need no Freighter trip modelled: the sender must own
+  enough Freighters for the goods (500 each), and delivery takes the
+  capital-to-capital Hohmann time.
+- The Earth Exchange settles instantly.
+- An Envoy recalls when its owner's Energy stock runs dry.
+- Sim "dead time" counts decision points where no build, research, train,
+  ship, launch, colonise, invade, march, war, Envoy or trade-accept is legal.
+- A nation choosing its start sees Earth start-region owners (documented).
+- Respawn resets stocks to the starting kit.
+- Asteroid J2000 longitudes are approximate (`map.ts`). Off-Earth region
+  names are IAU features; E2 replaces invented ones and their placement.

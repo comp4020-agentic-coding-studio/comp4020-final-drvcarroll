@@ -2,7 +2,8 @@
 
 Everything about the backend: stack, storage, real-time sync, the
 server↔client message contract (§14), rendering budget, accounts. Mechanics
-live in [game-design.md](game-design.md).
+live in [game-design.md](game-design.md). Why each decision was made, the
+options weighed and what it costs: [docs/adr/](adr/README.md) (S01 to S10).
 
 ## 1. Constraints that shape everything
 
@@ -392,19 +393,40 @@ game-design.md §11; the Guide is a client overlay, not a route.
   the snapshot, replay, listen on `0.0.0.0:$PORT`.
 - `/` answers within a second of boot, so CI and Fly's health check pass.
 
-## 13. What `spec/` checks against the running app
+## 13. Every claim and its check
 
-| Promise | Check |
-|---|---|
-| Real-time | Two socket clients; a command from one reaches the other within 1 s |
-| Persists | A command, then a fresh login and connect, sees it |
-| Accounts | Sign-up, login, wrong password rejected, duplicate username rejected |
-| Isolation | A client never receives another nation's stocks or offers |
-| Fog of war | A client never receives fleet, building or ownership data for a region whose body it has no sensor on and whose owner it has no Envoy on; an Envoy never reveals buildings |
-| No negative stocks | Spend-more-than-you-have is rejected with a reason |
-| Idempotent commands | The same `clientCmdId` twice applies once |
-| Every rejection explains itself | Every rejected command carries a human-readable reason |
-| README | Shipped invariant |
+Each promise this document makes names the check behind it. **Enforced**
+rows name a test; Measured rows live in `docs/measurements.md`, Judged rows
+in `docs/checks.md`. A row marked **owed** has no check yet and is Stage H's
+work (build-process.md); a claim that can't be checked is reworded, not
+left standing. Why each decision was made is in `docs/adr/`.
+
+| Promise | Kind | Check |
+|---|---|---|
+| README at `/readme/`, `/` answers | Enforced | `spec/invariants.test.ts` (shipped) |
+| Real-time: a command reaches other clients < 1 s | Enforced | `spec/game.test.ts` "delivers one client's command to another within 1 s"; `server/server.test.ts` "is multi-user and real-time" |
+| Persists: across a fresh login and a restart | Enforced | `spec/game.test.ts` "shows a command after a fresh login and connect"; `server/server.test.ts` "persists across a restart" |
+| Accounts: sign-up, wrong password, duplicate name, 4001 without a session | Enforced | `spec/game.test.ts` "signs up, logs in…"; `server/server.test.ts` "rejects wrong passwords…" |
+| Isolation: no other nation's stocks or offers | Enforced | `spec/game.test.ts` "never sends another nation's private state" |
+| Fog of war (§6) | Enforced | `spec/game.test.ts` "sends nothing about regions on bodies it has no sensor on"; `rules/observe.test.ts` |
+| No negative stocks; every rejection has a reason; repeated id applies once | Enforced | `spec/game.test.ts` "rejects overspending…"; `server/server.test.ts` "applies a repeated client id once…" |
+| Replay is deterministic (S5) | Enforced | `rules/apply.test.ts`; `rules/alliance.test.ts` "replay through alliances, sanctions and a stage change" |
+| Contention: same-tick claims, first wins, second `TAKEN` (§5, S03) | Enforced | **owed** |
+| 10 commands per client per tick, then `RATE_LIMIT` (§14.3) | Enforced | **owed** |
+| Who may change what: `NOT_OWNER` on another's region, others' fleets and offers refused (S07) | Enforced | **owed** |
+| Admin routes 404 to others; reset kicks with 4004, keeps accounts | Enforced | `server/server.test.ts` "is 404 for others…"; stream and page **owed** |
+| WebSocket `Origin` checked; expired session 4002 (§9, §14.3) | Enforced | **owed** |
+| Login rate limit 5 per name, 20 per IP, then 429 (§9) | Enforced | **owed** |
+| Cookie `HttpOnly; Secure; SameSite=Lax`; only token hashes and scrypt hashes stored (§9) | Enforced | **owed** |
+| One JSON log line per action with its user; never a password or token (§11) | Enforced | `server/server.test.ts` "writes one JSON line per action…"; secrets and login/logout lines **owed** |
+| Loop stops when the last socket closes (S2) | Enforced | **owed** (logged by `pnpm load` only) |
+| The world keeps going with nobody connected (§5) | Enforced | `server/server.test.ts` "keeps the world going while nobody is connected" |
+| Message sizes: quiet 500 B, busy 3 KB, welcome 60 KB (S3) | Measured | `docs/measurements.md`; a spec bound **owed** |
+| Latency, tick time, RSS, append, boot (S1, S2, S4, S5) | Measured | `docs/measurements.md` (`pnpm load`) |
+| `rules/` is pure: no I/O, clock or randomness (S08) | Enforced | **owed** (a source scan) |
+| Reconnect restores the view < 3 s; no optimistic UI (§6, P9) | Enforced | **owed** (e2e) |
+| A world's story from logs alone (S7) | Judged | `docs/checks.md` S7 |
+| Frame rate and GPU memory (§8) | Judged | `docs/checks.md` P8 |
 
 ## 14. Message contract
 
