@@ -1,6 +1,6 @@
 // game-design.md §13: scripted bot archetypes. Each scores legalActions
 // against what observe shows it, the same view a client gets.
-import { BODIES, BUILDINGS, REGIONS, UNITS, type Goods, type Ladder, type Resource } from "../rules/data/index.ts";
+import { ADJACENT, BODIES, BUILDINGS, REGIONS, UNITS, type Goods, type Ladder, type Resource } from "../rules/data/index.ts";
 import type { Command, Id, Ms, PrivateState, VisibleWorld } from "../rules/index.ts";
 
 export const ARCHETYPES = ["expander", "builder", "trader", "conqueror", "researcher", "random"] as const;
@@ -88,7 +88,8 @@ function score(w: Weights, c: Command, x: Ctx): number {
       return (c.building === "lab" ? w.lab : Math.max(w.colonise, w.military) - 1) - 1 + Math.min(1, stock(res) / 500);
     }
     case "setMode": return c.mode === "fusion" ? 3 : c.mode === "fission" ? 2 : 0;
-    case "train": return armies < w.armyTarget && stock("Mt") >= 20 ? 4 : 0; // keep a Colony Ship's Materiel
+    // A Conqueror trains with any Materiel; others keep a Colony Ship's worth.
+    case "train": return armies < w.armyTarget && stock("Mt") >= (w.attack ? 10 : 20) ? (w.attack ? 6 : 4) : 0;
     case "march": {
       const to = x.world.regions.find((r) => r.id === c.to);
       if (!to?.owner) return w.expand;
@@ -110,7 +111,10 @@ function score(w: Weights, c: Command, x: Ctx): number {
     case "declareWar": {
       if (!w.attack || x.world.wars.some((v) => v.a === x.id || v.b === x.id)) return 0;
       const theirs = mine.length && x.world.regions.filter((r) => r.owner === c.nation).length;
-      return armies >= 6 ? 3 + (theirs ? 2 / theirs : 0) : 0;
+      // ADR G12: a border region of theirs weaker than our whole garrison.
+      const weak = x.world.regions.some((r) => r.owner === c.nation
+        && mine.some((m) => (ADJACENT[m.id] ?? []).includes(r.id)) && (r.armies ?? 0) < armies);
+      return armies >= 4 && weak ? 3 + (theirs ? 2 / theirs : 0) : 0;
     }
     case "offerPeace": case "acceptPeace": return w.attack ? 0 : 3;
     case "sendEnvoy": return w.envoy;
