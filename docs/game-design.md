@@ -430,7 +430,7 @@ everyone plays.
 |---|---|---|
 | Territory | Regions, body control | 5 per region, +20 per whole body |
 | Economy | Total production /min across stocks | 1 per 5 |
-| Tech | Rungs held | 1 per rung × rung number |
+| Tech | Rungs held | `SCORE.techPer` per rung × rung number (1 now; tuned in balance-log.md Loop 5) |
 
 A nation's **score** is the sum, uncapped, shown live in Empires.
 
@@ -703,7 +703,10 @@ For a **region you hold**:
    Clicking a built tile opens its actions:
    - **Replace:** pick another building for this slot; it demolishes (50%
      back) and queues the new one in the same slot, as one command, refused
-     with a reason if the new one can't be afforded after the refund.
+     with a reason if the new one can't be afforded after the refund. The
+     picker names any income it takes to zero ("Removes your only Lab:
+     Research 0/min"). On a full start region, Replace is the first build:
+     it counts for P1's 30 s.
    - **Upgrade:** Power Plant mode (Solar, Fission, Fusion). Other buildings
      upgrade through their Industry rung, so the button is disabled and says
      which rung (P2).
@@ -736,7 +739,8 @@ do to it:
   the war is active.
 
 A **body** lists its regions and the fleets in its orbit. A **fleet** shows
-its units and the launch planner.
+its units and the launch planner; a fleet in orbit with a Colony Ship lists
+the body's free regions, each with a Colonise button.
 
 #### News ticker (bottom)
 
@@ -999,8 +1003,13 @@ Numbers missing from `game-design.md`, all in
   capital-to-capital Hohmann time.
 - The Earth Exchange settles instantly.
 - An Envoy recalls when its owner's Energy stock runs dry.
-- Sim "dead time" counts decision points where no build, research, train,
-  ship, launch, colonise, invade, march, war, Envoy or trade-accept is legal.
+- Sim "dead time" counts decision points where no affordable build,
+  replace, research, train, ship, launch, colonise, invade or Envoy is
+  legal. March, war and trade-accept no longer count: the first `/playtest`
+  had 5 of 6 players over 20% dead while the old measure said 0%.
+- Owning any Earth region shows every Earth region's owner and Armies
+  (§11, P5): seeing rival counts across Earth is intended. A region with 0
+  Armies shows no count.
 - A nation choosing its start sees Earth start-region owners (documented).
 - Respawn resets stocks to the starting kit.
 - Asteroid J2000 longitudes are approximate (`map.ts`). Off-Earth region

@@ -614,8 +614,10 @@ interface War { id: Id; a: Id; b: Id; declaredAt: Ms; activeAt: Ms; peaceFrom?: 
 // game-design.md §7: counts at `at`; the client draws them to endsAt with
 // rules' battleCounts(battle, now), the same analytic solution the server uses
 interface Battle {
-  region: Id; attacker: Id; defender: Id; at: Ms; endsAt: Ms;
-  atk: Record<Id, number>; def: Record<Id, number>; // per nation on each side, as of `at`
+  id: Id;                  // the region it is fought on
+  attacker: Id; defender: Id; at: Ms; endsAt: Ms;
+  atk: number; def: number; // side totals, as of `at`
+  atkBy: Record<Id, number>; defBy: Record<Id, number>; // per nation on each side
   home: Record<Id, Id>;    // allied nations' Armies return here after
 }
 
@@ -700,22 +702,26 @@ function; the server's answer is still the one that counts.
 
 | Code | Example `reason` |
 |---|---|
-| `INVALID` | "Unknown building type" |
+| `INVALID` | "Unknown building type"; "Unknown region; free on Luna: r_luna_shackleton (Shackleton), ..."; malformed: "colonise needs fleet and region (ids like r_luna_shackleton)" |
 | `NOT_JOINED` | "Join the world first" |
 | `NOT_OWNER` | "You don't control Mars North" (regions only; see below) |
-| `INSUFFICIENT` | "Needs 20 more Metals" |
+| `INSUFFICIENT` | "Needs 20 more Metals"; when nothing you hold makes it, "Needs 10 more Materiel; Factories make it" |
 | `LOCKED` | "Needs Ion Drives" |
-| `NO_SLOT` | "No free slot in Siberia" |
+| `NO_SLOT` | "No free slot in Siberia; replace a building to use its slot" |
 | `NO_ENVOY_SLOT` | "All your Envoy slots are in use" |
 | `NOT_ADJACENT` | "Canada doesn't border India" |
 | `PROTECTED` | "Nova Terra is protected for 40 more seconds" |
-| `NOT_AT_WAR` | "You aren't at war with Nova Terra" |
+| `NOT_AT_WAR` | "You aren't at war with Nova Terra"; in the activation minute, "War with Nova Terra is active in 42s" |
 | `TAKEN` | "US West was claimed this tick" |
 | `ALLIED` | "You can't declare war on an ally" |
 | `SANCTIONED` | "Your alliance sanctions Nova Terra" |
 | `EARTH_FULL` | "Every Earth start region is held; joining reopens when one frees up" |
 | `SEASON_OVER` | "The world was reset" |
 | `RATE_LIMIT` | "Too many commands; wait a moment" |
+
+Nations are always addressed by their `n_N` id, never a username or bare
+number; a malformed command's reason names the field and the shape it
+wanted, so a client or agent can correct it without docs (P2).
 
 Another nation's fleet or trade offer is `INVALID` "Unknown fleet" or
 "Unknown offer", not `NOT_OWNER`: fleets you can't see and offers not

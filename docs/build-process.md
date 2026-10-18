@@ -305,6 +305,43 @@ items go through `comp4020-update`, then `comp4020-resume`. The loop stops
 when a cycle moves no target, and after two cycles per crit regardless.
 Playability past the targets is not worth marks; the targets are.
 
+### G1. Playtest 1 fixes (2026-10-18 `/playtest`; balance-log.md Loop 5)
+
+The first `/playtest`'s five ACT items. Most are reasons and views, not
+rules: the rules already accept what players couldn't find.
+
+- **Colonise is findable (P2, P6).** A fleet in orbit shows its body's free
+  regions by id and name: in the selection panel's fleet view, in
+  `play.ts look` under the fleet, and in `legalActions`. `colonise` with an
+  unknown region says "Unknown region; free on Luna: r_luna_shackleton
+  (Shackleton), ...". A malformed command names the field and shape it
+  wanted (`server/schema.ts`): "colonise needs fleet and region (ids like
+  r_luna_shackleton)".
+- **Reasons that say what to do (P2, P1).** `NO_SLOT`: "No free slot in
+  Canada; replace a building to use its slot". `INSUFFICIENT` names the
+  source of what's short when nothing you hold makes it ("Needs 10 more
+  Materiel; Factories make it"). `NOT_AT_WAR` during the activation minute:
+  "War with X is active in 42s". Nation fields take the `n_N` id only, and
+  the malformed reason says so; `play.ts help` and `look` list nations as
+  `n_3 "terr_coop empire"`.
+- **Replace says what it costs (P2).** The Replace picker lists any resource
+  whose income it takes to zero ("Removes your only Lab: Research 0/min").
+  `play.ts look` flags a resource with no producer ("Alloys: no Refinery").
+- **Battles name their region.** `play.ts` reads `Battle.id`;
+  system-design.md §14.4 matches `rules/protocol.ts`.
+- **Tech is a path (P3, P6).** The bot suite measures dead time as no
+  affordable economic action (system-design.md §13; game-design.md §14), and
+  the loop tunes `rules/data/` toward researcher and conqueror 10 to 35%.
+  First edits, one at a time: `SCORE.techPer` (Tech points per rung number,
+  now 1), then the start kit's Research (30), then `TECH.costs[0]` (40).
+
+**Exit criteria:** `pnpm sim:test` reports the new dead-time measure; every
+reason above has a test in `rules/` or `spec/`; `pnpm test:e2e` green for
+the fleet view and Replace picker; balance-log.md Loop 5 records before and
+after for each data edit; a second `/playtest` reaches an off-Earth colony
+with at least one player and reports no "Unknown region" or "undefined".
+**Serves:** P1, P2, P3, P6.
+
 ### H. Evidence: a check behind every claim (crit 10 ask)
 
 Every claim in `system-design.md` names its check (system-design.md §13):
@@ -353,6 +390,7 @@ be hit eventually; it just slips to the next one.
 | **Crit 9 — "All at once"** | Week 10 | Real-time fully wired end to end, not just the protocol — the client reflects it live. Stage D's full exit criteria: both viewports, keyboard-only. Stage D2 done (the playtest HUD revision). One documented decision on multi-user contention behaviour (system-design.md §5's ordering rule already is that decision — cite it, don't re-decide it). | **D (full)**, **D2** |
 | **Crit 10 — "Fly by instruments"** | Week 11 | Stage F done: logging, `/admin` live view. Stage E substantially in, E2 and D3 done. **Stage H's authorisation, contention and logging tests green**, and who may see and change what written down with why (`docs/adr/S07`). Deployed, so two people in separate Chrome profiles play from the URL alone while the logs say who did what. | E, **E2**, **F**, **D3**, **H** (auth, contention, logging) |
 | **Target: done** prerequisite | Week 12 | Stage D4 (stages, alliances, admin reset) done, Stage H done, one `/playtest` cycle folded in, before the final pass. | **D4**, **H**, G |
+| **Target: done** fixes | Week 12 | Stage G1 (playtest 1's ACT items), then the second and last `/playtest` cycle. | **G1**, G |
 | **Target: done** | End of week 12 | Self-imposed, ahead of the real deadline (noon Mon 9 Nov 2026) on purpose — a buffer, not a guess at the actual due date. Stage G's numbers in a reasonable place (never "finished" — that's the point of a loop). Final `README.md`/`PROCESS.md` pass, everything deployed and green. | G, polish |
 
 The map is the game from the first client on (goals.md P10): Stage E adds

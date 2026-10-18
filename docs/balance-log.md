@@ -113,3 +113,30 @@ and the late joiner to 14%: Alloys, not the timer, were the bottleneck.
 5 min. Mars 25.6 min (0.6 past the band) and conqueror/researcher win
 rates stay open; D4 replaces season wins with stage wins, so the loop
 reopens there.
+
+## Loop 5, 2026-10-18: first `/playtest` (build-process.md G1)
+
+Six Haiku players, 21.5 min, stage 1, no domination. Live play disagreed
+with the bot suite on three targets.
+
+| Target | Want | Bots | Live (before) |
+|---|---|---|---|
+| Dead time, first 30 min | < 20% | 0% | 5 of 6 players over 20%; 10 to 13 idle min each |
+| First off-Earth colony | 5 to 8 min | 7.3 min | never: 4 of 4 Colony Ships stuck at Luna on "Unknown region" |
+| Thrust Vectoring | ~2 min | 2.3 min | min 4 to 9 (Research 2 to 6/min) |
+| Strategy win rates | each 10 to 35% | trader 58, conqueror 0, researcher 1, builder 28, expander 13 | Tech players 3rd, 5th; top Tech score 5 vs Territory 15 |
+| Snowball at 30 min | < 40% | 32% | 33% at 21 min (met) |
+
+Rubric means: knew what to do 2.7, choices 3.2, fast wins 2.3, waiting 2.0,
+others 3.7. Rejections: INSUFFICIENT 48, INVALID 28, NO_SLOT 10.
+
+**Read:** the colony and dead-time misses are interface, not numbers: the
+rules accept `r_luna_shackleton` but nothing shows it, and the sim counts
+march and war as useful so bots never sit idle. Tech's loss is numbers:
+1 point per rung number against 5 per region. Fix the interface first
+(G1), remeasure dead time, then one data edit at a time:
+`SCORE.techPer`, kit Research, `TECH.costs[0]`.
+
+**Open (LOG):** research ETA in the view; defender strength before an
+attack; launch cost and window in `play.ts`'s launch result; acceptAlly
+on an alliance that never invited you says so plainly.
