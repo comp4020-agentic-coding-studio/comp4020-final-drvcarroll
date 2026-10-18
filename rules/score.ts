@@ -11,7 +11,7 @@ export function score(s: State, nation: Id): Score {
   const prod = economy(s, nation).production;
   const territory = SCORE.perRegion * regions.length + SCORE.perBody * whole;
   const econ = RESOURCES.reduce((a, r) => a + prod[r], 0) / SCORE.economyPer;
-  const tech = s.nations[nation].techs.reduce((a, t) => a + Number(t.split(".")[1]), 0);
+  const tech = SCORE.techPer * s.nations[nation].techs.reduce((a, t) => a + Number(t.split(".")[1]), 0);
   return { territory, economy: econ, tech, total: territory + econ + tech };
 }
 

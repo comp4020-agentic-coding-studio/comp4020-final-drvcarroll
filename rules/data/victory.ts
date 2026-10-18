@@ -11,6 +11,7 @@ export const SCORE = {
   perRegion: 5,
   perBody: 20,
   economyPer: 5, // 1 point per 5 production/min
+  techPer: 1, // points per rung × rung number
   stageRanked: 3, // top N per stage in the hall of fame
 };
 
