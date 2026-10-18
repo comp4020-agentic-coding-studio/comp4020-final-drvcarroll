@@ -90,6 +90,10 @@ describe("ships, launches and colonies (game-design.md §4, §7, §11)", () => {
     addUnits(f, { colonyShip: 1 });
     expect(validate(s, "n_1", { type: "colonise", fleet: f.id, region: "r_luna" }))
       .toMatchObject({ code: "INVALID", reason: expect.stringMatching(/^Unknown region; free on Luna: .*r_luna_shackleton \(Shackleton/) });
+    const home = orbitFleet(s, "n_1", "earth");
+    addUnits(home, { colonyShip: 1 });
+    expect(validate(s, "n_1", { type: "colonise", fleet: home.id, region: "r_x" }))
+      .toMatchObject({ reason: "Colony Ships settle off Earth; launch this fleet to another body first" });
   });
 });
 

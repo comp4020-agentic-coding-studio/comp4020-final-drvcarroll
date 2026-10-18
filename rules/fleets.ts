@@ -99,6 +99,7 @@ export const colonise: Handler<"colonise"> = (s, n, c) => {
   if (!f.units.colonyShip) return no("INVALID", "That fleet has no Colony Ship");
   const r = s.regions[c.region];
   const body = f.at ?? f.transit!.to;
+  if (!r && BODIES[body].zone === "terrestrial") return no("INVALID", "Colony Ships settle off Earth; launch this fleet to another body first");
   if (!r) {
     const free = Object.values(s.regions).filter((g) => REGIONS[g.id].body === body && !g.owner).map((g) => `${g.id} (${regionName(g.id)})`);
     return no("INVALID", `Unknown region; free on ${BODIES[body].name}: ${free.join(", ") || "none"}`);

@@ -141,7 +141,12 @@ function view(c: Conn): string {
     const free = (w.regions ?? []).filter((r: Msg) => r.body === "earth" && !r.owner).map((r: Msg) => r.id);
     L.push(`Not joined. Join with {"type":"join","region":"<id>"}. Free Earth regions: ${free.join(" ")}`);
   } else {
-    const st = Object.entries<Msg>(me.stocks ?? {}).map(([k, s]) => `${RESOURCE_NAMES[k as keyof typeof RESOURCE_NAMES]} ${k} ${r0(s.v)} (${s.rate >= 0 ? "+" : ""}${s.rate.toFixed(1)}/min)`);
+    const built = new Set((w.regions ?? []).filter((r: Msg) => r.owner === me.nation).flatMap((r: Msg) => (r.buildings ?? []).map((b: Msg) => b.type)));
+    const noMaker = (k: string) => {
+      const m = Object.entries(BUILDINGS).find(([, b]) => b.output?.res === k);
+      return m && !built.has(m[0]) ? `, no ${m[1].name}` : "";
+    };
+    const st = Object.entries<Msg>(me.stocks ?? {}).map(([k, s]) => `${RESOURCE_NAMES[k as keyof typeof RESOURCE_NAMES]} ${k} ${r0(s.v)} (${s.rate >= 0 ? "+" : ""}${s.rate.toFixed(1)}/min${noMaker(k)})`);
     L.push(`You: ${me.nation} "${nm(me.nation)}". Efficiency ${me.efficiency}.`);
     L.push(`Stocks: ${st.join(", ")}`);
     const next = Object.values(LADDERS).map((l) => l.find((x) => !me.techs?.includes(x.id))).filter(Boolean)
@@ -159,9 +164,12 @@ function view(c: Conn): string {
     for (const f of fleets) {
       const where = f.at ? `in orbit at ${f.at}` : `to ${f.transit.to}, arrives in ${t(f.transit.arriveAt)}`;
       L.push(`  fleet ${f.id} ${goods(f.units)} ${where}`);
-      if (f.at && f.units.colonyShip) {
-        const free = (w.regions ?? []).filter((r: Msg) => r.body === f.at && !r.owner).map((r: Msg) => `${r.id} (${name(r.id)})`);
-        L.push(`    colonise with {"type":"colonise","fleet":"${f.id}","region":"<id>"}; free: ${free.join(", ") || "none"}`);
+      if (f.at && f.units.colonyShip && BODIES[f.at].zone === "terrestrial") {
+        L.push(`    Colony Ships settle off Earth: launch this fleet to a body first (e.g. luna)`);
+      } else if (f.at && f.units.colonyShip) {
+        const free = (w.regions ?? []).filter((r: Msg) => r.body === f.at && !r.owner).map((r: Msg) => r.id);
+        L.push(`    free to colonise: ${free.map((id: string) => `${id} (${name(id)})`).join(", ") || "none"}`);
+        if (free.length) L.push(`    e.g. {"type":"colonise","fleet":"${f.id}","region":"${free[0]}"}`);
       }
     }
     for (const m of (w.marches ?? []).filter((x: Msg) => x.owner === me.nation)) L.push(`  march ${m.count} Armies ${m.from} -> ${m.to}, arrive in ${t(m.arriveAt)}`);
