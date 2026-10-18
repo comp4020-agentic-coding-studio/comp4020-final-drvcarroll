@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { economy, mods } from "./economy.ts";
+import { ECONOMY } from "./data/index.ts";
 import { addUnits, orbitFleet } from "./fleets.ts";
 import { advanceTo, validate } from "./index.ts";
 import { launchEnergy, travelMs, windowPenalty } from "./orbit.ts";
@@ -56,7 +57,7 @@ describe("ships, launches and colonies (game-design.md §4, §7, §11)", () => {
     s = ok(s, "n_1", { type: "colonise", fleet: inFlight.id, region: "r_luna_shackleton" });
     expect(s.regions.r_luna_shackleton.owner).toBe("n_1");
     expect(Object.keys(s.fleets)).toHaveLength(0);
-    expect(economy(s, "n_1").rate.Mt).toBeCloseTo(-1); // colony upkeep; the Lab was demolished
+    expect(economy(s, "n_1").rate.Mt).toBeCloseTo(ECONOMY.capitalMt - 1); // capital trickle less colony upkeep
   });
 
   it("gives a contested region to the first arrival; the loser waits in orbit", () => {

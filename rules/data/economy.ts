@@ -48,6 +48,7 @@ export const ECONOMY = {
   capPerRegion: 500,
   demolishRefund: 0.5,
   colonyUpkeepMt: 1, // per off-Earth region, per minute
+  capitalMt: 2, // a capital's own Materiel per minute (ADR G12)
   colonyShortfallOutput: 0.5,
   fusionBodyBonus: 0.5,
   boostMultiplier: 2,

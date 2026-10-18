@@ -21,7 +21,7 @@ export function perDay(perMin: number): string {
   return signed(d, Math.abs(d) < 1 ? 2 : 1);
 }
 
-const UPKEEP: Record<string, string> = { colony: "Colony upkeep", armies: "Armies", fleets: "Fleets", envoys: "Envoys" };
+const UPKEEP: Record<string, string> = { capital: "Capital", colony: "Colony upkeep", armies: "Armies", fleets: "Fleets", envoys: "Envoys" };
 export const sourceName = (s: Source) => UPKEEP[s] ?? BUILDINGS[s as Building].name;
 
 export function dur(ms: Ms): string {

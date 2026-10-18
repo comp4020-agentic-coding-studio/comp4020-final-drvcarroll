@@ -48,7 +48,7 @@ export function controlsBody(s: State, nation: Id, body: string): boolean {
 }
 
 // What a flow is, for the HUD's breakdowns: a building type, or upkeep.
-export type Source = Building | "colony" | "armies" | "fleets" | "envoys";
+export type Source = Building | "capital" | "colony" | "armies" | "fleets" | "envoys";
 
 interface Flow {
   out?: { res: Resource; amt: number };
@@ -105,6 +105,7 @@ function flows(s: State, n: NationState): Flow[] {
       if (f.out) f.out.amt *= boost;
       out.push(f);
     }
+    if (r.id === n.capital) out.push({ out: { res: "Mt", amt: ECONOMY.capitalMt * boost }, needs: {}, offEarth: false, region: r.id, source: "capital" });
     if (!isEarth(r.id)) {
       const mt = ECONOMY.colonyUpkeepMt * Math.max(0, 1 + m.colonyUpkeep);
       out.push({ needs: { Mt: mt }, offEarth: true, region: r.id, source: "colony" });

@@ -103,6 +103,22 @@ describe("ground combat and conquest (game-design.md §7)", () => {
     expect(s.regions.r_us_west).toMatchObject({ owner: "n_1", armies: survivors(20, 200, 150) });
   });
 
+  it("carries off a share of the loser's stocks, scaled by regions held (ADR G12)", () => {
+    let s = war("r_canada", "r_us_west");
+    s.regions.r_us_east.owner = "n_2"; // the loser holds two regions
+    s.regions.r_canada.armies = 20;
+    s = ok(s, "n_1", { type: "march", from: "r_canada", to: "r_us_west", count: 20 });
+    s.regions.r_us_west.armies = 1;
+    s = advanceTo(s, s.t + 30 * S);
+    const before = { a: { ...s.nations.n_1.stocks }, b: { ...s.nations.n_2.stocks } };
+    s = advanceTo(s, s.battles.r_us_west.endsAt);
+    const moved = before.b.M - s.nations.n_2.stocks.M;
+    expect(moved).toBeGreaterThan(before.b.M * 0.125 - 2);
+    expect(moved).toBeLessThan(before.b.M * 0.125 + 2);
+    expect(s.nations.n_1.stocks.M - before.a.M).toBeCloseTo(moved, 0);
+    expect(s.news.at(-1)?.text).toMatch(/carrying off .*M/);
+  });
+
   it("extends a battle with reinforcements and turns back a second attacker", () => {
     let s = war("r_canada", "r_us_west", "r_us_east");
     s = ok(s, "n_3", { type: "declareWar", nation: "n_2" });

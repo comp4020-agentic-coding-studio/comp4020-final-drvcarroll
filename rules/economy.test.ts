@@ -47,7 +47,7 @@ describe("rates and the analytic stock model (game-design.md §3)", () => {
     expect(rate.M).toBeCloseTo(10 * 1.3);
     expect(rate.V).toBeCloseTo(4 * 1.3);
     expect(rate.R).toBeCloseTo(5);
-    expect(rate.Mt).toBeCloseTo(0);
+    expect(rate.Mt).toBeCloseTo(ECONOMY.capitalMt); // the capital's trickle (ADR G12)
     const later = settled(advanceTo(s, T0 + 60 * S));
     expect(later.nations.n_1.stocks.M).toBeCloseTo(200 + 13);
   });

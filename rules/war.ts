@@ -1,7 +1,7 @@
 // game-design.md §7: war rules, Lanchester combat, invasion, conquest.
-import { ADJACENT, BODIES, MILITARY, REGIONS, TRAVEL, UNITS, WAR, type Unit } from "./data/index.ts";
+import { ADJACENT, BODIES, MILITARY, REGIONS, RESOURCES, TRAVEL, UNITS, WAR, type Goods, type Unit } from "./data/index.ts";
 import { isInt, isRejection, no, ownRegion, regionName, type Handler } from "./check.ts";
-import { isEarth, mods, owned, slotsOf } from "./economy.ts";
+import { capOf, isEarth, mods, owned, slotsOf } from "./economy.ts";
 import { allied } from "./alliance.ts";
 import { claim, removeUnits } from "./fleets.ts";
 import type { Battle, Id, Ms, Rejection } from "./protocol.ts";
@@ -191,12 +191,29 @@ const otherAttacker = (s: State, nation: Id, region: Id) => {
   return b && !sideOf(s, b, nation) ? no("INVALID", `${s.nations[b.attacker].name} is already attacking ${regionName(region)}`) : null;
 };
 
+// ADR G12: the conqueror carries off a share of the loser's stocks.
+function plunder(s: State, from: NationState, to: NationState): Goods {
+  const share = MILITARY.plunder / Math.max(1, owned(s, from.id).length);
+  const cap = capOf(s, to.id);
+  const got: Goods = {};
+  for (const r of RESOURCES) {
+    const take = Math.min(from.stocks[r] * share, Math.max(0, cap - to.stocks[r]));
+    if (take < 1) continue;
+    from.stocks[r] -= take;
+    to.stocks[r] += take;
+    got[r] = Math.floor(take);
+  }
+  return got;
+}
+
 function conquer(s: State, nation: Id, region: Id, armies: number): void {
   const r = s.regions[region];
   const prev = s.nations[r.owner!];
+  const got = plunder(s, prev, s.nations[nation]); // before the region changes hands
   Object.assign(r, { owner: nation, armies, queue: [] });
   touch(r);
-  news(s, "conquest", `${s.nations[nation].name} takes ${regionName(region)} from ${prev.name}`, [nation, prev.id, region]);
+  const haul = Object.entries(got).map(([k, v]) => `${v} ${k}`).join(", ");
+  news(s, "conquest", `${s.nations[nation].name} takes ${regionName(region)} from ${prev.name}${haul ? `, carrying off ${haul}` : ""}`, [nation, prev.id, region]);
   if (prev.capital !== region) return;
   const left = owned(s, prev.id).sort((a, b) =>
     b.buildings.length - a.buildings.length || slotsOf(s, b.id) - slotsOf(s, a.id) || (a.id < b.id ? -1 : 1));
