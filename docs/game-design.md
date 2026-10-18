@@ -430,7 +430,7 @@ everyone plays.
 |---|---|---|
 | Territory | Regions, body control | 5 per region, +20 per whole body |
 | Economy | Total production /min across stocks | 1 per 5 |
-| Tech | Rungs held | `SCORE.techPer` per rung × rung number (1 now; tuned in balance-log.md Loop 5) |
+| Tech | Rungs held | 6 per rung × rung number (`SCORE.techPer`, balance-log.md Loop 5) |
 
 A nation's **score** is the sum, uncapped, shown live in Empires.
 

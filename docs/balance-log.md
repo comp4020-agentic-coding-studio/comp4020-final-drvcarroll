@@ -140,3 +140,18 @@ march and war as useful so bots never sit idle. Tech's loss is numbers:
 **Open (LOG):** research ETA in the view; defender strength before an
 attack; launch cost and window in `play.ts`'s launch result; acceptAlly
 on an alliance that never invited you says so plainly.
+
+**G1 data edits (24 seasons each):**
+
+| Change | Why | Effect |
+|---|---|---|
+| Sim: dead time counts only affordable build, replace-to-new-type, research, train, ship, colonise, invade, Envoy | March, war, launch, trade-accept were nearly always legal | dead time 0% → 10% (met, now honest) |
+| `SCORE.techPer` 1 → 2 | A full ladder scored 21 against 5 per region | researcher 1 → 3%, trader 58 → 51% |
+| → 4 | | researcher 8%, trader 47% |
+| → 6 (kept) | | researcher 17% (met), expander 10%, builder 28%, trader 46%, conqueror 0%; snowball 29%, late joiner 33%, sweeps 7/24 |
+
+**After:** researcher in band. Open: trader 46% and conqueror 0% (bot
+play, as in Loop 3: bots rarely time wars), Mars 25.9 min, Voidcraft 2 95%.
+Kit Research and `TECH.costs[0]` left alone: bots already reach Thrust
+Vectoring at 2.3 min; the live 4 to 9 min was players idling without a
+research ETA, a LOG item.
