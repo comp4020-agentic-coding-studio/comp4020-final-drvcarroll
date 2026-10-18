@@ -220,3 +220,20 @@ bolder bot. Recheck trader and Mars after.
 bolder Conquerors pick on the weakest), Voidcraft 2 at 91%, trader 39%.
 No single number fixes all four; next loop should start with the late
 joiner's protection or boost (ADR G11).
+
+## Loop 8, 2026-10-18: third `/playtest` (after G2)
+
+21.1 min, stage 1, terr_war won, leader share 20% (was 31%). Totals:
+terr_war 51, tech_war 47, tech_coop 45, econ_coop 44, terr_coop 36,
+econ_war 28. Spread is the tightest of the three runs; Tech players were
+2nd and 3rd. 3 off-Earth colonies, 2 wars, 7 trades, 1 alliance, 4 attacks.
+No conquest happened (every attack was held or the region was free), so
+plunder is untested live. Rubric means: knew 3.0, choices 3.3, fast wins
+2.7, waiting 2.0, others 3.3.
+
+Repeated, open (Loop 6 items, now 3+ players each): no time-to-afford on
+research; Replace gives no warning in `play.ts` when it removes an only
+producer (5 of 6 players, the top confusion); "no Spaceport" and "Only an
+alliance can sanction" name no next step. New: NO_SLOT doesn't say a
+queued build holds the slot; `play.ts` and its rules don't say that
+owning an Earth region shows all of Earth, so 2 players called it a leak.
