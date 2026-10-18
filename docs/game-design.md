@@ -175,7 +175,9 @@ off-Earth regions need a Colony Ship.
 
 ## 5. Resources (6)
 
-One resource per building; no building has two outputs.
+One resource per building; no building has two outputs. One exception: a
+capital makes 2 Materiel/min on its own, so every nation can train Armies
+from the start (ADR G12).
 
 | Resource | Kind | Building | Role |
 |---|---|---|---|
@@ -226,7 +228,7 @@ upkeep.
 
 **Starting kit:** capital with Power Plant, Mine, Refinery, Lab (as many as
 the region has slots); 2 Armies; 200 M, 100 V, 60 A, 50 Materiel, 30 R,
-500 E. Every start is on Earth (§11).
+500 E. The capital adds 2 Materiel/min. Every start is on Earth (§11).
 
 ## 7. Military
 
@@ -318,6 +320,7 @@ the same square law played out as it happens, so a player can watch it:
 | Declaration | Public; active 1 min later |
 | Protection | New and respawned nations: untouchable for 1 min, cannot declare |
 | Conquest | Full; capitals can fall. Capital moves to largest remaining region |
+| Plunder | Taking a region moves 25% of the loser's stock of every resource, times that region's share of the loser's regions, to the conqueror (up to its cap). Taking a last region takes 25% of everything (ADR G12) |
 | Elimination | Losing every region. Respawn on a free Earth start region, with ×2 production for 5 min; while none is free, respawn waits |
 | Peace | Both sides agree; joining an alliance forces it between members |
 

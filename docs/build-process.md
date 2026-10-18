@@ -342,6 +342,25 @@ after for each data edit; a second `/playtest` reaches an off-Earth colony
 with at least one player and reports no "Unknown region" or "undefined".
 **Serves:** P1, P2, P3, P6.
 
+### G2. Conquest pays (ADR G12; balance-log.md Loop 7)
+
+The Conqueror wins 0% of stages: no Materiel income at the start, and a
+captured region pays little. User-chosen fix:
+
+- `ECONOMY.capitalMt` = 2: a capital makes 2 Materiel/min (rules/economy.ts
+  production, shown in the capital's flows).
+- `MILITARY.plunder` = 0.25: conquest moves the loser's stocks × 0.25 × the
+  region's share of the loser's regions to the conqueror, capped; the
+  conquest news line names the haul.
+- Sim Conqueror bot: train with any Materiel on hand; declare war at 4
+  Armies on a neighbour holding fewer.
+
+**Exit criteria:** rules tests for the trickle and for plunder (share,
+cap, last region); `pnpm sim:test` with the conqueror at 10 to 35% of
+stage wins, or each step's numbers logged if not; snowball < 40% and
+stage sweeps ≤ 50% still met; trader and Mars rechecked and logged.
+**Serves:** P3, P6.
+
 ### H. Evidence: a check behind every claim (crit 10 ask)
 
 Every claim in `system-design.md` names its check (system-design.md §13):
@@ -390,7 +409,7 @@ be hit eventually; it just slips to the next one.
 | **Crit 9 — "All at once"** | Week 10 | Real-time fully wired end to end, not just the protocol — the client reflects it live. Stage D's full exit criteria: both viewports, keyboard-only. Stage D2 done (the playtest HUD revision). One documented decision on multi-user contention behaviour (system-design.md §5's ordering rule already is that decision — cite it, don't re-decide it). | **D (full)**, **D2** |
 | **Crit 10 — "Fly by instruments"** | Week 11 | Stage F done: logging, `/admin` live view. Stage E substantially in, E2 and D3 done. **Stage H's authorisation, contention and logging tests green**, and who may see and change what written down with why (`docs/adr/S07`). Deployed, so two people in separate Chrome profiles play from the URL alone while the logs say who did what. | E, **E2**, **F**, **D3**, **H** (auth, contention, logging) |
 | **Target: done** prerequisite | Week 12 | Stage D4 (stages, alliances, admin reset) done, Stage H done, one `/playtest` cycle folded in, before the final pass. | **D4**, **H**, G |
-| **Target: done** fixes | Week 12 | Stage G1 (playtest 1's ACT items), then the second and last `/playtest` cycle. | **G1**, G |
+| **Target: done** fixes | Week 12 | Stage G1 (playtest 1's ACT items), then the second and last `/playtest` cycle. Stage G2 (conquest pays). | **G1**, **G2**, G |
 | **Target: done** | End of week 12 | Self-imposed, ahead of the real deadline (noon Mon 9 Nov 2026) on purpose — a buffer, not a guess at the actual due date. Stage G's numbers in a reasonable place (never "finished" — that's the point of a loop). Final `README.md`/`PROCESS.md` pass, everything deployed and green. | G, polish |
 
 The map is the game from the first client on (goals.md P10): Stage E adds

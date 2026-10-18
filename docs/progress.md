@@ -10,14 +10,17 @@ drain and pending-command tests time out in the full run and pass alone
 The harness is in the repo: `.claude/skills/` (comp4020_resume,
 comp4020_update, playtest), `.claude/agents/` (playtester, analyst),
 `scripts/play.ts`. ADRs S01 to S11 and G01 to G11 in `docs/adr/`.
-**Next:** the final README.md/PROCESS.md pass (Target: done, end of week
-12). The `/playtest` loop is spent for this target (two cycles). Its five
-open ACT items are in balance-log.md Loop 6; fold them in with
-`comp4020_update` before the next crit, if time allows.
-**Flagged assumptions:** e2e tests time out under host load in a full run
+**Next:** Stage G2, conquest pays (build-process.md G2; ADR G12;
+game-design.md §5, §6 starting kit, §7 War rules; balance-log.md Loop 7).
+Data edits pending: `ECONOMY.capitalMt` 2 and `MILITARY.plunder` 0.25 (new).
+Then the final README.md/PROCESS.md pass (Target: done, end of week 12).
+Playtest 2's five open items stay in balance-log.md Loop 6.
+**Flagged assumptions:** (G2) plunder 25%, scaled by the region's share
+of the loser's regions, and a 2 Mt/min capital trickle are my numbers for
+the user's "their stockpiles" and "a trickle". e2e tests time out under host load in a full run
 (swiftshader WebGL); each passes alone. Rerun on an idle machine before
 calling e2e green. Settled calls live in game-design.md §14 (incl. G1's:
 Replace is P1's first build, Earth-wide Army counts are intended vision);
 foreign fleets/offers stay `INVALID` (§14.5, S07); a vision-opening tick
 gets the welcome budget (S11).
-**Last updated:** 2026-10-18 (G1 met, playtest 2 logged).
+**Last updated:** 2026-10-18 (G2 scoped: conquest pays).

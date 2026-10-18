@@ -189,3 +189,19 @@ spent):**
 
 **LOG:** defender count before an attack; rival Army counts that fade;
 acceptAlly logs a null target; INSUFFICIENT log lines carry no shortfall.
+
+## Loop 7, 2026-10-18: the Conqueror (build-process.md G2, ADR G12)
+
+Before: conqueror 0% of stage wins (target 10 to 35%), trader 46%, Mars
+25.9 min. Probes, all reverted:
+
+| Change | Conqueror |
+|---|---|
+| Army 10 → 7 Mt | 0% |
+| Army 10 → 5 Mt | 1% |
+| Garrison bonus +50% → +25% | 0% |
+
+Traced 8 seeds: in 4 the conqueror never grows (1 region, peak 6 Armies,
+no Materiel income); in 4 it scores 125 to 325. The cause is income, not
+price. G2 adds a capital Materiel trickle, plunder on conquest, and a
+bolder bot. Recheck trader and Mars after.

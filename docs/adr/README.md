@@ -39,3 +39,4 @@ sync, security); the G-series covers game mechanics. Goal ids refer to
 | [G09](G09-alliances-and-sanctions.md) | Alliances and sanctions | P3, P6 |
 | [G10](G10-map-is-the-screen.md) | The map is the main screen | P10, P1, P2, P7 |
 | [G11](G11-protection-respawn-late-join.md) | New-player protection, respawn and the late-join boost | P6, P1, P3 |
+| [G12](G12-conquest-pays.md) | Conquest pays: plunder and a capital Materiel trickle | P3, P6 |
