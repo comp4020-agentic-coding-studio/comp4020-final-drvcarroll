@@ -13,9 +13,12 @@ export const T0 = 1_800_000_000_000;
 const MIN = 60_000;
 const DECISION_MS = 15_000; // agents decide every 15 simulated seconds (§13)
 
-const USEFUL = new Set<Command["type"]>([
-  "build", "research", "train", "buildShip", "launch", "colonise", "invade", "march", "declareWar", "sendEnvoy", "acceptTrade",
-]);
+// game-design.md §14: a decision is live only if an affordable economic step
+// exists. March, war, launch and trade-accept are nearly always legal, so they
+// hid the idle time the first /playtest felt; replace counts only for a new type.
+const USEFUL = new Set<Command["type"]>(["build", "research", "train", "buildShip", "colonise", "invade", "sendEnvoy"]);
+const useful = (s: State, nation: string, c: Command) => USEFUL.has(c.type)
+  || (c.type === "replace" && !owned(s, nation).some((r) => r.buildings.some((b) => b.type === c.building)));
 
 export function rng(seed: number): () => number {
   return () => {
@@ -141,7 +144,7 @@ export function run(o: RunOptions): RunResult {
       const legal = legalActions(view, nm.id);
       if (now < 30) {
         nm.decisions++;
-        if (!legal.some((c) => USEFUL.has(c.type))) nm.dead++;
+        if (!legal.some((c) => useful(view, nm.id, c))) nm.dead++;
       }
       const { world, you } = observe(view, nm.id);
       const ctx = { id: nm.id, t: s.t, start: T0, world, you: you!, legal, wanted: wanted(view, nm.id), rng: r };
