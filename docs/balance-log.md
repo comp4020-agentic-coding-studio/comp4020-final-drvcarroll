@@ -205,3 +205,18 @@ Traced 8 seeds: in 4 the conqueror never grows (1 region, peak 6 Armies,
 no Materiel income); in 4 it scores 125 to 325. The cause is income, not
 price. G2 adds a capital Materiel trickle, plunder on conquest, and a
 bolder bot. Recheck trader and Mars after.
+
+**G2 built (24 seasons each):**
+
+| Change | Conqueror | Others |
+|---|---|---|
+| All three: trickle 2, plunder 0.25, bolder bot (kept) | 0 → 10% (met) | expander 17, builder 29, trader 46 → 39, researcher 17 → 6; Mars 25.9 → 22.5 min (met); dead time 4%; snowball 30%; late joiner 33 → 15%; Voidcraft 2 91% |
+| Probe: plunder 0 | 8% | late joiner 17%: plunder is not what hurts it |
+| Probe: plunder 0.15 | 7% | |
+| Probe: trickle 1 Mt/min | 7% | researcher 11%, trader 31%, Mars 24.4 |
+
+**After:** conqueror and Mars newly met; trader down. Open: researcher
+6% (more Armies everywhere crowd out Labs), late joiner 15% (target 25%;
+bolder Conquerors pick on the weakest), Voidcraft 2 at 91%, trader 39%.
+No single number fixes all four; next loop should start with the late
+joiner's protection or boost (ADR G11).
