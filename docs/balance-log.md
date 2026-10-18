@@ -155,3 +155,37 @@ play, as in Loop 3: bots rarely time wars), Mars 25.9 min, Voidcraft 2 95%.
 Kit Research and `TECH.costs[0]` left alone: bots already reach Thrust
 Vectoring at 2.3 min; the live 4 to 9 min was players idling without a
 research ETA, a LOG item.
+
+## Loop 6, 2026-10-18: second `/playtest` (G1 exit; last cycle for Target: done)
+
+20.1 min, stage 1, terr_war won, leader share 31%. Totals vs playtest 1:
+terr_war 71 (37), econ_war 59 (11), tech_coop 43 (13), terr_coop 39 (14),
+tech_war 34 (14), econ_coop 20 (24); Tech totals reflect `techPer` 6.
+
+| Measure | Playtest 1 | Playtest 2 |
+|---|---|---|
+| Off-Earth colonies | 0 | 3 (Shackleton min 7, Tranquillitatis, Tharsis min 19) |
+| "Battle at undefined" | 6 of 6 players | none |
+| Colonise "Unknown region" | 4 players | 1 (a literal `<id>`) |
+| Rubric means | 2.7 / 3.2 / 2.3 / 2.0 / 3.7 | 3.0 / 3.2 / 2.7 / 2.3 / 3.8 |
+| Tech category leader | 5 | 30 (tech_coop) |
+
+G1's exit criteria are met. Fixed after the run: Earth regions listed as
+colonise targets for a ship in Earth orbit (2 players); `look` flags a
+resource with no producer.
+
+**Open for the next crit (ACT in the report; the loop's two cycles are
+spent):**
+1. Research ETA in the view and in research rejections (3 players; live
+   dead time over 20% for 4).
+2. Every rejection names its next step: Materiel names the Exchange; "No
+   Armies aboard" says how to load; "Only an alliance can sanction" says
+   how to form one; "no Spaceport" gives its cost (3 players).
+3. §13 sim misses: trader 46%, conqueror 0%, Mars 25.9 min, Voidcraft 2 95%.
+4. Explain Efficiency, how a stage is won, what a modifier affects, and
+   acceptPeace (2 players each).
+5. `play.ts` warns before a replace removes an only producer, as the client
+   does (3 players).
+
+**LOG:** defender count before an attack; rival Army counts that fade;
+acceptAlly logs a null target; INSUFFICIENT log lines carry no shortfall.
