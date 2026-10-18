@@ -315,8 +315,8 @@ rules: the rules already accept what players couldn't find.
   `play.ts look` under the fleet, and in `legalActions`. `colonise` with an
   unknown region says "Unknown region; free on Luna: r_luna_shackleton
   (Shackleton), ...". A malformed command names the field and shape it
-  wanted (`server/schema.ts`): "colonise needs fleet and region (ids like
-  r_luna_shackleton)".
+  wanted (`server/schema.ts`): "colonise needs fleet (id), region (id);
+  nations are ids like n_3, regions like r_luna_shackleton".
 - **Reasons that say what to do (P2, P1).** `NO_SLOT`: "No free slot in
   Canada; replace a building to use its slot". `INSUFFICIENT` names the
   source of what's short when nothing you hold makes it ("Needs 10 more

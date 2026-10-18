@@ -28,7 +28,7 @@ describe("war rules (game-design.md §7)", () => {
     s = advanceTo(s, T0 + PROTECTED);
     s = ok(s, "n_1", { type: "declareWar", nation: "n_2" });
     expect(validate(s, "n_1", { type: "march", from: "r_canada", to: "r_us_west", count: 1 }))
-      .toMatchObject({ code: "NOT_AT_WAR" });
+      .toMatchObject({ code: "NOT_AT_WAR", reason: expect.stringMatching(/ is active in 60s$/) });
     s = advanceTo(s, s.t + 60 * S);
     expect(validate(s, "n_1", { type: "march", from: "r_canada", to: "r_us_west", count: 1 })).toBeNull();
   });

@@ -1,5 +1,5 @@
 // Shared validation helpers for command handlers.
-import { REGIONS, RESOURCE_NAMES, type Goods } from "./data/index.ts";
+import { BUILDINGS, REGIONS, RESOURCE_NAMES, type Goods } from "./data/index.ts";
 import { canAfford } from "./economy.ts";
 import type { Command, Id, RejectCode, Rejection } from "./protocol.ts";
 import { schedule, touch, type NationState, type QueueItem, type RegionState, type State } from "./state.ts";
@@ -18,9 +18,14 @@ export const regionName = (id: Id) => REGIONS[id].name;
 export const isInt = (x: unknown, min: number, max: number) =>
   Number.isInteger(x) && (x as number) >= min && (x as number) <= max;
 
-export function needs(n: NationState, cost: Goods): Rejection | null {
+// With the world, names what makes the missing resource when you have none (P2).
+export function needs(n: NationState, cost: Goods, s?: State): Rejection | null {
   const r = canAfford(n, cost);
-  return r && no("INSUFFICIENT", `Needs ${Math.ceil(cost[r]! - n.stocks[r])} more ${RESOURCE_NAMES[r]}`);
+  if (!r) return null;
+  const msg = `Needs ${Math.ceil(cost[r]! - n.stocks[r])} more ${RESOURCE_NAMES[r]}`;
+  const maker = Object.values(BUILDINGS).find((b) => b.output?.res === r);
+  const has = s && Object.values(s.regions).some((g) => g.owner === n.id && g.buildings.some((b) => BUILDINGS[b.type].output?.res === r));
+  return no("INSUFFICIENT", s && maker && !has ? `${msg}; a ${maker.name} makes it` : msg);
 }
 
 export function ownRegion(s: State, n: NationState, id: Id): Rejection | RegionState {

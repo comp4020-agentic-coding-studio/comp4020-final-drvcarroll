@@ -83,6 +83,14 @@ describe("ships, launches and colonies (game-design.md §4, §7, §11)", () => {
     expect(validate(s, "n_1", { type: "colonise", fleet: f.id, region: "r_us_west" }))
       .toMatchObject({ reason: "Earth regions are settled by marching an Army in" });
   });
+
+  it("lists the free regions when a colonise target is unknown (P2)", () => {
+    const s = world("r_canada");
+    const f = orbitFleet(s, "n_1", "luna");
+    addUnits(f, { colonyShip: 1 });
+    expect(validate(s, "n_1", { type: "colonise", fleet: f.id, region: "r_luna" }))
+      .toMatchObject({ code: "INVALID", reason: expect.stringMatching(/^Unknown region; free on Luna: .*r_luna_shackleton \(Shackleton/) });
+  });
 });
 
 describe("marching (game-design.md §4)", () => {

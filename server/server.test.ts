@@ -149,7 +149,9 @@ describe("server: commands", () => {
     a.send("x", { type: "exchange", give: "A", amount: 9999, get: "M" });
     expect(await a.result("x")).toMatchObject({ ok: false, code: "INSUFFICIENT", reason: expect.stringMatching(/Needs .* Alloys/) });
     a.send("bad", { type: "teleport" });
-    expect(await a.result("bad")).toMatchObject({ ok: false, code: "INVALID", reason: expect.any(String) });
+    expect(await a.result("bad")).toMatchObject({ ok: false, code: "INVALID", reason: "Unknown command type" });
+    a.send("bad2", { type: "colonise", fleet: "f_1" });
+    expect(await a.result("bad2")).toMatchObject({ reason: expect.stringMatching(/^colonise needs fleet \(id\), region \(id\)/) });
     a.send("se", { type: "setEmpire", name: "Hacked", primary: "#000000", secondary: "#000000" });
     expect(await a.result("se")).toMatchObject({ ok: false, code: "INVALID" });
   });
@@ -195,7 +197,7 @@ describe("logging and the live view (system-design.md §11; goals.md S4, S7)", (
     const joined = parsed.find((l) => l.action === "join")!;
     expect(joined).toMatchObject({ user: "alice", nation: expect.any(String), target: "r_canada", result: "ok", ms: expect.any(Number) });
     expect(joined.ts).toEqual(expect.any(Number));
-    expect(parsed.find((l) => l.action === "build")).toMatchObject({ result: "NO_SLOT", reason: "No free slot in Canada" });
+    expect(parsed.find((l) => l.action === "build")).toMatchObject({ result: "NO_SLOT", reason: "No free slot in Canada; replace a building to use its slot" });
     expect(parsed.filter((l) => l.action === "signup").map((l) => l.user)).toEqual(["alice", "bob"]);
     expect(parsed.some((l) => l.action === "connect" && l.user === "alice")).toBe(true);
 

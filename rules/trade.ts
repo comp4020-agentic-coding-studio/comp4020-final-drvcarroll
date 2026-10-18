@@ -18,7 +18,7 @@ function goodsError(g: Goods | undefined, what: string): Rejection | null {
 
 function partner(s: State, n: NationState, id: Id): Rejection | NationState {
   const t = s.nations[id];
-  if (!t?.joined || t.id === n.id) return no("INVALID", "Unknown nation");
+  if (!t?.joined || t.id === n.id) return no("INVALID", "Unknown nation; use its id, like n_3");
   if (t.eliminated) return no("INVALID", `${t.name} has been eliminated`);
   return t;
 }

@@ -57,6 +57,13 @@ export function parseCommand(x: unknown): Command | null {
   return out as Command;
 }
 
+// P2: a malformed command's reason names the shape it wanted.
+export function shapeOf(x: unknown): string {
+  if (!isObj(x) || typeof x.type !== "string" || !Object.hasOwn(S, x.type)) return "Unknown command type";
+  const want = Object.entries(S[x.type as keyof typeof S]).map(([k, kind]) => `${k} (${kind === "goods" ? "{res: amount}" : kind === "num" ? "number" : "id"})`);
+  return `${x.type} needs ${want.join(", ") || "no fields"}; nations are ids like n_3, regions like r_luna_shackleton`;
+}
+
 export type ClientMessage = { t: "cmd"; id: string; cmd: Command } | { t: "ping"; clientTime: number };
 
 export function parseMessage(raw: string): ClientMessage | { bad: string } {
@@ -70,5 +77,5 @@ export function parseMessage(raw: string): ClientMessage | { bad: string } {
   if (x.t === "ping" && typeof x.clientTime === "number") return { t: "ping", clientTime: x.clientTime };
   if (x.t !== "cmd" || typeof x.id !== "string" || x.id.length > 64) return { bad: "Unknown message" };
   const cmd = parseCommand(x.cmd);
-  return cmd ? { t: "cmd", id: x.id, cmd } : { bad: "Unknown or malformed command" };
+  return cmd ? { t: "cmd", id: x.id, cmd } : { bad: shapeOf(x.cmd) };
 }

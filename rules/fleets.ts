@@ -49,7 +49,7 @@ export const buildShip: Handler<"buildShip"> = (s, n, c) => {
   if (!r.buildings.some((b) => b.type === "spaceport")) return no("INVALID", `${regionName(r.id)} has no Spaceport`);
   if (u.unlock && !n.techs.includes(u.unlock)) return no("LOCKED", `Needs ${RUNGS[u.unlock].name}`);
   if (!isInt(c.count, 1, MILITARY.maxBuildCount)) return no("INVALID", `Build 1 to ${MILITARY.maxBuildCount} at once`);
-  return needs(n, scale(u.cost, c.count)) ?? (() => {
+  return needs(n, scale(u.cost, c.count), s) ?? (() => {
     for (let i = 0; i < c.count; i++) {
       spend(n, u.cost);
       enqueue(s, r, c.unit, shipMs(c.unit, mods(n, s.season.stage)), u.cost);
@@ -75,7 +75,7 @@ export const launch: Handler<"launch"> = (s, n, c) => {
   }
   const m = mods(n, s.season.stage);
   const cost = { E: launchEnergy(c.from, c.to, c.units, s.t, s.season.startedAt, m) };
-  return needs(n, cost) ?? (() => {
+  return needs(n, cost, s) ?? (() => {
     spend(n, cost);
     removeUnits(s, f!, Object.fromEntries(ships));
     let left = armies;
@@ -98,7 +98,11 @@ export const colonise: Handler<"colonise"> = (s, n, c) => {
   if (f?.owner !== n.id) return no("INVALID", "Unknown fleet");
   if (!f.units.colonyShip) return no("INVALID", "That fleet has no Colony Ship");
   const r = s.regions[c.region];
-  if (!r) return no("INVALID", "Unknown region");
+  const body = f.at ?? f.transit!.to;
+  if (!r) {
+    const free = Object.values(s.regions).filter((g) => REGIONS[g.id].body === body && !g.owner).map((g) => `${g.id} (${regionName(g.id)})`);
+    return no("INVALID", `Unknown region; free on ${BODIES[body].name}: ${free.join(", ") || "none"}`);
+  }
   if (isEarth(r.id)) return no("INVALID", "Earth regions are settled by marching an Army in");
   if (REGIONS[r.id].body !== (f.at ?? f.transit?.to)) return no("INVALID", `That fleet isn't at ${BODIES[REGIONS[r.id].body].name}`);
   if (r.owner) return no("TAKEN", `${regionName(r.id)} is already claimed`);

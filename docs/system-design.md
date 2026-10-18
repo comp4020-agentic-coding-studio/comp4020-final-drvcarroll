@@ -702,10 +702,10 @@ function; the server's answer is still the one that counts.
 
 | Code | Example `reason` |
 |---|---|
-| `INVALID` | "Unknown building type"; "Unknown region; free on Luna: r_luna_shackleton (Shackleton), ..."; malformed: "colonise needs fleet and region (ids like r_luna_shackleton)" |
+| `INVALID` | "Unknown building type"; "Unknown region; free on Luna: r_luna_shackleton (Shackleton), ..."; malformed: "colonise needs fleet (id), region (id); nations are ids like n_3, regions like r_luna_shackleton" |
 | `NOT_JOINED` | "Join the world first" |
 | `NOT_OWNER` | "You don't control Mars North" (regions only; see below) |
-| `INSUFFICIENT` | "Needs 20 more Metals"; when nothing you hold makes it, "Needs 10 more Materiel; Factories make it" |
+| `INSUFFICIENT` | "Needs 20 more Metals"; when nothing you hold makes it, "Needs 10 more Materiel; a Factory makes it" |
 | `LOCKED` | "Needs Ion Drives" |
 | `NO_SLOT` | "No free slot in Siberia; replace a building to use its slot" |
 | `NO_ENVOY_SLOT` | "All your Envoy slots are in use" |

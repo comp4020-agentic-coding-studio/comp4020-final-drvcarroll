@@ -88,9 +88,9 @@ const build: Handler<"build"> = (s, n, c) => {
   const d = BUILDINGS[c.building];
   if (!d) return no("INVALID", "Unknown building type");
   const used = r.buildings.length + r.queue.filter((q) => q.item in BUILDINGS).length;
-  if (used >= slotsOf(s, r.id)) return no("NO_SLOT", `No free slot in ${regionName(r.id)}`);
+  if (used >= slotsOf(s, r.id)) return no("NO_SLOT", `No free slot in ${regionName(r.id)}; replace a building to use its slot`);
   const m = mods(n, s.season.stage), cost = buildingCost(c.building, m);
-  return needs(n, cost) ?? (() => {
+  return needs(n, cost, s) ?? (() => {
     spend(n, cost);
     enqueue(s, r, c.building, buildingMs(c.building, m), cost);
   });
@@ -122,7 +122,7 @@ const replace: Handler<"replace"> = (s, n, c) => {
   const after = { ...n.stocks };
   for (const [k, v] of Object.entries(refund) as [Resource, number][]) after[k] += v;
   const m = mods(n, s.season.stage), cost = buildingCost(c.building, m);
-  return needs({ ...n, stocks: after }, cost) ?? (() => {
+  return needs({ ...n, stocks: after }, cost, s) ?? (() => {
     r.buildings = r.buildings.filter((x) => x !== b);
     n.stocks = after;
     spend(n, cost);
@@ -178,7 +178,7 @@ const research: Handler<"research"> = (s, n, c) => {
   if (RUNGS[prev] && !n.techs.includes(prev)) return no("LOCKED", `Needs ${RUNGS[prev].name}`);
   if (n.research) return no("INVALID", `Already researching ${RUNGS[n.research.tech].name}`);
   const cost = { R: techCost(n, c.tech, s.season.stage) };
-  return needs(n, cost) ?? (() => {
+  return needs(n, cost, s) ?? (() => {
     spend(n, cost);
     const finishAt = s.t + Number(rung) * TECH.researchSPerRung * 1000;
     n.research = { tech: c.tech, startAt: s.t, finishAt, paid: cost.R };
@@ -200,7 +200,7 @@ const train: Handler<"train"> = (s, n, c) => {
   if (isRejection(r)) return r;
   if (!isInt(c.count, 1, MILITARY.maxTrainCount)) return no("INVALID", `Train 1 to ${MILITARY.maxTrainCount} Armies`);
   const each = UNITS.army.cost;
-  return needs(n, scale(each, c.count)) ?? (() => {
+  return needs(n, scale(each, c.count), s) ?? (() => {
     for (let i = 0; i < c.count; i++) {
       spend(n, each);
       enqueue(s, r, "army", UNITS.army.timeS * 1000, each);

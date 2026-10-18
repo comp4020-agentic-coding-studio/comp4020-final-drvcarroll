@@ -159,6 +159,10 @@ function view(c: Conn): string {
     for (const f of fleets) {
       const where = f.at ? `in orbit at ${f.at}` : `to ${f.transit.to}, arrives in ${t(f.transit.arriveAt)}`;
       L.push(`  fleet ${f.id} ${goods(f.units)} ${where}`);
+      if (f.at && f.units.colonyShip) {
+        const free = (w.regions ?? []).filter((r: Msg) => r.body === f.at && !r.owner).map((r: Msg) => `${r.id} (${name(r.id)})`);
+        L.push(`    colonise with {"type":"colonise","fleet":"${f.id}","region":"<id>"}; free: ${free.join(", ") || "none"}`);
+      }
     }
     for (const m of (w.marches ?? []).filter((x: Msg) => x.owner === me.nation)) L.push(`  march ${m.count} Armies ${m.from} -> ${m.to}, arrive in ${t(m.arriveAt)}`);
     for (const o of me.trades ?? []) L.push(`  offer ${o.id}: ${nm(o.from)} gives ${goods(o.give)} for ${goods(o.get)} to ${nm(o.to)}`);
@@ -170,7 +174,7 @@ function view(c: Conn): string {
   if (seen.length) L.push(`Rival regions you can see: ${seen.map((r: Msg) => `${r.id}=${nm(r.owner)}${r.armies ? `(${r.armies} armies)` : ""}`).join(" ")}`);
   for (const x of w.wars ?? []) L.push(`War ${x.id}: ${nm(x.a)} vs ${nm(x.b)}${x.activeAt > c.at ? `, active in ${t(x.activeAt)}` : ""}${x.peaceFrom ? `, peace offered by ${nm(x.peaceFrom)}` : ""}`);
   for (const a of w.alliances ?? []) L.push(`Alliance ${a.id}: ${a.members.map(nm).join(", ")}${a.invites.length ? `; invited ${a.invites.map(nm).join(", ")}` : ""}${a.sanctions.length ? `; sanctions ${a.sanctions.map(nm).join(", ")}` : ""}`);
-  for (const b of w.battles ?? []) L.push(`Battle at ${b.region}: ${nm(b.attacker)} attacking ${nm(b.defender)}, ends in ${t(b.endsAt)}`);
+  for (const b of w.battles ?? []) L.push(`Battle at ${name(b.id)}: ${nm(b.attacker)} attacking ${nm(b.defender)}, ends in ${t(b.endsAt)}`);
   const sc = Object.entries<Msg>(w.scores ?? {}).sort((a, b) => b[1].total - a[1].total);
   L.push(`Scores (total: territory/economy/tech): ${sc.map(([id, s]) => `${nm(id)} ${r0(s.total)}: ${r0(s.territory)}/${r0(s.economy)}/${r0(s.tech)}`).join(", ")}`);
   const news = [...(w.news ?? []), ...c.news].slice(-6).map((n: Msg) => n.text);
@@ -188,6 +192,7 @@ function help(): string {
   for (const [id, u] of Object.entries(UNITS)) L.push(`  ${id}: ${goods(u.cost)}, ${u.timeS}s, str ${u.strength}${u.unlock ? `, needs ${u.unlock}` : ""}${u.atSpaceport ? ", at a Spaceport" : ""}`);
   L.push(`Tech ladders (rungs in order; rung cost ${TECH.costs.join(", ")} R):`);
   for (const [id, rungs] of Object.entries(LADDERS)) L.push(`  ${id}: ${rungs.map((r) => `${r.id} ${r.name} (${r.desc})`).join("; ")}`);
+  L.push("Nations are addressed by id (n_3), as listed under Nations in look.");
   L.push("Bodies: " + Object.values(BODIES).map((b) => `${b.id}(${b.zone}, ${b.slots} slots)`).join(" "));
   return L.join("\n");
 }

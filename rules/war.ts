@@ -208,13 +208,16 @@ function conquer(s: State, nation: Id, region: Id, armies: number): void {
 
 export function canAttack(s: State, n: NationState, target: Id): Rejection | null {
   const t = s.nations[target];
-  if (!atWar(s, n.id, target)) return no("NOT_AT_WAR", `You aren't at war with ${t.name}`);
+  if (!atWar(s, n.id, target)) {
+    const w = warBetween(s, n.id, target);
+    return no("NOT_AT_WAR", w ? `War with ${t.name} is active in ${Math.ceil((w.activeAt - s.t) / 1000)}s` : `You aren't at war with ${t.name}`);
+  }
   return protectedReason(s, t);
 }
 
 export const declareWar: Handler<"declareWar"> = (s, n, c) => {
   const t = s.nations[c.nation];
-  if (!t?.joined || t.id === n.id) return no("INVALID", "Unknown nation");
+  if (!t?.joined || t.id === n.id) return no("INVALID", "Unknown nation; use its id, like n_3");
   if (t.eliminated) return no("INVALID", `${t.name} has been eliminated`);
   if (warBetween(s, n.id, t.id)) return no("INVALID", `You are already at war with ${t.name}`);
   if (allied(s, n.id, t.id)) return no("ALLIED", "You can't declare war on an ally");

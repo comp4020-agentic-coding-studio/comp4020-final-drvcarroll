@@ -84,13 +84,20 @@ describe("build queues and research (game-design.md §6, §8)", () => {
   it("rejects a full region, then builds after a demolish refunds 50%", () => {
     let s = world("r_canada");
     expect(validate(s, "n_1", { type: "build", region: "r_canada", building: "mine" }))
-      .toMatchObject({ code: "NO_SLOT", reason: "No free slot in Canada" });
+      .toMatchObject({ code: "NO_SLOT", reason: "No free slot in Canada; replace a building to use its slot" });
     s = ok(s, "n_1", { type: "demolish", region: "r_canada", slot: 3 });
     expect(s.nations.n_1.stocks.M).toBe(220);
     s = ok(s, "n_1", { type: "build", region: "r_canada", building: "mine" });
     expect(s.nations.n_1.stocks.M).toBe(190);
     s = advanceTo(s, T0 + 20 * S);
     expect(s.regions.r_canada.buildings.filter((b) => b.type === "mine")).toHaveLength(2);
+  });
+
+  it("names what makes a resource the nation has no producer for (P2)", () => {
+    const s = world("r_canada");
+    s.nations.n_1.stocks.Mt = 0;
+    expect(validate(s, "n_1", { type: "train", region: "r_canada", count: 1 }))
+      .toMatchObject({ code: "INSUFFICIENT", reason: expect.stringMatching(/^Needs \d+ more Materiel; a Factory makes it$/) });
   });
 
   it("replaces a slot in one command, counting the refund toward the cost", () => {
