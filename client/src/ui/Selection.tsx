@@ -2,7 +2,7 @@
 // and everything you can do with it.
 import { useState } from "preact/hooks";
 import {
-  ADJACENT, BODIES, BUILDINGS, MAP, MILITARY, POWER_MODES, REGIONS, RUNGS, UNITS, ZONE_LAUNCH_COST,
+  ADJACENT, BODIES, BUILDINGS, MAP, MILITARY, POWER_MODES, REGIONS, RESOURCE_NAMES, RUNGS, UNITS, ZONE_LAUNCH_COST,
   type Building, type BuildingData, type Mod, type PowerMode, type Resource, type Unit,
 } from "../../../rules/data/index.ts";
 import { buildingCost, buildingMs, mods, shipMs, slotsOf } from "../../../rules/economy.ts";
@@ -231,10 +231,20 @@ function TileMenu({ r, t, onDone }: { r: Region; t: Tile; onDone: () => void }) 
             : <Action key={m} kind="quiet" cmd={{ type: "setMode", region: r.id, slot: b.slot, mode: m }}><BuildingIcon type="powerPlant" mode={m} size={22} /> {cap(m)}</Action>))}
         </div>
       )}
+      {replacing && d.output && onlyMaker(d.output.res) && (
+        <p class="hint warn">Removes your only {d.name}: {RESOURCE_NAMES[d.output.res]} 0/min.</p>
+      )}
       {replacing && <Picker r={r} skip={b.type} cmd={(building) => ({ type: "replace", region: r.id, slot: b.slot, building })} after={onDone} />}
       {b.type === "spaceport" && <Shipyard r={r} />}
     </div>
   );
+}
+
+// True when one building is the nation's whole supply of a resource (P2).
+function onlyMaker(res: Resource): boolean {
+  const n = Object.values(mirror.value!.regions).filter((g) => g.owner === me.value)
+    .flatMap((g) => g.buildings).filter((x) => BUILDINGS[x.type].output?.res === res).length;
+  return n === 1;
 }
 
 // Every building with what it costs and would make and use here.
@@ -453,8 +463,22 @@ function FleetView({ f }: { f: Fleet }) {
           <p class="hint">Arrives in {dur(f.transit.arriveAt - clock.value)}. Fleets in transit can't turn back.</p>
         </>
       )}
+      {mineFleet && f.at && f.units.colonyShip && <ColoniseList f={f} body={f.at} />}
       {mineFleet && f.at && <Planner key={f.id} f={f} />}
     </>
+  );
+}
+
+// game-design.md §12: a Colony Ship in orbit lists where it can settle.
+function ColoniseList({ f, body }: { f: Fleet; body: string }) {
+  const free = Object.values(mirror.value!.regions).filter((r) => REGIONS[r.id].body === body && !r.owner && !isEarth(r.id));
+  if (!free.length) return <p class="hint">No free region on {bodyName(body)}. Launch to another body.</p>;
+  return (
+    <ul class="list" aria-label={`Free regions on ${bodyName(body)}`}>
+      {free.map((r) => (
+        <li key={r.id} class="item"><b>{regionName(r.id)}</b><Action cmd={{ type: "colonise", fleet: f.id, region: r.id }}>Colonise</Action></li>
+      ))}
+    </ul>
   );
 }
 
