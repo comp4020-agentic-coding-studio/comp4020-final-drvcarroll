@@ -76,6 +76,7 @@ export class GameScene {
   private high: { id: string; tex: THREE.Texture[] } | null = null;
   private disposed = false;
   private frameAt = 0;
+  private t = 0; // server time for this frame, read once
   private windowAt = 0;
   private frames = 0;
   private slow = 0;
@@ -105,8 +106,10 @@ export class GameScene {
     setTimeout(() => this.streamTextures(), 2000); // after interactive: P8's first render
   }
 
+  // One sub-ms clock read per frame: every body, fleet and the camera's
+  // follow see the same instant, or a moving body jitters against the camera.
   private now(): number {
-    return Date.now() + offset.value;
+    return this.t || performance.timeOrigin + performance.now() + offset.value;
   }
 
   private start(): number {
@@ -489,7 +492,9 @@ export class GameScene {
   private loop = (): void => {
     this.raf = requestAnimationFrame(this.loop);
     if (document.hidden) return;
-    this.pace(performance.now());
+    const at = performance.now();
+    this.t = performance.timeOrigin + at + offset.value;
+    this.pace(at);
     this.frame();
   };
 

@@ -232,6 +232,11 @@ its own decisions:
 
 If the next tick disagrees with what was drawn, the tick wins.
 
+The scene reads the clock once per frame, from `performance.now()` plus the
+server offset, and places every body, fleet and the camera's follow at that
+one instant. Reading `Date.now()` per object made a followed body jitter
+against the camera by a millisecond's motion each frame.
+
 The full message contract is in §14.
 
 ### Visibility filter
