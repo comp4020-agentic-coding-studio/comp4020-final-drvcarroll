@@ -17,9 +17,9 @@ written against the goals below.
 
 ## The game
 
-Interstellar Expansion is a game about growth: growth is the core drive. The player builds an empire across the solar system
+Interstellar Expansion is a game about expansion: expansion is the core drive. The player builds an empire across the solar system
 however they choose — conqueror, trader, builder, researcher, any mix.
-Growth is measured three ways: **Territory**, **Economy**, **Tech**. Military
+Expansion is measured three ways: **Territory**, **Economy**, **Tech**. Military
 and trade are instruments toward those three, never scores themselves. Part
 of the world is a harsh one: territory you haven't sensed or paid an Envoy to
 watch is a blank on your map, same as unclaimed space.
@@ -49,6 +49,16 @@ the same commit as the code. Check all three every time; a change that touches
 only one usually means the other two are now stale. Memory, chat and commit
 messages are not a substitute: if it isn't in these docs, the next session
 won't know it.
+
+## Writing docs (README, PROCESS, ADRs)
+
+- Plain, literal language. Never anthropomorphise concepts, data or code:
+  not "the chain starves", "numbers live in a module", "the game says",
+  "the cause is a step back". Name who or what acts, and what happens.
+- No stock LLM phrasing: no "not X but Y" or "never X, only Y" flourishes,
+  no tidy triplets, no closing summary lines, no em dashes.
+- No internal IDs in prose (goal codes, loop numbers, section numbers); use
+  plain names. IDs belong in filenames only.
 
 ## How we build it
 

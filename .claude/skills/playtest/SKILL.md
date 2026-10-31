@@ -3,12 +3,6 @@ name: playtest
 description: Six Haiku players (3 score paths x aggressive/cooperative) play a live local Interstellar Expansion server while a Sonnet analyst measures, then a synthesis agent writes one compact balance and goal-alignment report. Run once after comp4020-resume finishes, never per unit. Use for "/playtest", "playtest the game", "run a playtest".
 ---
 
-Replaces the old `.claude/workflows/playtest.js` pseudocode (no such
-workflow-file runner exists in Claude Code — `phase()`/`agent()`/`parallel()`
-were never real). This skill does the same job with real tool calls: the
-`Agent` tool, run in parallel, using the existing `analyst` and `playtester`
-subagent definitions in `.claude/agents/`.
-
 Default cap: 25 minutes (a stage is 20 min). If the user's `/playtest`
 argument gives a different number of minutes, use that instead everywhere
 below.

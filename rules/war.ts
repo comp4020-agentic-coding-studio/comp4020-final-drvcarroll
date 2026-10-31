@@ -191,7 +191,7 @@ const otherAttacker = (s: State, nation: Id, region: Id) => {
   return b && !sideOf(s, b, nation) ? no("INVALID", `${s.nations[b.attacker].name} is already attacking ${regionName(region)}`) : null;
 };
 
-// ADR G12: the conqueror carries off a share of the loser's stocks.
+// ADR G4: the conqueror carries off a share of the loser's stocks.
 function plunder(s: State, from: NationState, to: NationState): Goods {
   const share = MILITARY.plunder / Math.max(1, owned(s, from.id).length);
   const cap = capOf(s, to.id);

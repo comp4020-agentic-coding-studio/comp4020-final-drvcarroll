@@ -3,18 +3,18 @@
 Source of truth for mechanics, visuals and balance testing. Every number here is
 a starting value; the headless sim (§13) tunes them. Numbers live in code in
 one data module (`rules/data/`), so tuning is a data edit, never a rule edit.
-Why each major mechanic is the way it is: [docs/adr/](adr/README.md) (G01 to
-G11).
+Why each major mechanic is the way it is: [docs/adr/](adr/) (G1 to
+G6).
 
 ## 1. The idea
 
-**Growth is the core human drive, and Interstellar Expansion is built to let it out in
+**Expansion is the core human drive, and Interstellar Expansion is built to let it out in
 whatever shape a player wants.** The player is dropped into a solar system and
 builds an empire across it however they see fit: conqueror, trader, builder,
 researcher, or any mix. The solar system is the theatre; the game mechanics
 are the mechanisms.
 
-Growth is measured three ways, not one: **Territory**, **Economy**, and
+Expansion is measured three ways, not one: **Territory**, **Economy**, and
 **Tech**. Nothing forces which you chase. Military and trade are instruments
 toward those three, never scores in themselves: a fleet that never takes
 ground is worth nothing, and a trade surplus only matters once it's spent on
@@ -177,7 +177,7 @@ off-Earth regions need a Colony Ship.
 
 One resource per building; no building has two outputs. One exception: a
 capital makes 2 Materiel/min on its own, so every nation can train Armies
-from the start (ADR G12).
+from the start (ADR G4).
 
 | Resource | Kind | Building | Role |
 |---|---|---|---|
@@ -320,7 +320,7 @@ the same square law played out as it happens, so a player can watch it:
 | Declaration | Public; active 1 min later |
 | Protection | New and respawned nations: untouchable for 1 min, cannot declare |
 | Conquest | Full; capitals can fall. Capital moves to largest remaining region |
-| Plunder | Taking a region moves 25% of the loser's stock of every resource, times that region's share of the loser's regions, to the conqueror (up to its cap). Taking a last region takes 25% of everything (ADR G12) |
+| Plunder | Taking a region moves 25% of the loser's stock of every resource, times that region's share of the loser's regions, to the conqueror (up to its cap). Taking a last region takes 25% of everything (ADR G4) |
 | Elimination | Losing every region. Respawn on a free Earth start region, with ×2 production for 5 min; while none is free, respawn waits |
 | Peace | Both sides agree; joining an alliance forces it between members |
 

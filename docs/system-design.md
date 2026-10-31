@@ -3,7 +3,7 @@
 Everything about the backend: stack, storage, real-time sync, the
 server↔client message contract (§14), rendering budget, accounts. Mechanics
 live in [game-design.md](game-design.md). Why each decision was made, the
-options weighed and what it costs: [docs/adr/](adr/README.md) (S01 to S10).
+options weighed and what it costs: [docs/adr/](adr/) (S1 to S4).
 
 ## 1. Constraints that shape everything
 
@@ -774,7 +774,7 @@ what it costs.
 | `welcome` | 30 to 60 KB for a developed empire, much less early on (§6) |
 | `tick`, quiet | ~300 B (stocks only) |
 | `tick`, busy | 1 to 3 KB |
-| `tick` that opens a body's vision (a join, a first claim) | the `welcome` budget, ≤ 60 KB (ADR S11) |
+| `tick` that opens a body's vision (a join, a first claim) | the `welcome` budget, ≤ 60 KB (ADR S1) |
 
 At 30 clients that is roughly 20 to 200 KB/s of egress in total, well within
 one small machine.

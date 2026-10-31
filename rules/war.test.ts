@@ -103,7 +103,7 @@ describe("ground combat and conquest (game-design.md §7)", () => {
     expect(s.regions.r_us_west).toMatchObject({ owner: "n_1", armies: survivors(20, 200, 150) });
   });
 
-  it("carries off a share of the loser's stocks, scaled by regions held (ADR G12)", () => {
+  it("carries off a share of the loser's stocks, scaled by regions held (ADR G4)", () => {
     let s = war("r_canada", "r_us_west");
     s.regions.r_us_east.owner = "n_2"; // the loser holds two regions
     s.regions.r_canada.armies = 20;

@@ -9,7 +9,7 @@ drain and pending-command tests time out in the full run and pass alone
 (see flagged). Every §13 row cites a check that exists.
 The harness is in the repo: `.claude/skills/` (comp4020_resume,
 comp4020_update, playtest), `.claude/agents/` (playtester, analyst),
-`scripts/play.ts`. ADRs S01 to S11 and G01 to G11 in `docs/adr/`.
+`scripts/play.ts`. ADRs G1 to G6 and S1 to S4 in `docs/adr/`.
 **Next:** Stage I done (user-tested; e2e "chats on Global" written, not
 yet run). The user is editing README.md, PROCESS.md and the ADRs: don't
 touch them.
