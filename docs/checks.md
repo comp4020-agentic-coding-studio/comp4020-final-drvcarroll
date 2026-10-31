@@ -3,6 +3,13 @@
 Judged goals (goals.md, kind **Judged**): what was checked, when, on what,
 and the result. Newest first.
 
+## P7, P8: real phone
+
+**2026-10-31, a real phone, the deployed game.** Played the core loop on the
+phone viewport: the map, HUD, panels and drawers fit and work by touch.
+
+**Result: pass.** This settles the real-phone check owed below.
+
 ## P8: frame rate and GPU memory
 
 **2026-10-10, MacBook Air M4 (integrated GPU), Chrome via Playwright with

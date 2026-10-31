@@ -70,7 +70,7 @@ file is additional to that baseline, never a replacement for it.
 |---|---|
 | `README.md` | Argues the goals: good is P1 to P10 for players, kept affordable by S1 to S7. States which are enforced and which judged, and how |
 | `CLAUDE.md` | Turns goals into rules the agent must follow, each citing its goal (e.g. rejections carry reasons: P2; no feature grants vision outside sensors/envoys: P5, S6; no optimistic UI: S1, P9; `rules/` stays pure: S5; budgets are hard limits: P8, S2, S3) |
-| `spec/` | One test file per goal (`p1-onboarding.test.ts`, `p5-fog-of-war.test.ts`, `s1-latency.test.ts`, …) so any claim traces to its check |
+| `spec/`, `e2e/`, `rules/`, `server/` | Enforced checks, grouped by what they test rather than one file per goal: `spec/game.test.ts` runs black-box against the deployed app (real-time, persistence, privacy, message sizes, chat), `e2e/client.test.ts` drives the client in a browser at both viewports, and the `rules/*.test.ts` and `server/server.test.ts` suites check the mechanics and the server. Each test names the goal or design section it covers, and `system-design.md` maps every system claim to its test by name, so any claim traces to its check |
 | `sim/` | Balance and determinism tests for P3, P4, P6, S5; the WebSocket load-test bot for S1 to S4 |
 | `docs/measurements.md`, `docs/checks.md` | The record behind every Measured and Judged goal |
 
