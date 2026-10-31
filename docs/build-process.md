@@ -361,6 +361,34 @@ stage wins, or each step's numbers logged if not; snowball < 40% and
 stage sweeps ≤ 50% still met; trader and Mars rechecked and logged.
 **Serves:** P3, P6.
 
+### I. Chat: global, alliance and direct (`game-design.md` §9; system-design.md §4, §6, §14)
+
+The user asked for chat with three channels. Talk is an instrument for
+diplomacy (P3), stored beside the command log, not in it.
+
+- **Server:** migration `003_chat.sql`; `server/chat.ts` validates
+  (joined, channel access, 1 to 280 characters trimmed, 5 per 10 s) and
+  stores in the tick's transaction; `Hub` fans new messages out on the next
+  tick to readers only, sends the last 50 per readable channel in
+  `welcome`, and logs one line per message (channel and length, never the
+  text). Admin reset starts the new world with no messages.
+- **Protocol:** `ChatMessage`, `ChatResult` and the `chat` client message
+  in `rules/protocol.ts` and `server/schema.ts`.
+- **Client:** a `chat` signal in the store; the Chat button with an unread
+  count; the panel with Global, Alliance and direct tabs; Message on an
+  Empires row; text rendered as text, never HTML; keyboard reachable,
+  bottom sheet at 390 px.
+
+**Exit criteria:** server tests: empty, 281-character and sixth-in-10-s
+messages refused with reasons; a non-member's alliance message refused;
+messages persist across a restart. Spec: a global message reaches a second
+client within 1 s; an alliance message reaches a member and not an
+outsider; a direct message reaches its recipient and not a third nation;
+reconnect shows history. e2e: open Chat, send on Global, see it; Message
+from Empires opens a direct tab; works at 390 px. Message sizes still
+within S3. `scripts/claims.test.ts` green.
+**Serves:** P3, S1, S6, P9, P2, P7, P10.
+
 ### H. Evidence: a check behind every claim (crit 10 ask)
 
 Every claim in `system-design.md` names its check (system-design.md §13):
@@ -410,6 +438,7 @@ be hit eventually; it just slips to the next one.
 | **Crit 10 — "Fly by instruments"** | Week 11 | Stage F done: logging, `/admin` live view. Stage E substantially in, E2 and D3 done. **Stage H's authorisation, contention and logging tests green**, and who may see and change what written down with why (`docs/adr/S07`). Deployed, so two people in separate Chrome profiles play from the URL alone while the logs say who did what. | E, **E2**, **F**, **D3**, **H** (auth, contention, logging) |
 | **Target: done** prerequisite | Week 12 | Stage D4 (stages, alliances, admin reset) done, Stage H done, one `/playtest` cycle folded in, before the final pass. | **D4**, **H**, G |
 | **Target: done** fixes | Week 12 | Stage G1 (playtest 1's ACT items), then the second and last `/playtest` cycle. Stage G2 (conquest pays). | **G1**, **G2**, G |
+| **Target: done** chat | Week 12 | Stage I (chat: global, alliance, direct). | **I** |
 | **Target: done** | End of week 12 | Self-imposed, ahead of the real deadline (noon Mon 9 Nov 2026) on purpose — a buffer, not a guess at the actual due date. Stage G's numbers in a reasonable place (never "finished" — that's the point of a loop). Final `README.md`/`PROCESS.md` pass, everything deployed and green. | G, polish |
 
 The map is the game from the first client on (goals.md P10): Stage E adds

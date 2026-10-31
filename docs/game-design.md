@@ -421,6 +421,34 @@ and no vision; it is about who fights whom and who trades with whom.
   The Earth Exchange and Envoys are unaffected. A sanctioned nation can't
   be invited. Sanctions and alliances are public and in the ticker.
 
+### Chat
+
+Talk is an instrument, like trade: it scores nothing, but it is how deals,
+pacts and threats get made. Three channels:
+
+- **Global:** every nation in the world.
+- **Alliance:** the members of your alliance, while you are one. Leaving
+  loses access; joining shows the channel's history.
+- **Direct:** one nation to another. Open to any nation, sanctioned or at
+  war included: diplomacy is most needed there.
+
+Rules: only a nation that has joined the world can send. A message is 1 to
+280 characters of plain text, trimmed; empty or longer is refused with the
+reason. A nation sends at most 5 messages per 10 s. Chat is not a game
+rule, so its numbers live in `server/chat.ts`, not `rules/data/`, and it
+never enters the command log or replay. Messages belong to a world: an
+admin reset clears them. Each channel keeps its last 200 messages; a
+client gets the last 50 per channel it can read on connect.
+
+UI: a **Chat** button in the top bar, beside Empires and Guide, with an
+unread count. It opens a panel on the left above the empire menu (a bottom
+sheet on a phone), map visible behind: channel tabs for Global, Alliance
+(only while in one) and one per open direct conversation, the messages
+with the sender's name in their colour and a time, and a text box (Enter
+sends). A nation's row in Empires has a **Message** action that opens its
+direct channel. Esc closes. New messages in a closed channel raise its
+unread count; nothing pops over the map.
+
 ## 10. Victory: stages in a world that keeps going
 
 The world never ends on its own. It runs until an admin resets it (§11),
@@ -651,7 +679,7 @@ day). Clicking it opens that resource's breakdown: what produces it, what
 consumes it, per day and per minute. Also the shortfall warning, game date,
 protection/boost timers, the current stage with its time left and modifier
 (hover for the full list), connection state, and two buttons on the
-right: **Empires** and **Guide** (§11). There is no Tech or Trade button:
+right: **Chat** (§9), **Empires** and **Guide** (§11). There is no Tech or Trade button:
 tech lives in the empire menu, trade in Empires.
 
 #### Empire menu (left)
@@ -681,7 +709,7 @@ One overlay, one row per nation: leaderboard rank and score (Territory,
 Economy, Tech) and its gain this stage, its alliance, war status (allied,
 protected, at peace, war declared, at war, peace offered) with the matching
 action (declare war, offer or accept peace, invite to alliance, sanction or
-lift), your
+lift, message), your
 Envoy on them, and your trade deals with them (open offers in both
 directions, with accept, decline, cancel, plus new offer and gift). The
 Earth Exchange is the last row. A header row shows your alliance: members,
@@ -853,7 +881,7 @@ mainland (French Guiana, Réunion) join the nearest region instead.
 
 ### Phone (390×844)
 
-The map stays full-screen; the selection panel, Empires, Guide and tech
+The map stays full-screen; the selection panel, Chat, Empires, Guide and tech
 overlays become bottom sheets; the empire menu collapses to a button; the
 slot grid keeps its tiles at ≥ 44 px; tap targets ≥ 44 px; pinch to
 zoom, two-finger twist to rotate; bloom off, decorative bodies thinned.

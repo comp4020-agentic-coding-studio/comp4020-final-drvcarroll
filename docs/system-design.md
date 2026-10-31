@@ -81,6 +81,7 @@ nations    (id, season_id, user_id, name, colour_primary, colour_secondary,
 commands   (seq PRIMARY KEY, season_id, nation_id, at, type, payload JSON,
             result, client_cmd_id)
 snapshots  (season_id, seq, at, rules_version, state BLOB)
+messages   (id PRIMARY KEY, season_id, channel, from_nation, text, at)  -- chat
 ```
 
 A `seasons` row is one world. The table and the `Season` type keep their
@@ -117,6 +118,15 @@ Every 60 s while state has changed, and on `SIGTERM`/`SIGINT` (Fly sends one
 before stopping). Snapshots record `rules_version`. A deploy that changes
 rules first snapshots under the old version, so commands are never replayed
 under different rules.
+
+### Chat is stored beside the log, not in it
+
+Chat messages go to their own `messages` table (migration `003_chat.sql`),
+inserted in the tick's transaction like accepted commands. They are not
+commands: they change no game state, so they stay out of `rules/`, the
+command log and replay, and the rules stay pure. A channel id is `global`,
+`a:<alliance id>` or `d:<nation id>:<nation id>` (the two ids sorted). An
+admin reset leaves old worlds' rows in place; a world only ever reads its own.
 
 ### Why event sourcing here
 
@@ -236,6 +246,7 @@ per-nation view computed from it.
 | **Vision-gated, full** | A region's owner, its buildings, its garrison and any ground battle on it, fleets present or in transit there, Armies marching to or from it | Only a nation with a **sensor** there: owns any region on that body |
 | **Vision-gated, partial** | A region's owner, garrison and battle, fleets and marches (never buildings) | Only a nation with an active **Envoy** on the region's owning nation — empire-wide, not body-specific |
 | **Private to the owner** | Stocks and rates, queues, research, trade offers it is party to, its own Envoys' targets and upkeep | That nation alone |
+| **Private to a channel** | Alliance chat; direct messages | Current alliance members; the two nations in the conversation |
 
 A region with neither a sensor on its body nor an Envoy on its owner renders
 identically to an unclaimed one: no owner, no buildings, no fleets, no stale
@@ -423,6 +434,7 @@ can't be checked is reworded, not left standing. Why each decision was made is i
 | The world keeps going with nobody connected (§5) | Enforced | `server/server.test.ts` "keeps the world going while nobody is connected" |
 | Message sizes: quiet 500 B, busy 3 KB, welcome 60 KB (S3, S11) | Enforced | `spec/game.test.ts` "keeps welcome ≤ 60 KB…"; at load, `docs/measurements.md` |
 | A region leaving vision is resent without owner; every tab streams (§6, S05) | Enforced | `server/server.test.ts` "resends a region without its owner…", "streams to every tab of one account" |
+| Chat: a message reaches readers < 1 s and survives a reconnect; alliance and direct messages reach no one else; bad text and floods refused with a reason (game-design.md §9) | Enforced | `spec/game.test.ts` "delivers chat within 1 s on global, alliance and direct channels", "never sends alliance or direct chat to outsiders"; `server/server.test.ts` "refuses empty, long and flooded chat with a reason" |
 | Latency, tick time, RSS, append, boot (S1, S2, S4, S5) | Measured | `docs/measurements.md` (`pnpm load`) |
 | `rules/` is pure: no I/O, clock or randomness (S08) | Enforced | `rules/purity.test.ts` (a source scan) |
 | Reconnect restores the view < 3 s; no optimistic UI (§6, P9) | Enforced | `e2e/client.test.ts` "reconnects after a dropped socket…", "changes nothing for a pending command…" |
@@ -502,7 +514,8 @@ Joining the world and everything in play happens over the socket.
   tick: number,
   season: Season,
   world: VisibleWorld,    // vision-filtered per your nation (§6's visibility filter), plus everything globally public
-  you: PrivateState | null // null until you join the world
+  you: PrivateState | null, // null until you join the world
+  chat: ChatMessage[]     // last 50 per channel you can read, oldest first
 }
 ```
 
@@ -530,8 +543,15 @@ other than `t`, `n`, `at` and `you.stocks` appear only when they changed.
   presence?: Id[],                // online nation ids, when it changed
   news?: News[],
   season?: Season,                // when the stage changed
-  you?: Partial<PrivateState>     // stocks every tick; the rest when changed
+  you?: Partial<PrivateState>,    // stocks every tick; the rest when changed
+  chat?: ChatMessage[],           // new messages in channels you can read
+  chatResults?: ChatResult[]      // your chat sends this tick
 }
+```
+
+```ts
+interface ChatMessage { id: number; channel: string; from: Id; text: string; at: Ms }
+type ChatResult = { id: string; ok: true } | { id: string; ok: false; code: "INVALID" | "NOT_JOINED" | "RATE_LIMIT"; reason: string };
 ```
 
 Whole entities, not field diffs: a region or fleet is a few hundred bytes, and
@@ -553,7 +573,15 @@ changed. A fleet that leaves vision has no partial form, so it goes in
 ```ts
 { t: "cmd", id: string, cmd: Command }   // id: client-generated UUID
 { t: "ping", clientTime: Ms }            // every 10 s; for RTT and clock offset
+{ t: "chat", id: string, channel: string, text: string }  // channel: global, alliance, or a nation id for a direct message
 ```
+
+A `chat` is validated (joined, may write to the channel, 1 to 280 characters
+after trimming, 5 per 10 s), stored and fanned out on the next tick to every
+client that may read the channel. It does not count against the 10 commands
+per tick. The client names an alliance channel `alliance`; the server
+resolves it to the sender's current alliance. Rejections say what to do
+("Join an alliance to use its channel", "Messages are 1 to 280 characters").
 
 Commands queue until the next tick, then apply in arrival order across all
 clients. Each produces exactly one `CommandResult` in the sender's next
