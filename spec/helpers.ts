@@ -69,6 +69,20 @@ export class Client {
     this.ws.send(JSON.stringify({ t: "cmd", id, cmd }));
   }
 
+  chat(id: string, channel: string, text: string): void {
+    this.ws.send(JSON.stringify({ t: "chat", id, channel, text }));
+  }
+
+  async chatResult(id: string): Promise<Msg> {
+    const m = await this.until((x) => x.t === "tick" && x.chatResults?.some((r: Msg) => r.id === id));
+    return m.chatResults.find((r: Msg) => r.id === id);
+  }
+
+  // Every chat message received, from welcome and ticks.
+  get said(): Msg[] {
+    return this.msgs.flatMap((m) => m.chat ?? []);
+  }
+
   async result(id: string): Promise<Msg> {
     const m = await this.until((x) => x.t === "tick" && x.results?.some((r: Msg) => r.id === id));
     return m.results.find((r: Msg) => r.id === id);

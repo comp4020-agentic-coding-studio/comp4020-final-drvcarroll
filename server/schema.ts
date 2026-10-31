@@ -64,7 +64,10 @@ export function shapeOf(x: unknown): string {
   return `${x.type} needs ${want.join(", ") || "no fields"}; nations are ids like n_3, regions like r_luna_shackleton`;
 }
 
-export type ClientMessage = { t: "cmd"; id: string; cmd: Command } | { t: "ping"; clientTime: number };
+export type ClientMessage =
+  | { t: "cmd"; id: string; cmd: Command }
+  | { t: "ping"; clientTime: number }
+  | { t: "chat"; id: string; channel: string; text: string };
 
 export function parseMessage(raw: string): ClientMessage | { bad: string } {
   let x: unknown;
@@ -75,6 +78,10 @@ export function parseMessage(raw: string): ClientMessage | { bad: string } {
   }
   if (!isObj(x)) return { bad: "Not an object" };
   if (x.t === "ping" && typeof x.clientTime === "number") return { t: "ping", clientTime: x.clientTime };
+  if (x.t === "chat") {
+    const ok = typeof x.id === "string" && x.id.length <= 64 && typeof x.channel === "string" && x.channel.length <= 64 && typeof x.text === "string" && x.text.length <= 2000;
+    return ok ? { t: "chat", id: x.id as string, channel: x.channel as string, text: x.text as string } : { bad: "chat needs id, channel and text (strings)" };
+  }
   if (x.t !== "cmd" || typeof x.id !== "string" || x.id.length > 64) return { bad: "Unknown message" };
   const cmd = parseCommand(x.cmd);
   return cmd ? { t: "cmd", id: x.id, cmd } : { bad: shapeOf(x.cmd) };

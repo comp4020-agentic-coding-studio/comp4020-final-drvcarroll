@@ -107,6 +107,10 @@ export interface Score { territory: number; economy: number; tech: number; total
 
 export interface News { at: Ms; kind: string; text: string; refs: Id[] }
 
+// game-design.md §9 Chat. channel: "global", "a:<alliance>", "d:<nation>:<nation>".
+export interface ChatMessage { id: number; channel: string; from: Id; text: string; at: Ms }
+export type ChatResult = { id: string; ok: true } | { id: string; ok: false; code: "INVALID" | "NOT_JOINED" | "RATE_LIMIT"; reason: string };
+
 export interface TradeOffer { id: Id; from: Id; to: Id; give: Goods; get: Goods; expiresAt: Ms }
 
 export interface QueueEntry { item: string; startAt: Ms; finishAt: Ms; slot?: number } // slot: pinned by replace

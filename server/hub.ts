@@ -4,10 +4,11 @@
 import type { IncomingMessage } from "node:http";
 import type { Duplex } from "node:stream";
 import { WebSocketServer, type WebSocket } from "ws";
-import { observe, settled, viewCache, type ViewCache, type Command, type CommandResult, type Id, type PrivateState, type State, type VisibleWorld } from "../rules/index.ts";
+import { observe, settled, viewCache, type ViewCache, type ChatMessage, type ChatResult, type Command, type CommandResult, type Id, type PrivateState, type State, type VisibleWorld } from "../rules/index.ts";
 import { frozen } from "../rules/economy.ts";
 import { scores } from "../rules/score.ts";
 import type { User } from "./auth.ts";
+import { canRead, Chat } from "./chat.ts";
 import { Log, targetOf, type Stats } from "./log.ts";
 import { parseMessage } from "./schema.ts";
 import { nationOf, type World } from "./world.ts";
@@ -31,6 +32,7 @@ interface Client {
   nation: Id;
   sent: Sent;
   results: CommandResult[];
+  chatResults: ChatResult[];
   queued: number;
 }
 
@@ -40,6 +42,8 @@ export class Hub {
   private wss = new WebSocketServer({ noServer: true, perMessageDeflate: false });
   private clients = new Set<Client>();
   private queue: { c: Client; id: string; cmd: Command }[] = [];
+  private chatQueue: { c: Client; id: string; channel: string; text: string }[] = [];
+  private chat: Chat;
   private timer: ReturnType<typeof setInterval> | undefined;
   private n = 0;
   private world: World;
@@ -52,6 +56,7 @@ export class Hub {
     this.build = build;
     this.now = now;
     this.log = log;
+    this.chat = new Chat(world.db);
   }
 
   stats(): Stats {
@@ -80,13 +85,14 @@ export class Hub {
       const prev = this.world.lastEmpire(user.id);
       if (prev) this.world.submit(nation, { type: "setEmpire", ...prev }, null, now);
     }
-    const c: Client = { ws, user, nation, results: [], queued: 0, sent: blank() };
+    const c: Client = { ws, user, nation, results: [], chatResults: [], queued: 0, sent: blank() };
     this.clients.add(c);
     this.log.write({ ts: now, user: user.username, nation, action: "connect", result: "ok" });
     const { world, you } = this.view(c);
     const season = this.world.state!.season;
     remember(c.sent, world, you, season);
-    ws.send(json({ t: "welcome", build: this.build, serverTime: now, tickMs: TICK_MS, tick: this.n, season, world, you }));
+    const chat = this.chat.history(this.world.state!, you ? nation : null);
+    ws.send(json({ t: "welcome", build: this.build, serverTime: now, tickMs: TICK_MS, tick: this.n, season, world, you, chat }));
     ws.on("message", (raw) => this.receive(c, String(raw)));
     ws.on("close", () => {
       this.clients.delete(c);
@@ -104,6 +110,10 @@ export class Hub {
     if ("bad" in m) {
       const id = (() => { try { return String(JSON.parse(raw).id ?? ""); } catch { return ""; } })();
       if (id) c.results.push({ id, ok: false, code: "INVALID", reason: m.bad });
+      return;
+    }
+    if (m.t === "chat") {
+      this.chatQueue.push({ c, id: m.id, channel: m.channel, text: m.text });
       return;
     }
     if (m.t === "ping") {
@@ -146,6 +156,7 @@ export class Hub {
       c.results.push(results[i]);
       this.logCommand(c, cmd, results[i], times[i] ?? 0);
     });
+    const posted = this.postChat(now);
     // The view is fixed for the rest of the tick: score and send from it.
     frozen(() => {
       const view = this.world.state && settled(this.world.state); // one copy and one scoring per tick, not per client
@@ -155,11 +166,39 @@ export class Hub {
       for (const c of this.clients) {
         c.queued = 0;
         const msg = this.diff(c, now, view, shared);
+        const mine = posted.filter((p) => view && canRead(view, c.nation, p.channel));
+        if (mine.length) msg.chat = mine;
+        if (c.chatResults.length) msg.chatResults = c.chatResults;
         c.results = [];
+        c.chatResults = [];
         if (c.ws.readyState === c.ws.OPEN) c.ws.send(json(msg));
       }
     });
     this.log.tick(performance.now() - t0);
+  }
+
+  // Stores this tick's chat in one transaction; returns what was posted.
+  private postChat(now: number): ChatMessage[] {
+    const q = this.chatQueue.splice(0);
+    const s = this.world.state;
+    if (!q.length || !s) return [];
+    const out: ChatMessage[] = [];
+    this.world.db.exec("BEGIN");
+    try {
+      for (const { c, id, channel, text } of q) {
+        const { msg, ...r } = this.chat.post(s, c.nation, id, channel, text, now);
+        c.chatResults.push(r);
+        if (msg) out.push(msg);
+        this.log.write({ ts: now, user: c.user.username, nation: c.nation, action: "chat", target: msg?.channel ?? channel,
+          result: r.ok ? "ok" : r.code, ...(r.ok ? {} : { reason: r.reason }) }); // never the text
+      }
+      this.world.db.exec("COMMIT");
+      return out;
+    } catch (e) {
+      if (this.world.db.isTransaction) this.world.db.exec("ROLLBACK");
+      for (const { c, id } of q) c.chatResults.push({ id, ok: false, code: "INVALID", reason: `The server couldn't save that (${(e as Error).message}); try again` });
+      return [];
+    }
   }
 
   private logCommand(c: Client, cmd: Command, r: CommandResult, ms: number): void {
@@ -231,6 +270,7 @@ export class Hub {
     if (this.world.state) this.world.close(this.world.state.season.id, now);
     this.world.ensureSeason(now);
     this.queue = [];
+    this.chatQueue = [];
     this.log.write({ ts: now, action: "reset", result: "ok" });
     this.close(4004, "World reset");
   }

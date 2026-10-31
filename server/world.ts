@@ -19,7 +19,7 @@ export class World {
   state: State | null = null;
   private lastSeq = 0;
   private dirty = false;
-  private db: Db;
+  readonly db: Db;
 
   constructor(db: Db) {
     this.db = db;

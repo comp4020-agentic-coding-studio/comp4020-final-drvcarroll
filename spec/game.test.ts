@@ -131,3 +131,41 @@ describe("message sizes (goals.md S3; system-design.md §14.6)", () => {
     a.client.close();
   });
 });
+
+describe("chat (game-design.md §9; system-design.md §14.3)", () => {
+  // Alliances need a fresh world, so server/server.test.ts covers that channel.
+  it("delivers global and direct chat within 1 s and keeps it after a reconnect", async () => {
+    const [a, b] = [await player("cha"), await player("chb")];
+    await a.client.join();
+    await b.client.join();
+    const text = unique("hi ");
+    const sent = Date.now();
+    a.client.chat("g1", "global", text);
+    expect(await a.client.chatResult("g1")).toMatchObject({ ok: true });
+    await b.client.until((m) => m.chat?.some((x: Msg) => x.text === text));
+    expect(Date.now() - sent).toBeLessThan(1000);
+    const dm = unique("dm ");
+    a.client.chat("d1", b.client.welcome.you.nation, dm);
+    await b.client.until((m) => m.chat?.some((x: Msg) => x.text === dm));
+    a.client.close();
+    const again = await Client.open(base, b.cookie);
+    expect(again.welcome.chat.map((x: Msg) => x.text)).toEqual(expect.arrayContaining([text, dm]));
+    again.close();
+    b.client.close();
+  });
+
+  it("never sends direct chat to outsiders", async () => {
+    const [a, b, c] = [await player("cpa"), await player("cpb"), await player("cpc")];
+    for (const p of [a, b, c]) await p.client.join();
+    const dm = unique("secret ");
+    a.client.chat("d1", b.client.welcome.you.nation, dm);
+    await b.client.until((m) => m.chat?.some((x: Msg) => x.text === dm));
+    await new Promise((r) => setTimeout(r, 700));
+    const mine = c.client.welcome.you.nation;
+    for (const x of c.client.said) {
+      expect(x.channel === "global" || x.channel.split(":").includes(mine), x.channel).toBe(true);
+    }
+    expect(c.client.said.some((x) => x.text === dm)).toBe(false);
+    for (const p of [a, b, c]) p.client.close();
+  });
+});

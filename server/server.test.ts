@@ -381,3 +381,59 @@ describe("sync (system-design.md §6; S05)", () => {
     expect(running!.hub.stats().sockets).toBe(2);
   });
 });
+
+describe("server: chat (game-design.md §9)", () => {
+  it("refuses empty, long and flooded chat with a reason", async () => {
+    await boot(mkdtempSync(join(tmpdir(), "grow-")));
+    const a = await open(await account("alice", "Aurora"));
+    a.chat("x0", "global", "hello");
+    expect(await a.chatResult("x0")).toMatchObject({ ok: false, code: "NOT_JOINED" });
+    a.send("j", { type: "join", region: "r_canada" });
+    await a.result("j");
+    a.chat("x1", "global", "   ");
+    a.chat("x2", "global", "x".repeat(281));
+    a.chat("x3", "alliance", "pact?");
+    a.chat("x4", "n_999", "hi");
+    for (const id of ["x1", "x2", "x3", "x4"]) {
+      const r = await a.chatResult(id);
+      expect(r, id).toMatchObject({ ok: false, code: "INVALID" });
+      expect(r.reason.length, id).toBeGreaterThan(0);
+    }
+    for (let i = 0; i < 6; i++) a.chat(`f${i}`, "global", `msg ${i}`);
+    expect(await a.chatResult("f4")).toMatchObject({ ok: true });
+    expect(await a.chatResult("f5")).toMatchObject({ ok: false, code: "RATE_LIMIT" });
+    expect(lines.some((l) => l.includes("msg 0"))).toBe(false); // logs never hold the text
+    expect(lines.some((l) => JSON.parse(l).action === "chat")).toBe(true);
+  });
+
+  it("keeps chat across a restart and opens an alliance channel to members only", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "grow-"));
+    await boot(dir);
+    const [a, b, c] = [await open(await account("alice", "Aurora")), await open(await account("bob", "Borealis")), await open(await account("cara", "Cygnus"))];
+    a.send("j", { type: "join", region: "r_canada" });
+    b.send("j", { type: "join", region: "r_us_west" });
+    c.send("j", { type: "join", region: "r_siberia" });
+    await Promise.all([a.result("j"), b.result("j"), c.result("j")]);
+    const [na, nb] = [a.msgs[0].you.nation, b.msgs[0].you.nation];
+    a.send("i", { type: "inviteAlly", nation: nb });
+    await a.result("i");
+    const ally = await b.until((m) => m.changes?.alliances?.some((x: Msg) => x.invites.includes(nb)));
+    b.send("k", { type: "acceptAlly", alliance: ally.changes.alliances[0].id });
+    expect(await b.result("k")).toMatchObject({ ok: true });
+    a.chat("m1", "alliance", "just us");
+    a.chat("m2", nb, "psst");
+    a.chat("m3", "global", "hello all");
+    await b.until((m) => m.chat?.some((x: Msg) => x.text === "hello all"));
+    await c.until((m) => m.chat?.some((x: Msg) => x.text === "hello all"));
+    expect(b.said.map((x) => x.text)).toEqual(expect.arrayContaining(["just us", "psst"]));
+    expect(c.said.map((x) => x.text)).toEqual(["hello all"]);
+    await running!.close();
+
+    await boot(dir);
+    const again = await open(await account("bob"));
+    expect(again.welcome.chat.map((x: Msg) => x.text)).toEqual(["just us", "psst", "hello all"]);
+    expect(again.welcome.chat[1]).toMatchObject({ from: na, channel: [na, nb].sort().join(":").replace(/^/, "d:") });
+    const outsider = await open(await account("cara"));
+    expect(outsider.welcome.chat.map((x: Msg) => x.text)).toEqual(["hello all"]);
+  });
+});
