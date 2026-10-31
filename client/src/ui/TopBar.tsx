@@ -1,16 +1,17 @@
 // The HUD's top strip: empire totals with per-day gains and their
-// breakdowns, date, timers, Empires and the Guide (game-design.md §12).
+// breakdowns, date, timers, Chat, Empires and the Guide (game-design.md §12).
 import { useEffect, useState } from "preact/hooks";
 import { RESOURCES, RESOURCE_NAMES, STAGES, type Resource } from "../../../rules/data/index.ts";
 import { dur, gameDate, num, perDay, signed, sourceName } from "../format.ts";
 import { eco } from "../mirror.ts";
 import { clock, conn, cycleGraphics, drawer, graphics, joined, myNation, season, stockNow, tier, you, type Drawer } from "../store.ts";
+import { unread } from "./ChatPanel.tsx";
 import { openGuide } from "./Guide.tsx";
 import { ResIcon } from "./icons.tsx";
 import { scene } from "./SceneHost.tsx";
 
 const STATUS = { connecting: "Connecting…", open: "Live", reconnecting: "Reconnecting…", "signed-out": "Signed out" };
-const DRAWERS: [Drawer, string][] = [["empires", "Empires"], ["guide", "Guide"]];
+const DRAWERS: [Drawer, string][] = [["chat", "Chat"], ["empires", "Empires"], ["guide", "Guide"]];
 
 export function TopBar({ user }: { user: string }) {
   const y = you.value, sz = season.value, n = myNation.value, t = clock.value;
@@ -65,7 +66,9 @@ export function TopBar({ user }: { user: string }) {
         <nav class="drawers" aria-label="Panels">
           {DRAWERS.map(([d, label]) => (
             <button key={d} class={drawer.value === d ? "on" : ""} aria-pressed={drawer.value === d}
-              title={d === "guide" ? "How to play (?)" : undefined} onClick={() => (drawer.value = drawer.value === d ? null : d)}>{label}</button>
+              title={d === "guide" ? "How to play (?)" : undefined} onClick={() => (drawer.value = drawer.value === d ? null : d)}>
+              {label}{d === "chat" && drawer.value !== "chat" && unread() > 0 && <span class="count" aria-label={`${unread()} unread`}>{unread()}</span>}
+            </button>
           ))}
         </nav>
       )}

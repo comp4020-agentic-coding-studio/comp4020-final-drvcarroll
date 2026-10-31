@@ -1,9 +1,9 @@
 // system-design.md §6, §14.3: one socket; welcome is a full snapshot, each
 // tick carries whole changed entities. No optimistic updates.
 import { batch } from "@preact/signals";
-import type { Command, CommandResult, VisibleWorld } from "../../rules/index.ts";
+import type { ChatResult, Command, CommandResult, VisibleWorld } from "../../rules/index.ts";
 import { describe } from "./format.ts";
-import { clock, conn, offset, pending, season, tickAt, toast, world, you } from "./store.ts";
+import { chat, clock, conn, offset, pending, season, tickAt, toast, world, you } from "./store.ts";
 
 type Msg = Record<string, any>;
 let ws: WebSocket | undefined;
@@ -54,6 +54,7 @@ function receive(m: Msg): void {
       world.value = m.world;
       you.value = m.you;
       season.value = m.season;
+      chat.value = m.chat ?? [];
       tickAt.value = m.serverTime;
       conn.value = "open";
       backoff = 500;
@@ -82,7 +83,9 @@ function receive(m: Msg): void {
     }
     if (m.you) you.value = you.value ? { ...you.value, ...m.you } : m.you;
     if (m.season) season.value = m.season;
+    if (m.chat) chat.value = [...chat.value, ...m.chat].slice(-600);
     for (const r of (m.results ?? []) as CommandResult[]) settle(r);
+    for (const r of (m.chatResults ?? []) as ChatResult[]) if (!r.ok) toast(`Message: ${r.reason}`, "error");
   });
 }
 
@@ -93,6 +96,10 @@ function settle(r: CommandResult): void {
   pending.value = rest;
   if (!r.ok) toast(`${describe(cmd)}: ${r.reason}`, "error");
   else toast(`${describe(cmd)}: done`);
+}
+
+export function say(channel: string, text: string): void {
+  if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ t: "chat", id: crypto.randomUUID(), channel, text }));
 }
 
 export function send(cmd: Command): void {

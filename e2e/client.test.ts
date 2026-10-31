@@ -298,6 +298,26 @@ describe("the map is the screen (goals.md P10)", () => {
     await b.close();
   }, 120_000);
 
+  it("chats on Global and opens a direct message from Empires, at both viewports (game-design.md §9)", async () => {
+    const a = await player("tango", "US East");
+    const b = await player("uniform", "Iran & Central Asia", { width: 390, height: 844 });
+    await a.locator(".drawers button", { hasText: "Chat" }).click();
+    await a.locator(".chat-send input").fill("hello <b>world</b>");
+    await a.keyboard.press("Enter");
+    await expect.poll(() => b.locator(".drawers button", { hasText: "Chat" }).innerText(), { timeout: 3000 }).toMatch(/1/);
+    await b.locator(".drawers button", { hasText: "Chat" }).click();
+    await expect.poll(() => b.locator(".chat-log").innerText()).toContain("hello <b>world</b>"); // text, never HTML
+    expect(await b.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+    await a.locator(".drawers button", { hasText: "Empires" }).click();
+    await a.locator("li.nation", { hasText: "uniform" }).locator("button", { hasText: "Message" }).click();
+    await expect.poll(() => a.locator(".chat-tabs [aria-selected=true]").innerText()).toMatch(/uniform/);
+    await a.locator(".chat-send input").fill("just you");
+    await a.keyboard.press("Enter");
+    await expect.poll(() => b.locator(".chat-tabs").innerText(), { timeout: 3000 }).toMatch(/tango/);
+    await a.close();
+    await b.close();
+  }, 120_000);
+
   it("pins an Envoy beacon on the host's capital, for the sender only", async () => {
     const a = await player("november", "North China");
     const b = await player("mike", "West Africa");

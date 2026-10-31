@@ -1,10 +1,10 @@
 // Client state as signals: only what changed re-renders.
 import { computed, signal } from "@preact/signals";
-import type { Command, Id, NationPublic, PrivateState, Season, VisibleWorld } from "../../rules/index.ts";
+import type { ChatMessage, Command, Id, NationPublic, PrivateState, Season, VisibleWorld } from "../../rules/index.ts";
 
 export type Conn = "connecting" | "open" | "reconnecting" | "signed-out";
 export interface Toast { id: number; text: string; kind: "error" | "info" }
-export type Drawer = "tech" | "empires" | "guide";
+export type Drawer = "tech" | "empires" | "guide" | "chat";
 export type Quality = "high" | "medium" | "low";
 export type Graphics = "auto" | Quality;
 
@@ -25,6 +25,10 @@ export const selFleet = signal<Id | null>(null);
 export const launchTo = signal<string | null>(null); // set by clicking a body while a fleet is selected
 export const drawer = signal<Drawer | null>(null);
 export const guidePage = signal("resources");
+// game-design.md §9 Chat. channel: "global", "alliance", or a nation id.
+export const chat = signal<ChatMessage[]>([]);
+export const chatTab = signal("global");
+export const chatSeen = signal<Record<string, number>>({}); // last read message id per tab
 // The player's graphics choice, kept per viewer; `tier` is what draws now.
 const GFX_KEY = "grow.graphics";
 const GFX: Graphics[] = ["auto", "high", "medium", "low"];

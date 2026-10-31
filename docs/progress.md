@@ -10,11 +10,9 @@ drain and pending-command tests time out in the full run and pass alone
 The harness is in the repo: `.claude/skills/` (comp4020_resume,
 comp4020_update, playtest), `.claude/agents/` (playtester, analyst),
 `scripts/play.ts`. ADRs S01 to S11 and G01 to G11 in `docs/adr/`.
-**Next:** Stage I client: `chat` signal, Chat button with unread count,
-panel with Global, Alliance and direct tabs, Message on Empires rows, e2e
-(game-design.md §9 Chat). Server side done: `server/chat.ts`, migration
-003, hub fan-out, spec and server tests green. The user is editing
-README.md and PROCESS.md: don't touch them.
+**Next:** Stage I done (user-tested; e2e "chats on Global" written, not
+yet run). The user is editing README.md, PROCESS.md and the ADRs: don't
+touch them.
 **Flagged assumptions:** (I) 280 characters, 5 per 10 s, 50 per channel
 on connect and 200 kept are my numbers; direct messages are open across
 war and sanctions; an alliance channel's history shows to a new member. (G2) plunder 25%, scaled by the region's share
@@ -25,4 +23,4 @@ calling e2e green. Settled calls live in game-design.md §14 (incl. G1's:
 Replace is P1's first build, Earth-wide Army counts are intended vision);
 foreign fleets/offers stay `INVALID` (§14.5, S07); a vision-opening tick
 gets the welcome budget (S11).
-**Last updated:** 2026-10-31 (Stage I, chat, scoped).
+**Last updated:** 2026-10-31 (Stage I, chat, built).

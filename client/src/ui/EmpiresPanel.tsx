@@ -8,6 +8,7 @@ import { tradeMultiplier } from "../../../rules/trade.ts";
 import { dur, num } from "../format.ts";
 import { mirror } from "../mirror.ts";
 import { clock, me, season, world, you } from "../store.ts";
+import { openChat } from "./ChatPanel.tsx";
 import { Action, Chip } from "./common.tsx";
 import { Amt, Goodsline, ResIcon } from "./icons.tsx";
 
@@ -123,6 +124,7 @@ function NationRow({ n, rank, gain }: { n: NationPublic; rank: number; gain: num
             : <Action kind="quiet" cmd={{ type: "sendEnvoy", nation: n.id }}>Send Envoy <Amt res="E" v={ECONOMY.envoyUpkeepE} />/min</Action>}
           {!sanctioned && <span class="action"><button class={`quiet ${trading ? "on" : ""}`} aria-expanded={trading} onClick={() => setTrading(!trading)}>Trade</button></span>}
           {sanctioned && <small class="warn">Under sanction: no trade</small>}
+          <span class="action"><button class="quiet" onClick={() => openChat(n.id)}>Message</button></span>
         </div>
       )}
       {deals.length > 0 && <ul class="list deals">{deals.map((o) => <Deal key={o.id} o={o} />)}</ul>}

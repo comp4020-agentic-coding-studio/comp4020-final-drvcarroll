@@ -441,8 +441,8 @@ admin reset clears them. Each channel keeps its last 200 messages; a
 client gets the last 50 per channel it can read on connect.
 
 UI: a **Chat** button in the top bar, beside Empires and Guide, with an
-unread count. It opens a panel on the left above the empire menu (a bottom
-sheet on a phone), map visible behind: channel tabs for Global, Alliance
+unread count. It opens a drawer on the right like Empires and the Guide
+(full screen on a phone), map visible behind: channel tabs for Global, Alliance
 (only while in one) and one per open direct conversation, the messages
 with the sender's name in their colour and a time, and a text box (Enter
 sends). A nation's row in Empires has a **Message** action that opens its
