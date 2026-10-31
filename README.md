@@ -42,6 +42,9 @@ Those ideas break down into game design goals ([game-design.md](docs/game-design
 | Persistent, traceable execution | [S2](docs/adr/S2.md) |
 | Changes appear under a second | [S3](docs/adr/S3.md) |
 | One stack | [S4](docs/adr/S4.md) |
+
+
+
 ## References
 
 1. M. Pawlikowski, ["'We create the games. You create the stories.' Interview with Stephen Muray"](https://www.gamepressure.com/newsroom/interview-stephen-muray-about-stellaris-and-paradox-interactive/z65296), Gamepressure, 2023.
